@@ -300,6 +300,7 @@
   <a href="#opt">Optimization</a>
   <a href="#prob">Probability</a>
   <a href="#rl">RL Framing</a>
+  <a href="#scaling">Scaling</a>
 </nav>
 
 <main>
@@ -551,6 +552,30 @@
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 220" id="ppo-plot"></svg>
           <div class="formula-display" id="ppo-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION E: SCALING ============ -->
+  <section class="group" id="scaling">
+    <div class="group-header"><span class="group-index">05</span><h2>Scaling: Train-time vs Test-time</h2></div>
+    <p class="group-intro">Compute spent <b>before</b> deployment (bigger model, more training steps) gets baked into the weights once and amortized over every future query. Compute spent <b>at</b> deployment (more samples per query, longer reasoning) is paid fresh every time. Under a fixed total compute budget, the two trade off directly.</p>
+
+    <article class="concept" id="compute-budget">
+      <h3>A fixed compute budget: model size vs. samples per query</h3>
+      <p class="concept-desc">Toy model: a bigger model has a higher per-sample accuracy ceiling but costs more per inference call. Under a <b>fixed total compute budget C</b>, spending more of it on model size <code>s</code> leaves fewer affordable samples-per-query <code>n = ⌊C/s⌋</code> (best-of-<i>n</i>), and vice versa. Drag the model-size slider and watch accuracy rise, peak, then fall as you overspend on size at the expense of samples.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Total compute budget C = <span id="cb-budget-val">256</span> units</label>
+          <input type="range" id="cb-budget" min="32" max="1024" step="32" value="256">
+          <label>Model size s (train-time compute) = <span id="cb-size-val">4.0</span></label>
+          <input type="range" id="cb-size" min="0.5" max="20" step="0.1" value="4">
+          <p class="hint" id="cb-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="cb-plot"></svg>
+          <div class="formula-display" id="cb-formula"></div>
         </div>
       </div>
     </article>
@@ -1295,6 +1320,86 @@
     render();
   }
 
+  /* ---------------- E1: Compute budget — train-time vs test-time ---------------- */
+  function initComputeBudget(){
+    var budgetSlider = document.getElementById('cb-budget');
+    var sizeSlider = document.getElementById('cb-size');
+    var budgetVal = document.getElementById('cb-budget-val');
+    var sizeVal = document.getElementById('cb-size-val');
+    var hintEl = document.getElementById('cb-hint');
+    var formulaEl = document.getElementById('cb-formula');
+    var svg = document.getElementById('cb-plot');
+
+    var W = 380, H = 220, PAD = 34;
+    var sMin = 0.5, sMax = 20;
+
+    // ceiling(s): accuracy an infinitely-resampled model of size s converges to —
+    // a "systematic competence" cap that more samples alone cannot fix.
+    function ceiling(s){ return 0.92 * (1 - Math.exp(-0.45*s)); }
+    // base(s): single-sample (n=1) accuracy, always below the ceiling.
+    function base(s){ return 0.05 + 0.5 * (1 - Math.exp(-0.45*s)); }
+    function nSamples(s, budget){ return Math.max(1, Math.floor(budget/s)); }
+    // More samples close the gap to the ceiling with diminishing returns (1/n),
+    // but can never push past it — that's the part train-time compute buys.
+    function finalAcc(s, budget){
+      var c = ceiling(s), b = Math.min(base(s), c - 0.01);
+      var n = nSamples(s, budget);
+      return c - (c-b)/n;
+    }
+
+    function render(){
+      var budget = parseFloat(budgetSlider.value);
+      var s = parseFloat(sizeSlider.value);
+      budgetVal.textContent = budget.toFixed(0);
+      sizeVal.textContent = s.toFixed(1);
+
+      function xToPx(ss){ return PAD + (ss-sMin)/(sMax-sMin) * (W-2*PAD); }
+      function yToPx(v){ return PAD + (1-v) * (H-2*PAD); }
+
+      var pts = [];
+      var bestS = sMin, bestAcc = -1;
+      for(var ss = sMin; ss <= sMax + 1e-9; ss += 0.1){
+        var a = finalAcc(ss, budget);
+        if(a > bestAcc){ bestAcc = a; bestS = ss; }
+        pts.push([xToPx(ss), yToPx(a)]);
+      }
+      function toPath(p){ return p.map(function(pt,i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' '); }
+
+      var n = nSamples(s, budget);
+      var acc = finalAcc(s, budget);
+      var cx = xToPx(s), cy = yToPx(acc);
+      var bx = xToPx(bestS), by = yToPx(bestAcc);
+
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + (H-PAD) + '" x2="' + (W-PAD) + '" y2="' + (H-PAD) + '"></line>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + PAD + '" x2="' + PAD + '" y2="' + (H-PAD) + '"></line>' +
+        '<path class="plot-curve" d="' + toPath(pts) + '"></path>' +
+        '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="3.5" fill="var(--text-dim)" opacity="0.6"></circle>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD-8) + '" fill="var(--text-dim)" font-size="10">accuracy</text>' +
+        '<text x="' + (W-PAD-58) + '" y="' + (H-PAD+16) + '" fill="var(--text-dim)" font-size="10">model size s</text>' +
+        '<text x="' + (bx+4).toFixed(1) + '" y="' + (by-6).toFixed(1) + '" fill="var(--text-dim)" font-size="9">optimum</text>';
+
+      var hint;
+      if(Math.abs(s-bestS) < 0.3){
+        hint = 'Near the budget-optimal split for C=' + budget.toFixed(0) + ': model size ≈ ' + bestS.toFixed(1) + '.';
+      } else if(s < bestS){
+        hint = 'Under-invested in the model: its competence ceiling (' + ceiling(s).toFixed(2) + ') is low enough that no amount of resampling — even ' + n + ' samples — closes the gap. Move the slider right.';
+      } else {
+        hint = 'Over-invested in the model: most of the budget went to size, leaving only ' + n + ' sample' + (n===1?'':'s') + ' per query — the model is already near its ceiling, so extra test-time compute would help more here. Move the slider left.';
+      }
+      hintEl.textContent = hint;
+
+      formulaEl.innerHTML =
+        'n = &lfloor;C/s&rfloor; = &lfloor;' + budget.toFixed(0) + '/' + s.toFixed(1) + '&rfloor; = <b>' + n + '</b> samples/query<br>' +
+        'ceiling(s) = ' + ceiling(s).toFixed(3) + ' &nbsp;|&nbsp; base(s), n=1 = ' + base(s).toFixed(3) + ' &nbsp;|&nbsp; ' +
+        'accuracy = ceiling &minus; (ceiling&minus;base)/n = <b>' + acc.toFixed(3) + '</b>';
+    }
+    budgetSlider.addEventListener('input', render);
+    sizeSlider.addEventListener('input', render);
+    render();
+  }
+
   document.addEventListener('DOMContentLoaded', function(){
     initAutoregressive();
     initSoftmax();
@@ -1309,6 +1414,7 @@
     initMDP();
     initRLObjective();
     initPPO();
+    initComputeBudget();
   });
 })();
 </script>
