@@ -203,17 +203,17 @@
   }
   .formula-display b{ color:#fff; }
 
-  /* "in practice" QA callout */
-  .practice{
+  /* "in practice" styled callout (shared across course pages) */
+  .in-practice{
     border-left:3px solid var(--orange);
     background:rgba(224,164,88,0.08);
     border-radius:0 8px 8px 0;
-    padding:9px 14px;
-    font-size:0.82em;
-    color:var(--text-dim);
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
     margin-top:4px;
   }
-  .practice b{ color:var(--orange); font-family:var(--mono); font-size:0.92em; letter-spacing:0.04em; }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
 
   /* token chips */
   .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
@@ -333,7 +333,7 @@
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 200" id="sp-plot"></svg>
           <div class="formula-display" id="sp-formula"></div>
-          <div class="practice"><b>IN PRACTICE</b> <span id="sp-practice"></span></div>
+          <div class="in-practice"><b>In practice</b> · <span id="sp-practice"></span></div>
         </div>
       </div>
     </article>
@@ -369,7 +369,7 @@
           </div>
           <svg class="plot" viewBox="0 0 420 240" id="gao-plot"></svg>
           <div class="formula-display" id="gao-formula"></div>
-          <div class="practice"><b>IN PRACTICE</b> <span id="gao-practice"></span></div>
+          <div class="in-practice"><b>In practice</b> · <span id="gao-practice"></span></div>
         </div>
       </div>
     </article>
@@ -399,7 +399,7 @@
           </div>
           <svg class="plot" viewBox="0 0 420 220" id="br-plot"></svg>
           <div class="formula-display" id="br-formula"></div>
-          <div class="practice"><b>IN PRACTICE</b> <span id="br-practice"></span></div>
+          <div class="in-practice"><b>In practice</b> · <span id="br-practice"></span></div>
         </div>
       </div>
     </article>
@@ -426,7 +426,7 @@
           </div>
           <svg class="plot" viewBox="0 0 420 230" id="bai-plot"></svg>
           <div class="formula-display" id="bai-formula"></div>
-          <div class="practice"><b>IN PRACTICE</b> <span id="bai-practice"></span></div>
+          <div class="in-practice"><b>In practice</b> · <span id="bai-practice"></span></div>
         </div>
       </div>
     </article>
@@ -485,7 +485,7 @@
           </div>
           <svg class="plot" viewBox="0 0 420 220" id="ens-plot"></svg>
           <div class="formula-display" id="ens-formula"></div>
-          <div class="practice"><b>IN PRACTICE</b> <span id="ens-practice"></span></div>
+          <div class="in-practice"><b>In practice</b> · <span id="ens-practice"></span></div>
         </div>
       </div>
     </article>

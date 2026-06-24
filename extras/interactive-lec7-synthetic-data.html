@@ -213,6 +213,18 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* "in practice" styled callout (shared across course pages) */
+  .in-practice{
+    border-left:3px solid var(--orange);
+    background:rgba(224,164,88,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
+    margin-top:4px;
+  }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
+
   /* token chips */
   .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
   .token-chip{
@@ -452,6 +464,7 @@
           <input type="range" id="bv-n" min="1" max="40" step="1" value="8">
           <button id="bv-opt">Snap to error-minimizing mix</button>
           <p class="hint" id="bv-hint"></p>
+          <div class="in-practice"><b>In practice</b> · This is a real data-sourcing decision, not just a stats exercise: how much vendor/AI-labeled data you can trust versus where you need expensive human review depends on the bias your AI labeler carries into the specific domain you're building for.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="bv-plot"></svg>
@@ -469,6 +482,7 @@
           <button id="rub-best">Best answer</button>
           <button id="rub-worst">Worst answer</button>
           <p class="hint">Click a criterion to toggle whether this candidate answer satisfies it. Hard rules must <i>all</i> pass for a valid answer; principles add graded quality on top.</p>
+          <div class="in-practice"><b>In practice</b> · Rubrics are the practical middle ground between a binary verifier and a vague learned reward model: for domains without one checkable answer, hand-written, auditable criteria give RL a reward signal that's at least partially inspectable and harder to silently game.</div>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="rub-bars" style="height:150px;"></div>

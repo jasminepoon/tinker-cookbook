@@ -203,6 +203,18 @@
     line-height:1.7;
   }
   .formula-display b{ color:#fff; }
+
+  /* "in practice" styled callout (shared across course pages) */
+  .in-practice{
+    border-left:3px solid var(--orange);
+    background:rgba(224,164,88,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
+    margin-top:4px;
+  }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
   .formula-display .pos{ color:var(--accent-bright); }
   .formula-display .neg{ color:var(--pink); }
   .formula-display .dim{ color:var(--text-dim); }
@@ -493,6 +505,7 @@
           <button id="ld-step">Train step ▶</button>
           <button id="ld-reset">Reset</button>
           <p class="hint" id="ld-hint"></p>
+          <div class="in-practice"><b>In practice</b> · DPO has no explicit reward model to audit, but it is not immune to bad preference data — the margin can "look" fine while the chosen response's own likelihood quietly degrades. The same data QA discipline (held-out checks, not just train loss) still applies.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="ld-plot"></svg>

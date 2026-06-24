@@ -203,17 +203,17 @@
   }
   .formula-display b{ color:#fff; }
 
-  /* "in practice" styled line */
-  .practice{
+  /* "in practice" styled callout (shared across course pages) */
+  .in-practice{
     border-left:3px solid var(--orange);
     background:rgba(224,164,88,0.08);
     border-radius:0 8px 8px 0;
-    padding:9px 12px;
-    font-size:0.82em;
-    color:var(--text-dim);
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
     margin-top:4px;
   }
-  .practice b{ color:var(--orange); }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
 
   /* token chips */
   .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
@@ -345,7 +345,7 @@
           <label>Score of rejected, r<sub>r</sub> = r<sub>θ</sub>(y<sub>r</sub>|x) = <span id="bt-rr-val">-0.50</span></label>
           <input type="range" id="bt-rr" min="-4" max="4" step="0.05" value="-0.5">
           <p class="hint">When r<sub>c</sub> &gt; r<sub>r</sub> the model orders the pair correctly and loss is small. Flip them and loss shoots up — the gradient pushes the chosen score up and the rejected score down.</p>
-          <div class="practice"><b>In practice:</b> the entire skill of preference data is producing pairs whose ordering you actually trust — when there is no clean label, your (y_c, y_r) choice <i>is</i> the reward spec.</div>
+          <div class="in-practice"><b>In practice</b> · the entire skill of preference data is producing pairs whose ordering you actually trust — when there is no clean label, your (y_c, y_r) choice <i>is</i> the reward spec.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 200" id="bt-plot"></svg>
@@ -398,7 +398,7 @@
             <button id="jb-self-toggle">Toggle: is A the judge's own family?</button>
           </div>
           <p class="hint">Verdict logit = Δ (true gap, favors B if &gt;0) − position bias (favors A) − self-pref (favors whichever is the judge's family). The judge can prefer A even when B is genuinely better.</p>
-          <div class="practice"><b>In practice:</b> the cheapest, highest-leverage grader QA is averaging both A/B orderings — if the verdict isn't order-invariant, the bias is contaminating every reward.</div>
+          <div class="in-practice"><b>In practice</b> · the cheapest, highest-leverage grader QA is averaging both A/B orderings — if the verdict isn't order-invariant, the bias is contaminating every reward.</div>
         </div>
         <div class="panel-viz">
           <div id="jb-cards"></div>
@@ -451,7 +451,7 @@
           <label>Which step is logically broken? (0 = none)</label>
           <input type="range" id="op-broken" min="0" max="5" step="1" value="3">
           <p class="hint" id="op-hint"></p>
-          <div class="practice"><b>In practice:</b> when the final label is cheap but step labels are expensive, you choose what to grade — and that choice decides whether the policy can learn to fix its reasoning or just its answer.</div>
+          <div class="in-practice"><b>In practice</b> · when the final label is cheap but step labels are expensive, you choose what to grade — and that choice decides whether the policy can learn to fix its reasoning or just its answer.</div>
         </div>
         <div class="panel-viz">
           <div class="step-list" id="op-steps"></div>
@@ -492,7 +492,7 @@
           <label>Completions per prompt, K = <span id="kw-k-val">4</span></label>
           <input type="range" id="kw-k" min="2" max="9" step="1" value="4">
           <p class="hint">Pairs per prompt = C(K,2) = K(K−1)/2. The grouped loss multiplies by 1/C(K,2) so a prompt with K=9 (36 pairs) doesn't outvote a prompt with K=2 (1 pair).</p>
-          <div class="practice"><b>In practice:</b> more completions per prompt is cheap signal — but only if you weight it so a few verbose prompts don't quietly become your whole reward model.</div>
+          <div class="in-practice"><b>In practice</b> · more completions per prompt is cheap signal — but only if you weight it so a few verbose prompts don't quietly become your whole reward model.</div>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="kw-bars"></div>
@@ -518,7 +518,7 @@
           <input type="range" id="pg-noise" min="0" max="1" step="0.05" value="0.3">
           <button id="pg-reseed">New noise draw</button>
           <p class="hint" id="pg-hint"></p>
-          <div class="practice"><b>In practice:</b> a grader that's biased or only weakly self-consistent doesn't fail loudly — it ships a confidently-wrong reward the optimizer will find and hack. Grader QA <i>is</i> the safety work.</div>
+          <div class="in-practice"><b>In practice</b> · a grader that's biased or only weakly self-consistent doesn't fail loudly — it ships a confidently-wrong reward the optimizer will find and hack. Grader QA <i>is</i> the safety work.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 220" id="pg-plot"></svg>

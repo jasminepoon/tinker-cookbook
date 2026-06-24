@@ -202,6 +202,18 @@
     overflow-x:auto;
   }
   .formula-display b{ color:#fff; }
+
+  /* "in practice" styled callout (shared across course pages) */
+  .in-practice{
+    border-left:3px solid var(--orange);
+    background:rgba(224,164,88,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
+    margin-top:4px;
+  }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
   .formula-display .pos{ color:var(--accent-bright); }
   .formula-display .neg{ color:var(--red); }
 
@@ -494,6 +506,7 @@
           <label>Raw reward R(τ) = <span id="kl-r-val">1.00</span></label>
           <input type="range" id="kl-r" min="-2" max="2" step="0.1" value="1">
           <p class="hint" id="kl-hint"></p>
+          <div class="in-practice"><b>In practice</b> · This β is the single knob that controls reward over-optimization: push it too low and a high reward stops meaning high quality. The "Over-Optimization &amp; Reward Hacking" page makes that failure curve explicit.</div>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="kl-bars"></div>

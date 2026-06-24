@@ -207,6 +207,18 @@
     overflow-x:auto;
   }
   .formula-display b{ color:#fff; }
+
+  /* "in practice" styled callout (shared across course pages) */
+  .in-practice{
+    border-left:3px solid var(--orange);
+    background:rgba(224,164,88,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
+    margin-top:4px;
+  }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
   .formula-display .muted{ color:var(--text-dim); }
 
   /* token chips */
@@ -426,6 +438,7 @@ u: Are you sure about that?</textarea>
           <label>r<sub>l</sub> (rejected / y<sub>l</sub>) = <span id="bt-rl-val">0.00</span></label>
           <input type="range" id="bt-rl" min="-5" max="5" step="0.1" value="0">
           <p class="hint" id="bt-hint"></p>
+          <div class="in-practice"><b>In practice</b> · This pairwise label <i>is</i> the reward design decision — whoever picks (y_w, y_l) is implicitly defining what "good" means for the policy. Sloppy or inconsistent labeling becomes a reward model the policy can hack.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 210" id="bt-plot"></svg>
@@ -507,6 +520,7 @@ u: Are you sure about that?</textarea>
           <input type="range" id="bon-t" min="0.2" max="1.5" step="0.05" value="0.9">
           <button id="bon-resample">Resample completions</button>
           <p class="hint" id="bon-hint"></p>
+          <div class="in-practice"><b>In practice</b> · Best-of-N still maximizes the same imperfect proxy reward model, just at inference time instead of via gradient steps — push N high enough and you'll surface the reward model's blind spots same as RL would, just with a softer failure curve.</div>
         </div>
         <div class="panel-viz">
           <div class="rs-grid" id="bon-grid"></div>
