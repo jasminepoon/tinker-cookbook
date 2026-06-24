@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lecture 3: Reinforcement Learning (the math) — Policy Gradients</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -203,6 +205,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -295,7 +321,7 @@
   <a class="back-link" href="index.html">&larr; Course index</a>
   <div class="eyebrow">rlhfbook.com/course · lecture 3</div>
   <h1>Reinforcement Learning (the math)</h1>
-  <p class="sub">Policy gradients from first principles: language models as MDPs, the log-derivative trick, baselines and variance reduction, the choices of the learning signal Ψ<sub>t</sub>, and the KL regularizer that keeps the policy honest.</p>
+  <p class="sub">Policy gradients from first principles: language models as MDPs, the log-derivative trick, baselines and variance reduction, the choices of the learning signal <span class="m" data-tex="\Psi_t"></span>, and the KL regularizer that keeps the policy honest.</p>
   <p class="credit">Adapted from Nathan Lambert's "Lecture 3: Reinforcement Learning — Motivation &amp; Math" (Chapter 6, rlhfbook.com/course). Interactive build only — original content credit to the source deck.</p>
 </header>
 
@@ -304,7 +330,7 @@
   <a href="#pg">Policy Gradient</a>
   <a href="#logderiv">Log-derivative Trick</a>
   <a href="#baseline">Baselines &amp; Variance</a>
-  <a href="#psi">Choices of Ψ</a>
+  <a href="#psi">Choices of <span class="m" data-tex="\Psi"></span></a>
   <a href="#rloo">RLOO</a>
   <a href="#kl">KL Regularization</a>
 </nav>
@@ -314,11 +340,11 @@
   <!-- ============ SECTION 1: LM AS MDP ============ -->
   <section class="group" id="mdp">
     <div class="group-header"><span class="group-index">01</span><h2>Language models as an episodic MDP</h2></div>
-    <p class="group-intro">An RLHF rollout is a Markov decision process in disguise. The state <code>s_t = (x, y_&lt;t)</code> is the prompt plus tokens generated so far, the action <code>a_t</code> is the next token, the transition is deterministic (just append), and a single terminal reward scores the whole completion. Step through an episode and watch the state grow.</p>
+    <p class="group-intro">An RLHF rollout is a Markov decision process in disguise. The state <span class="m" data-tex="s_t = (x, y_{<t})"></span> is the prompt plus tokens generated so far, the action <span class="m" data-tex="a_t"></span> is the next token, the transition is deterministic (just append), and a single terminal reward scores the whole completion. Step through an episode and watch the state grow.</p>
 
     <article class="concept" id="mdp-timeline">
       <h3>Step through an episode</h3>
-      <p class="concept-desc">One prompt → one completion is one <b>episode</b>. At each step the policy <code>π_θ(a_t | s_t)</code> samples the next token, the state appends it (deterministic transition), and only at the very end does the reward model / verifier emit a single scalar <code>R(τ)</code>. Discount <code>γ = 1</code> — no per-step rewards.</p>
+      <p class="concept-desc">One prompt → one completion is one <b>episode</b>. At each step the policy <span class="m" data-tex="\pi_\theta(a_t \mid s_t)"></span> samples the next token, the state appends it (deterministic transition), and only at the very end does the reward model / verifier emit a single scalar <span class="m" data-tex="R(\tau)"></span>. Discount <span class="m" data-tex="\gamma = 1"></span> — no per-step rewards.</p>
       <div class="panel">
         <div class="panel-controls">
           <button id="mdp-step">Step ▶</button>
@@ -328,7 +354,8 @@
         </div>
         <div class="panel-viz">
           <div class="token-row" id="mdp-tokens"></div>
-          <div class="formula-display" id="mdp-formula"></div>
+          <div class="eq" id="mdp-formula"></div>
+          <div class="eq-readout" id="mdp-note2"></div>
         </div>
       </div>
     </article>
@@ -336,6 +363,13 @@
     <article class="concept" id="mdp-map">
       <h3>The MDP ↔ language-model dictionary</h3>
       <p class="concept-desc">Click a row to expand the intuition. Two views of the same MDP: <b>token-level</b> (each token is a separate action, used by PPO + GAE) vs. <b>sequence-level</b> (the whole completion is one action, used by REINFORCE / GRPO).</p>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="s_t"></span><span class="def">the <b>state</b> at step <span class="m" data-tex="t"></span>: the prompt <span class="m" data-tex="x"></span> plus the tokens generated so far <span class="m" data-tex="y_{<t}"></span></span></div>
+        <div class="row"><span class="sym" data-tex="a_t"></span><span class="def">the <b>action</b>: the next token <span class="m" data-tex="y_t"></span> sampled from the policy</span></div>
+        <div class="row"><span class="sym" data-tex="\pi_\theta"></span><span class="def">the <b>policy</b> with parameters <span class="m" data-tex="\theta"></span> — the LM next-token distribution <span class="m" data-tex="\pi_\theta(a_t\mid s_t)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="R(\tau)"></span><span class="def">the <b>reward</b> for the whole trajectory <span class="m" data-tex="\tau=(s_0,a_0,\dots)"></span> — a single terminal scalar (RM score / verifier)</span></div>
+        <div class="row"><span class="sym" data-tex="\gamma"></span><span class="def">the <b>discount</b> factor; <span class="m" data-tex="\gamma=1"></span> here, so future reward is not down-weighted</span></div>
+      </div>
       <div class="panel" style="grid-template-columns:1fr;">
         <div class="panel-viz">
           <table class="mdp" id="mdp-table">
@@ -542,6 +576,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -565,7 +613,9 @@
     var resetBtn = document.getElementById('mdp-reset');
     var tokensEl = document.getElementById('mdp-tokens');
     var formulaEl = document.getElementById('mdp-formula');
+    var noteEl = document.getElementById('mdp-note2');
     var dotsEl = document.getElementById('mdp-dots');
+    function texEsc(s){ return String(s).replace(/[\\{}$&#%_~^]/g, function(c){ return '\\' + c; }); }
     // t goes 0..completion.length ; t = number of tokens generated so far
     var t = 0;
 
@@ -1186,6 +1236,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initMdpTimeline();
     initMdpTable();
     initPolicyGradient();

@@ -396,6 +396,12 @@
     <article class="concept" id="judge-rubric">
       <h3>Pointwise judging against a rubric</h3>
       <p class="concept-desc">A pointwise judge scores one response on weighted criteria (helpfulness, accuracy, depth, …) and aggregates to a scalar reward. Tune how much the judge <i>cares</i> about each criterion and how each response performs; the weighted score is the reward the policy will chase.</p>
+      <div class="eq" data-tex="R = \frac{\sum_k \hat{w}_k\, s_k - 1}{4}, \qquad \hat{w}_k = \frac{w_k}{\sum_j w_j}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="s_k"></span><span class="def">the judge's raw rating for criterion <span class="m" data-tex="k"></span> (helpfulness, accuracy, depth) on a 1–5 scale</span></div>
+        <div class="row"><span class="sym" data-tex="w_k"></span><span class="def">how much the rubric weights criterion <span class="m" data-tex="k"></span>; <span class="m" data-tex="\hat{w}_k"></span> is that weight renormalized to sum to 1</span></div>
+        <div class="row"><span class="sym" data-tex="R"></span><span class="def">the scalar reward, the weighted 1–5 mean mapped linearly to <span class="m" data-tex="[0,1]"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>Judge weight — helpfulness = <span id="rb-w0-val">0.40</span></label>
@@ -411,7 +417,8 @@
         </div>
         <div class="panel-viz">
           <div id="rb-rubric"></div>
-          <div class="formula-display" id="rb-formula"></div>
+          <div class="eq" id="rb-formula"></div>
+          <div class="eq-readout" id="rb-status"></div>
         </div>
       </div>
     </article>
@@ -419,9 +426,16 @@
     <article class="concept" id="judge-bias">
       <h3>Pairwise judging: position &amp; self-preference bias</h3>
       <p class="concept-desc">The MT-Bench prompt asks the judge to pick "[[A]]", "[[B]]", or "[[C]]" (tie) — and explicitly begs it to "avoid any position biases." It begs because judges have them. A real judge nudges its verdict toward whichever slot is shown <b>first</b>, and toward responses that <i>look like its own</i>. Set the true quality gap, then dial in each bias and see the verdict flip.</p>
+      <div class="eq" data-tex="\ell_B = \Delta - b_{\text{pos}} \pm b_{\text{self}}, \qquad P(\text{judge}=B) = \sigma(\ell_B)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\Delta"></span><span class="def">true quality gap <span class="m" data-tex="q_B - q_A"></span>; positive means B is genuinely better</span></div>
+        <div class="row"><span class="sym" data-tex="b_{\text{pos}}"></span><span class="def">position bias pulling the verdict toward slot A (the first-shown response)</span></div>
+        <div class="row"><span class="sym" data-tex="b_{\text{self}}"></span><span class="def">self-preference bias pulling toward whichever response is the judge's own family (sign flips with the toggle)</span></div>
+        <div class="row"><span class="sym" data-tex="\ell_B"></span><span class="def">the verdict logit; <span class="m" data-tex="\sigma(\ell_B)>0.5"></span> means the judge picks B</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>True quality gap (B − A), Δ = <span id="jb-delta-val">0.30</span></label>
+          <label>True quality gap (B − A), <span class="m" data-tex="\Delta"></span> = <span id="jb-delta-val">0.30</span></label>
           <input type="range" id="jb-delta" min="-2" max="2" step="0.05" value="0.3">
           <label>Position bias toward slot A = <span id="jb-pos-val">0.60</span></label>
           <input type="range" id="jb-pos" min="0" max="1.5" step="0.05" value="0.6">
@@ -430,19 +444,26 @@
           <div style="margin-top:8px;">
             <button id="jb-self-toggle">Toggle: is A the judge's own family?</button>
           </div>
-          <p class="hint">Verdict logit = Δ (true gap, favors B if &gt;0) − position bias (favors A) − self-pref (favors whichever is the judge's family). The judge can prefer A even when B is genuinely better.</p>
+          <p class="hint">Verdict logit <span class="m" data-tex="\ell_B = \Delta - b_{\text{pos}} \pm b_{\text{self}}"></span>: the true gap favors B if positive, position bias favors A, and self-preference favors whichever is the judge's family. The judge can prefer A even when B is genuinely better.</p>
           <div class="in-practice"><b>In practice</b> · the cheapest, highest-leverage grader QA is averaging both A/B orderings — if the verdict isn't order-invariant, the bias is contaminating every reward.</div>
         </div>
         <div class="panel-viz">
           <div id="jb-cards"></div>
-          <div class="formula-display" id="jb-formula"></div>
+          <div class="eq" id="jb-formula"></div>
+          <div class="eq-readout" id="jb-status"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="judge-agreement">
       <h3>Grader consistency: flip-rate &amp; inter-rater agreement</h3>
-      <p class="concept-desc">A reward signal is only as good as it is <i>reproducible</i>. Two probes: the <b>order-flip rate</b> (how often swapping A/B flips the verdict — pure position bias) and <b>inter-rater agreement</b> across independent judge runs, summarized by Cohen's κ (chance-corrected: κ=1 perfect, κ=0 no better than coin-flip). Raise temperature or position bias and watch consistency collapse.</p>
+      <p class="concept-desc">A reward signal is only as good as it is <i>reproducible</i>. Two probes: the <b>order-flip rate</b> (how often swapping A/B flips the verdict — pure position bias) and <b>inter-rater agreement</b> across independent judge runs, summarized by Cohen's <span class="m" data-tex="\kappa"></span> (chance-corrected: <span class="m" data-tex="\kappa=1"></span> perfect, <span class="m" data-tex="\kappa=0"></span> no better than coin-flip). Raise temperature or position bias and watch consistency collapse.</p>
+      <div class="eq" data-tex="\kappa = \frac{p_o - p_e}{1 - p_e}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="p_o"></span><span class="def">observed agreement — the fraction of items where two independent judge passes give the same verdict</span></div>
+        <div class="row"><span class="sym" data-tex="p_e"></span><span class="def">agreement expected by chance alone, computed from each pass's marginal verdict rates</span></div>
+        <div class="row"><span class="sym" data-tex="\kappa"></span><span class="def">Cohen's kappa: agreement after subtracting chance, normalized so 1 is perfect and 0 is chance-level</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>True quality gap |Δ| (how decisive the pair is) = <span id="ag-delta-val">0.40</span></label>
@@ -456,7 +477,8 @@
         </div>
         <div class="panel-viz">
           <div class="agree-grid" id="ag-grid"></div>
-          <div class="formula-display" id="ag-formula"></div>
+          <div class="eq" id="ag-formula"></div>
+          <div class="eq-readout" id="ag-status"></div>
         </div>
       </div>
     </article>
@@ -488,7 +510,8 @@
         </div>
         <div class="panel-viz">
           <div class="step-list" id="op-steps"></div>
-          <div class="formula-display" id="op-formula"></div>
+          <div class="eq" id="op-formula"></div>
+          <div class="eq-readout" id="op-status"></div>
         </div>
       </div>
     </article>
@@ -665,6 +688,7 @@
     var accV = document.getElementById('rb-acc-val');
     var rubricEl = document.getElementById('rb-rubric');
     var formulaEl = document.getElementById('rb-formula');
+    var statusEl = document.getElementById('rb-status');
 
     function render(){
       wIds.forEach(function(id, i){
@@ -690,9 +714,12 @@
       // normalized reward in [0,1] from a 1..5 weighted mean
       var reward = (total - 1) / 4;
       var accLow = scores[1] <= 2 && nw[1] < 0.3 && reward > 0.55;
-      formulaEl.innerHTML =
-        'reward = &Sigma;<sub>k</sub> w&#770;<sub>k</sub> &middot; score<sub>k</sub> = <b>' + total.toFixed(2) + '</b> / 5' +
-        ' &nbsp;&rarr;&nbsp; normalized R = <b>' + reward.toFixed(3) + '</b><br>' +
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\text{score} &= \\sum_k \\hat{w}_k\\, s_k = ' + total.toFixed(2) + '\\ /\\ 5 \\\\ ' +
+        'R &= \\tfrac{\\text{score}-1}{4} = ' + reward.toFixed(3) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
         (accLow
           ? '<span style="color:var(--red)">High overall reward despite low accuracy — the rubric under-weights correctness.</span>'
           : '<span style="color:var(--text-dim)">Weights renormalized to sum to 1; reward maps a 1&ndash;5 score to [0,1].</span>');
@@ -713,6 +740,7 @@
     var toggleBtn = document.getElementById('jb-self-toggle');
     var cardsEl = document.getElementById('jb-cards');
     var formulaEl = document.getElementById('jb-formula');
+    var statusEl = document.getElementById('jb-status');
     var aIsOwn = true; // is slot A the judge's own model family?
 
     function render(){
@@ -744,11 +772,15 @@
           '<div class="resp-head"><span>Assistant B ' + (!aIsOwn?'· judge’s family':'') + '</span><span>' + (verdict==='B'?'&#9733; chosen':'') + '</span></div>' +
           '<div class="resp-body">Second-shown response.</div></div>';
 
-      formulaEl.innerHTML =
-        'logit(B) = &Delta; &minus; pos<sub>A</sub> ' + (aIsOwn?'&minus; self':'+ self') + ' = ' +
-          delta.toFixed(2) + ' &minus; ' + pos.toFixed(2) + ' ' + (aIsOwn?'&minus; ':'+ ') + self.toFixed(2) +
-          ' = <b>' + logit.toFixed(2) + '</b><br>' +
-        'P(judge says B) = &sigma;(logit) = <b>' + pB.toFixed(3) + '</b> &rarr; verdict = <b>[[' + verdict + ']]</b><br>' +
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\ell_B &= \\Delta - b_{\\text{pos}} ' + (aIsOwn?'- b_{\\text{self}}':'+ b_{\\text{self}}') + ' = ' +
+          delta.toFixed(2) + ' - ' + pos.toFixed(2) + ' ' + (aIsOwn?'- ':'+ ') + self.toFixed(2) +
+          ' = ' + logit.toFixed(2) + ' \\\\ ' +
+        'P(\\text{judge}=B) &= \\sigma(\\ell_B) = ' + pB.toFixed(3) +
+          ' \\;\\Rightarrow\\; \\text{verdict}=[[' + verdict + ']]' +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
         'truly better: <b>' + trueBetter.toUpperCase() + '</b> &nbsp; ' +
         (wrong
           ? '<span style="color:var(--red)">&#9888; bias overturned the true ranking</span>'
@@ -771,6 +803,7 @@
     var pV = document.getElementById('ag-pos-val');
     var gridEl = document.getElementById('ag-grid');
     var formulaEl = document.getElementById('ag-formula');
+    var statusEl = document.getElementById('ag-status');
     var btn = document.getElementById('ag-resample');
     var N = 100;
     var seed = 12345;
@@ -828,10 +861,15 @@
 
       var quality = kappa > 0.8 ? 'excellent' : kappa > 0.6 ? 'substantial' : kappa > 0.4 ? 'moderate' : kappa > 0.2 ? 'weak' : 'poor';
       var qcolor = kappa > 0.6 ? 'var(--accent-bright)' : kappa > 0.4 ? 'var(--orange)' : 'var(--red)';
-      formulaEl.innerHTML =
-        'observed agreement p<sub>o</sub> = <b>' + po.toFixed(3) + '</b> &nbsp;|&nbsp; chance p<sub>e</sub> = ' + pe.toFixed(3) + '<br>' +
-        'Cohen&rsquo;s &kappa; = (p<sub>o</sub>&minus;p<sub>e</sub>)/(1&minus;p<sub>e</sub>) = <b style="color:' + qcolor + '">' + kappa.toFixed(3) + '</b> (' + quality + ')<br>' +
-        'order-flip rate (swap A/B) = <b style="color:' + (flipRate>0.2?'var(--red)':'var(--accent-bright)') + '">' + (flipRate*100).toFixed(0) + '%</b>' +
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'p_o &= ' + po.toFixed(3) + ' \\qquad p_e = ' + pe.toFixed(3) + ' \\\\ ' +
+        '\\kappa &= \\frac{p_o - p_e}{1 - p_e} = ' + kappa.toFixed(3) + ' \\\\ ' +
+        '\\text{flip-rate} &= ' + (flipRate*100).toFixed(0) + '\\%' +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        '&kappa; = <b style="color:' + qcolor + '">' + kappa.toFixed(3) + '</b> (' + quality + ') &nbsp;|&nbsp; ' +
+        'order-flip <b style="color:' + (flipRate>0.2?'var(--red)':'var(--accent-bright)') + '">' + (flipRate*100).toFixed(0) + '%</b>' +
         '<br><span style="color:var(--text-dim)">' +
         (flipRate > 0.2 ? 'High flip-rate: position bias is contaminating the reward — average both orderings.' :
          kappa < 0.4 ? 'Low &kappa;: judge is barely better than chance; drop temperature toward 0.' :
@@ -863,6 +901,7 @@
     var brokenS = document.getElementById('op-broken');
     var stepsEl = document.getElementById('op-steps');
     var formulaEl = document.getElementById('op-formula');
+    var statusEl = document.getElementById('op-status');
     var hintEl = document.getElementById('op-hint');
     var mode = 'orm';
     var finalCorrect = true;
@@ -899,8 +938,10 @@
       var missed = (mode === 'orm') && (brokenStep > 0) && finalCorrect;
       if(mode === 'orm'){
         var ormScore = finalCorrect ? 0.90 : 0.10;
-        formulaEl.innerHTML =
-          'ORM aggregate &asymp; mean<sub>t</sub> p(correct) = <b>' + ormScore.toFixed(2) + '</b> &nbsp;(label = final outcome only)<br>' +
+        tex(formulaEl,
+          'R_{\\text{ORM}} \\approx \\operatorname*{mean}_t\\, p(\\text{correct}) = ' + ormScore.toFixed(2) +
+          ' \\quad (\\text{label} = \\text{final outcome only})', true);
+        statusEl.innerHTML =
           (missed
             ? '<span style="color:var(--red)">&#9888; step ' + brokenStep + ' is broken, but ORM scores the whole solution as correct — credit-assignment blind spot.</span>'
             : '<span style="color:var(--text-dim)">ORM reflects only whether the final answer is right.</span>');
@@ -909,8 +950,10 @@
         var nGood = brokenStep > 0 ? nSteps - 1 : nSteps;
         var meanStep = (nGood * 1 + (brokenStep>0 ? -1 : 0)) / nSteps;
         var minStep = brokenStep > 0 ? -1 : 1;
-        formulaEl.innerHTML =
-          'PRM step scores: mean = <b>' + meanStep.toFixed(2) + '</b> &nbsp;|&nbsp; min (fail-fast) = <b>' + minStep + '</b><br>' +
+        tex(formulaEl,
+          '\\operatorname*{mean}_s r_s = ' + meanStep.toFixed(2) +
+          ' \\qquad \\min_s r_s = ' + minStep + '\\ (\\text{fail-fast})', true);
+        statusEl.innerHTML =
           (brokenStep > 0
             ? '<span style="color:var(--accent-bright)">PRM flags step ' + brokenStep + ' as incorrect — per-step credit even when the final answer is ' + (finalCorrect?'right':'wrong') + '.</span>'
             : '<span style="color:var(--text-dim)">All steps valid; every step boundary labeled +1.</span>');

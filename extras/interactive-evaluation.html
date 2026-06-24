@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Evaluation — Interactive RLHF Course</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -203,6 +205,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -329,7 +355,8 @@
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="fmt-bars"></div>
-          <div class="formula-display" id="fmt-formula"></div>
+          <div class="eq" data-tex="\mathrm{acc} = \mathrm{base} + \Delta_{\text{shots}} + \Delta_{\text{CoT}} + \Delta_{\text{score}}"></div>
+          <div class="eq" id="fmt-formula"></div>
         </div>
       </div>
     </article>
@@ -342,7 +369,7 @@
           <div id="ll-sliders"></div>
           <label>Scoring</label>
           <div class="tabs" id="ll-norm">
-            <button data-v="raw" class="active">Unnormalized &Sigma; logp</button>
+            <button data-v="raw" class="active">Unnormalized <span class="m" data-tex="\sum \log p"></span></button>
             <button data-v="norm">Length-normalized</button>
           </div>
           <p class="hint">Correct answer is <b>(C) The Extreme Value Theorem</b> — a longer string. Raw sum log-prob can punish it just for having more tokens; length normalization divides by token count.</p>
@@ -350,7 +377,14 @@
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="ll-bars"></div>
-          <div class="formula-display" id="ll-formula"></div>
+          <div class="eq" data-tex="\text{score}(o)=\sum_{t=1}^{L}\log p(\text{tok}_t\mid \text{prompt},\,\text{tok}_{<t}) \qquad\quad \text{score}_{\text{norm}}(o)=\tfrac{1}{L}\sum_{t=1}^{L}\log p(\text{tok}_t)"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="\log p(\text{tok}_t)"></span><span class="def">the model's <b>log-probability</b> for token <span class="m" data-tex="t"></span> of the option, conditioned on the prompt and earlier tokens — always <span class="m" data-tex="\le 0"></span></span></div>
+            <div class="row"><span class="sym" data-tex="\sum_t"></span><span class="def">sum over every token in the option; the picked answer is <span class="m" data-tex="\arg\max"></span> of this score across options</span></div>
+            <div class="row"><span class="sym" data-tex="L"></span><span class="def">the option's <b>token count</b> (length); dividing by it removes the bias against longer answers</span></div>
+          </div>
+          <div class="eq" id="ll-formula"></div>
+          <div class="eq-readout" id="ll-status"></div>
         </div>
       </div>
     </article>
@@ -398,7 +432,13 @@
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="contam-bars"></div>
-          <div class="formula-display" id="contam-formula"></div>
+          <div class="eq" data-tex="\mathrm{acc}_{\text{apparent}} = f\cdot \mathrm{acc}_{\text{mem}} + (1-f)\cdot \mathrm{acc}_{\text{true}}"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="f"></span><span class="def">fraction of the test set that <b>leaked</b> into training (contaminated)</span></div>
+            <div class="row"><span class="sym" data-tex="\mathrm{acc}_{\text{mem}}"></span><span class="def">accuracy on the <b>memorized</b> (leaked) items — near 1, for the wrong reason</span></div>
+            <div class="row"><span class="sym" data-tex="\mathrm{acc}_{\text{true}}"></span><span class="def">the real <b>held-out</b> ability on clean, unseen items — the number you actually want</span></div>
+          </div>
+          <div class="eq" id="contam-formula"></div>
         </div>
       </div>
     </article>
@@ -494,6 +534,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -580,15 +634,17 @@
           '<div class="bar-label">' + escapeHtml(g.label) + '<br>' + (g.val*100).toFixed(0) + '%</div>';
         barsEl.appendChild(col);
       });
-      formulaEl.innerHTML = 'measured acc = base + shots + CoT + scoring<br>' +
-        '= ' + fmt(c.base,2) + ' + ' + signed(c.shots) + ' + ' + signed(c.cot) + ' + ' + signed(c.score) +
-        ' = <b>' + (a*100).toFixed(1) + '%</b>';
+      tex(formulaEl,
+        '\\mathrm{acc} = ' + fmt(c.base,2) + ' ' + texSigned(c.shots) + ' ' + texSigned(c.cot) + ' ' + texSigned(c.score) +
+        ' = \\mathbf{' + (a/1).toFixed(3) + '} = ' + (a*100).toFixed(1) + '\\%',
+        true);
       var lo = scoreFor('0','direct','gen'), hi = scoreFor('5','cot','gen');
       hintEl.innerHTML = 'Same model, same question bank. Across these formats the score ranges from ' +
         '<b>' + (lo*100).toFixed(0) + '%</b> to <b>' + (hi*100).toFixed(0) + '%</b> — a ' +
         ((hi-lo)*100).toFixed(0) + '-point swing with no change to the weights.';
     }
     function signed(x){ return (x>=0?'+':'−') + Math.abs(x).toFixed(2); }
+    function texSigned(x){ return (x>=0?'+':'-') + ' ' + Math.abs(x).toFixed(2); }
     function scoreFor(sh, co, sc){
       var save = {shots:state.shots, cot:state.cot, score:state.score};
       state.shots=sh; state.cot=co; state.score=sc;
@@ -618,6 +674,7 @@
     var slidersEl = document.getElementById('ll-sliders');
     var barsEl = document.getElementById('ll-bars');
     var formulaEl = document.getElementById('ll-formula');
+    var statusEl = document.getElementById('ll-status');
 
     options.forEach(function(o,i){
       var row = document.createElement('div');
@@ -649,11 +706,14 @@
         barsEl.appendChild(col);
       });
       var ok = predIdx === correctIdx;
-      formulaEl.innerHTML =
+      var best = options[predIdx];
+      tex(formulaEl,
         (mode==='raw'
-          ? 'score(opt) = &Sigma;<sub>t</sub> log p(tok<sub>t</sub>) = avg&times;len'
-          : 'score(opt) = (1/len) &Sigma;<sub>t</sub> log p(tok<sub>t</sub>) = avg') +
-        '<br>predicted = <b>(' + options[predIdx].letter + ') ' + escapeHtml(options[predIdx].text) + '</b> &nbsp;' +
+          ? '\\text{score} = \\sum_t \\log p(\\text{tok}_t) = \\text{avg}\\times L = ' + best.lp.toFixed(2) + '\\times' + best.tokens + ' = ' + scores[predIdx].toFixed(2)
+          : '\\text{score} = \\tfrac{1}{L}\\sum_t \\log p(\\text{tok}_t) = \\text{avg} = ' + scores[predIdx].toFixed(2)),
+        true);
+      statusEl.innerHTML =
+        'predicted = <b>(' + options[predIdx].letter + ') ' + escapeHtml(options[predIdx].text) + '</b> &nbsp;' +
         (ok ? '<span style="color:var(--accent-bright)">[correct]</span>' : '<span style="color:var(--red)">[wrong &mdash; correct is (' + options[correctIdx].letter + ')]</span>');
     }
     options.forEach(function(o,i){
@@ -993,6 +1053,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initFormat();
     initLogLikelihood();
     initCoT();

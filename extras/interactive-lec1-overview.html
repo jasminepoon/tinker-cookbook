@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lecture 1: Overview — Interactive RLHF Course</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -203,6 +205,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* token chips */
   .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
   .token-chip{
@@ -380,7 +406,13 @@
 
     <article class="concept" id="autoreg">
       <h3>Autoregressive next-token prediction</h3>
-      <p class="concept-desc">Pretraining optimizes one objective: predict the next token. The sequence probability factorizes as <code>P(x) = ∏ₜ P(xₜ | x&lt;ₜ)</code>. Step through a completion and watch the model condition only on what came before — and see the running sequence log-probability accumulate.</p>
+      <p class="concept-desc">Pretraining optimizes one objective: predict the next token. The sequence probability factorizes as <span class="m" data-tex="P_\theta(x)=\prod_{t} P_\theta(x_t \mid x_{<t})"></span>. Step through a completion and watch the model condition only on what came before — and see the running sequence log-probability accumulate.</p>
+      <div class="eq" data-tex="P_\theta(x)=\prod_{t=1}^{T} P_\theta\!\left(x_t \mid x_{<t}\right) \qquad\qquad \log P_\theta(x)=\sum_{t=1}^{T}\log P_\theta\!\left(x_t \mid x_{<t}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="x_t"></span><span class="def">the <span class="m" data-tex="t"></span>-th token of the sequence</span></div>
+        <div class="row"><span class="sym" data-tex="x_{<t}"></span><span class="def">all tokens before position <span class="m" data-tex="t"></span> — the only context the model conditions on (it never sees the future)</span></div>
+        <div class="row"><span class="sym" data-tex="P_\theta"></span><span class="def">the model's probability with parameters <span class="m" data-tex="\theta"></span>; the log form turns the product into a running sum of log-probs</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <button id="ar-prev">◀ Back</button>
@@ -621,6 +653,20 @@
     });
   }
   function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
 
   /* ---------------- 1A: Milestone timeline ---------------- */
   function initTimeline(){
@@ -1176,6 +1222,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initTimeline();
     initAutoreg();
     initBaseVsPost();

@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Rise of Reasoning Models — Interactive RLVR & Inference-Time Scaling</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -203,6 +205,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -345,7 +371,13 @@
 
     <article class="concept" id="loop">
       <h3>RLVR feedback loop: learned reward vs. verifiable reward</h3>
-      <p class="concept-desc">Same RL loop, one swapped block. A <b>reward model</b> emits a continuous score the policy can <i>hack</i> — drift toward high-scoring-but-wrong outputs (over-optimization). A <b>verifier</b> emits a binary <code>1/0</code> that only fires when the answer is actually correct. Flip the reward type and watch the training signal — and what the policy is incentivized to do — change on a toy math task.</p>
+      <p class="concept-desc">Same RL loop, one swapped block. A <b>reward model</b> emits a continuous score the policy can <i>hack</i> — drift toward high-scoring-but-wrong outputs (over-optimization). A <b>verifier</b> emits a binary <span class="m" data-tex="1/0"></span> that only fires when the answer is actually correct. Flip the reward type and watch the training signal — and what the policy is incentivized to do — change on a toy math task.</p>
+      <div class="eq" data-tex="R_{\mathrm{verifier}}(x,y)=\begin{cases}1 & \text{if } \mathrm{extract}(y)\ \text{is correct}\\[2pt] 0 & \text{otherwise}\end{cases}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="R"></span><span class="def">the <b>reward</b> the policy is trained to maximize — here a binary, deterministic, ungameable verifier signal</span></div>
+        <div class="row"><span class="sym" data-tex="x,\ y"></span><span class="def">the prompt <span class="m" data-tex="x"></span> and the sampled completion <span class="m" data-tex="y"></span> (containing a boxed answer)</span></div>
+        <div class="row"><span class="sym" data-tex="\mathrm{extract}(y)"></span><span class="def">the parsed final answer pulled out of <span class="m" data-tex="y"></span> (e.g. the <span class="m" data-tex="\boxed{77}"></span> value) and checked against ground truth</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div class="tabs" id="loop-tabs">
@@ -364,12 +396,13 @@
         </div>
         <div class="panel-viz">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="loop-stage"><div class="stage-title">1. Policy π<sub>θ</sub></div>samples a completion with a boxed answer</div>
+            <div class="loop-stage"><div class="stage-title">1. Policy <span class="m" data-tex="\pi_\theta"></span></div>samples a completion with a boxed answer</div>
             <div class="loop-stage" id="loop-scorer"><div class="stage-title" id="loop-scorer-title">2. Verifier</div><span id="loop-scorer-body"></span></div>
-            <div class="loop-stage"><div class="stage-title">3. Advantage</div>reward → group-centered advantage A</div>
-            <div class="loop-stage"><div class="stage-title">4. Policy update</div>gradient pushes toward high-A samples</div>
+            <div class="loop-stage"><div class="stage-title">3. Advantage</div>reward <span class="m" data-tex="\to"></span> group-centered advantage <span class="m" data-tex="A"></span></div>
+            <div class="loop-stage"><div class="stage-title">4. Policy update</div>gradient pushes toward high-<span class="m" data-tex="A"></span> samples</div>
           </div>
-          <div class="formula-display" id="loop-formula"></div>
+          <div class="eq" id="loop-formula"></div>
+          <div class="eq-readout" id="loop-readout"></div>
         </div>
       </div>
     </article>
@@ -548,6 +581,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -579,6 +626,7 @@
     var scorerTitle = document.getElementById('loop-scorer-title');
     var scorerBody = document.getElementById('loop-scorer-body');
     var formula = document.getElementById('loop-formula');
+    var readout = document.getElementById('loop-readout');
     var hint = document.getElementById('loop-hint');
     var mode = 'verifier';
     var correct = 1;
@@ -592,10 +640,13 @@
         scorerTitle.textContent = '2. Verifier (deterministic)';
         var r = correct ? 1 : 0;
         scorerBody.innerHTML = 'runs <code>extracted_answer == 77</code> → reward = <b>' + r + '</b>. Style is <b>ignored</b>.';
-        formula.innerHTML =
-          'R = <b>1</b> if answer correct else <b>0</b>&nbsp; (binary, ungameable)<br>' +
+        tex(formula,
+          'R = \\begin{cases}1 & \\text{answer correct}\\\\ 0 & \\text{otherwise}\\end{cases}'
+          + '\\quad\\Rightarrow\\quad R = ' + r,
+          true);
+        readout.innerHTML =
           'This run: answer is ' + (correct ? '<span style="color:var(--accent-bright)">correct</span>' : '<span style="color:var(--red)">wrong</span>') +
-          ' → R = <b>' + r + '</b>. <span style="color:var(--text-dim)">Polishing style cannot raise R.</span>';
+          ' → R = <b>' + r + '</b>. <span style="color:var(--text-dim)">Binary, ungameable — polishing style cannot raise R.</span>';
         hint.innerHTML = 'A verifiable reward only rewards <b>being right</b>. There is no continuous score to climb, so reward hacking has nowhere to go — this is why RLVR resists over-optimization and single-turn math RLVR often sets β=0.';
       } else {
         scorer.classList.add('rm');
@@ -605,10 +656,15 @@
         rm = clamp(rm, 0, 1);
         scorerBody.innerHTML = 'emits a continuous score <b>' + rm.toFixed(2) + '</b> — heavily swayed by style/length, only loosely by correctness.';
         var hackable = style > 0.7 && !correct;
-        formula.innerHTML =
-          'R = RM(x,y) &isin; [0,1] &nbsp;(continuous, learned)<br>' +
-          'R &asymp; 0.55&middot;style + 0.35&middot;correct + 0.10 = <b>' + rm.toFixed(2) + '</b>' +
-          (hackable ? ' &nbsp;<span style="color:var(--red)">[reward-hacked: high score, WRONG answer]</span>' : '');
+        tex(formula,
+          '\\begin{aligned}'
+          + 'R &= \\mathrm{RM}(x,y) \\in [0,1] \\\\ '
+          + 'R &\\approx 0.55\\,\\text{style} + 0.35\\,\\text{correct} + 0.10 = ' + rm.toFixed(2)
+          + '\\end{aligned}',
+          true);
+        readout.innerHTML = (hackable
+          ? '<span style="color:var(--red)">reward-hacked: high continuous score on a WRONG answer.</span>'
+          : '<span style="color:var(--text-dim)">Continuous, learned score — a gradient everywhere, including toward style.</span>');
         hint.innerHTML = 'A learned reward model gives a <b>gradient everywhere</b> — including toward longer, more polished, but <i>incorrect</i> answers. Push style up with a wrong answer and the RM still rewards it: that is over-optimization / reward hacking.';
       }
     }
@@ -1033,6 +1089,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initRewardLoop();
     initThinkingTokens();
     initTestTimeScaling();

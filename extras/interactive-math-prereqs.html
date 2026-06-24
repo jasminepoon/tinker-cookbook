@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Math of LLM Post-Training — Interactive Prereq Review</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -202,6 +204,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* token chips */
   .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
   .token-chip{
@@ -322,7 +348,13 @@
 
     <article class="concept" id="autoregressive">
       <h3>Autoregressive factorization</h3>
-      <p class="concept-desc">Given <code>x = (x₁,…,x_T)</code>, the model factorizes the sequence probability as a chain rule: <code>P_θ(x) = ∏ₜ P_θ(xₜ | x&lt;ₜ)</code>. Click a token to see its conditional term — and notice that later tokens are invisible to it.</p>
+      <p class="concept-desc">Given <span class="m" data-tex="x = (x_1,\dots,x_T)"></span>, the model factorizes the sequence probability with the chain rule. Click a token to see its conditional term — and notice that later tokens are invisible to it.</p>
+      <div class="eq" data-tex="P_\theta(x) = \prod_{t=1}^{T} P_\theta\!\left(x_t \mid x_{<t}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="P_\theta"></span><span class="def">the model's probability distribution, with learnable parameters <span class="m" data-tex="\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="x_t"></span><span class="def">the token at position <span class="m" data-tex="t"></span>; <span class="m" data-tex="x_{<t}"></span> is every token before it (the context)</span></div>
+        <div class="row"><span class="sym" data-tex="\prod_{t}"></span><span class="def">product over all <span class="m" data-tex="T"></span> positions — the joint probability is the product of per-token conditionals</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>Custom sentence (space-separated tokens)</label>
@@ -338,8 +370,14 @@
     </article>
 
     <article class="concept" id="softmax">
-      <h3>Softmax & temperature</h3>
-      <p class="concept-desc">The LM head produces one <b>logit</b> per vocabulary token; softmax turns logits into a probability distribution: <code>softmax(z/T)ᵢ = e^(zᵢ/T) / Σⱼ e^(zⱼ/T)</code>. Drag the logits or temperature and watch the distribution sharpen or flatten.</p>
+      <h3>Softmax &amp; temperature</h3>
+      <p class="concept-desc">The LM head produces one <b>logit</b> per vocabulary token; softmax turns logits into a probability distribution. Drag the logits or temperature and watch the distribution sharpen or flatten.</p>
+      <div class="eq" data-tex="\mathrm{softmax}(z/T)_i = \dfrac{e^{z_i/T}}{\sum_{j} e^{z_j/T}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="z_i"></span><span class="def">the raw <b>logit</b> (unnormalized score) the model assigns vocabulary token <span class="m" data-tex="i"></span></span></div>
+        <div class="row"><span class="sym" data-tex="T"></span><span class="def">the <b>temperature</b>; the denominator <span class="m" data-tex="\sum_j e^{z_j/T}"></span> normalizes the outputs so they sum to 1</span></div>
+        <div class="row"><span class="sym" data-tex="T\!\to\!0"></span><span class="def">distribution collapses to <b>argmax</b> (greedy); <span class="m" data-tex="T\!\to\!\infty"></span> flattens toward uniform</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div id="sm-sliders"></div>
@@ -604,6 +642,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -643,12 +695,16 @@
         tokensEl.appendChild(chip);
       });
       if(selected < 0){
-        formulaEl.innerHTML = 'P<sub>&theta;</sub>(x) = ' + tokens.map(function(_, i){
-          return 'P<sub>&theta;</sub>(x<sub>' + (i+1) + '</sub>|x<sub>&lt;' + (i+1) + '</sub>)';
-        }).join(' &middot; ');
+        tex(formulaEl, 'P_\\theta(x) = ' + tokens.map(function(_, i){
+          return 'P_\\theta(x_{' + (i+1) + '}\\mid x_{<' + (i+1) + '})';
+        }).join(' \\cdot '), true);
       } else {
-        var condPart = selected === 0 ? '&empty; (no context — first token)' : ('x<sub>1</sub>,&hellip;,x<sub>' + selected + '</sub>');
-        formulaEl.innerHTML = 'Term for <b>"' + escapeHtml(tokens[selected]) + '"</b>: P<sub>&theta;</sub>(x<sub>' + (selected+1) + '</sub> = "' + escapeHtml(tokens[selected]) + '" | ' + condPart + ')';
+        var condPart = selected === 0 ? '\\varnothing' : ('x_1,\\dots,x_{' + selected + '}');
+        var note = selected === 0 ? '\\;(\\text{no context — first token})' : '';
+        var word = '\\text{``' + tokens[selected].replace(/[\\{}$&#%_~^]/g, ' ') + '\'\'}';
+        tex(formulaEl,
+          'P_\\theta\\big(x_{' + (selected+1) + '} = ' + word + ' \\mid ' + condPart + '\\big)' + note,
+          true);
       }
     }
     function setTokens(text){
@@ -677,7 +733,7 @@
     defaultLogits.forEach(function(v, i){
       var row = document.createElement('div');
       row.className = 'slider-row';
-      row.innerHTML = '<label>z<sub>' + (i+1) + '</sub> = <span id="sm-z-val-' + i + '">' + v.toFixed(1) + '</span></label>' +
+      row.innerHTML = '<label><span class="m" data-tex="z_{' + (i+1) + '}"></span> = <span id="sm-z-val-' + i + '">' + v.toFixed(1) + '</span></label>' +
         '<input type="range" min="-5" max="5" step="0.1" value="' + v + '" id="sm-z-' + i + '">';
       slidersEl.appendChild(row);
     });
@@ -1411,6 +1467,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initAutoregressive();
     initSoftmax();
     initTensorPipeline();
