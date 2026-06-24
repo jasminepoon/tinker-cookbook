@@ -38,6 +38,15 @@
     background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
     border-bottom:1px solid var(--border);
   }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
   header.hero .eyebrow{
     color:var(--accent-bright);
     letter-spacing:0.12em;
@@ -285,6 +294,7 @@
 <body>
 
 <header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
   <div class="eyebrow">rlhfbook.com/course · lecture 7</div>
   <h1>Synthetic Data &amp; Modern Post-training</h1>
   <p class="sub">Distillation, on-policy KD, RLAIF and Constitutional AI — the synthetic-data machinery that now feeds nearly every box of the post-training pipeline. Play with the forward/reverse KL split, compounding exposure bias, and the critique→revise loop.</p>

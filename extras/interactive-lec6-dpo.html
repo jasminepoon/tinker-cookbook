@@ -38,6 +38,15 @@
     background:radial-gradient(circle at 50% -20%, rgba(242,132,130,0.22), transparent 60%);
     border-bottom:1px solid var(--border);
   }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
   header.hero .eyebrow{
     color:var(--accent-bright);
     letter-spacing:0.12em;
@@ -275,6 +284,7 @@
 <body>
 
 <header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
   <div class="eyebrow">rlhfbook.com/course · lecture 6</div>
   <h1>Direct Preference Optimization</h1>
   <p class="sub">Derive DPO from scratch and play with every piece: the KL-regularized RLHF objective, its closed-form optimal policy, the implicit reward hiding inside the policy, and the single differentiable loss you actually train — no reward model, no RL loop, no sampling.</p>

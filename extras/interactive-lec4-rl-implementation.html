@@ -37,6 +37,15 @@
     background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
     border-bottom:1px solid var(--border);
   }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
   header.hero .eyebrow{
     color:var(--accent-bright);
     letter-spacing:0.12em;
@@ -287,6 +296,7 @@
 <body>
 
 <header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
   <div class="eyebrow">rlhfbook.com/course · lecture 4</div>
   <h1>RL Implementation & Practice</h1>
   <p class="sub">From the policy-gradient math to running code: REINFORCE → RLOO → PPO → GRPO. The clipped surrogate, GAE, group-relative advantages, where the KL penalty goes, the four models in memory, and how you aggregate the loss — the implementation details that quietly decide whether training works.</p>

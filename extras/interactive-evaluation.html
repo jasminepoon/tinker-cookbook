@@ -38,6 +38,15 @@
     background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
     border-bottom:1px solid var(--border);
   }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
   header.hero .eyebrow{
     color:var(--accent-bright);
     letter-spacing:0.12em;
@@ -271,6 +280,7 @@
 <body>
 
 <header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
   <div class="eyebrow">rlhfbook.com/course · lecture 16</div>
   <h1>Evaluation</h1>
   <p class="sub">Evaluation is the instrument you trust to know whether a reward change, a data change, or a training run actually <i>helped</i>. This page makes the fragility of that instrument tangible — formatting swings, log-likelihood scoring, contamination, generalization vs. training reward, and why two labs' leaderboard numbers are not comparable.</p>
