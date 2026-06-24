@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Rise of Reasoning Models — Interactive RLVR & Inference-Time Scaling</title>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --red:#F28482;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(242,132,130,0.22), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    transition:all 0.15s;
+  }
+  .token-chip.think{ border-color:var(--orange); color:var(--orange); }
+  .token-chip.answer{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.loss-token{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.no-loss{ opacity:0.5; }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-curve-2{ fill:none; stroke:var(--orange); stroke-width:2; stroke-dasharray:5,3; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+  .badge.bad{ border-color:var(--red); color:var(--red); }
+  .badge.good{ border-color:var(--accent-bright); color:var(--accent-bright); }
+
+  /* reward-loop diagram */
+  .loop-stage{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:0.82em;
+  }
+  .loop-stage .stage-title{ color:var(--accent-bright); font-family:var(--mono); font-size:0.82em; margin-bottom:4px; }
+  .loop-stage.rm{ border-color:var(--red); }
+  .loop-stage.rm .stage-title{ color:var(--red); }
+
+  /* timeline / landscape */
+  .timeline{ display:flex; flex-wrap:wrap; gap:6px; }
+  .timeline button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    border-radius:6px;
+    padding:7px 10px;
+    font-size:0.78em;
+    cursor:pointer;
+    text-align:left;
+    transition:all 0.15s;
+    font-family:var(--mono);
+  }
+  .timeline button:hover{ border-color:var(--accent); color:var(--text); }
+  .timeline button.active{ border-color:var(--accent); background:rgba(132,169,140,0.14); color:var(--accent-bright); }
+  .model-card{
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    border-radius:8px;
+    padding:14px 16px;
+  }
+  .model-card .mc-date{ color:var(--orange); font-family:var(--mono); font-size:0.8em; }
+  .model-card h4{ margin:4px 0 8px; font-size:1.05em; }
+  .model-card p{ margin:0 0 8px; font-size:0.88em; color:var(--text-dim); }
+  .model-card .mc-tag{ display:inline-block; font-family:var(--mono); font-size:0.72em; color:var(--accent-bright); border:1px solid var(--border); border-radius:5px; padding:3px 7px; margin:2px 4px 0 0; }
+
+  /* decision explorer */
+  .decision-block{ margin-bottom:10px; }
+  .decision-block > .dlabel{ font-size:0.8em; color:var(--accent-bright); margin-bottom:5px; font-family:var(--mono); }
+  .choice-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .choice-row button{ flex:1; min-width:90px; }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">rlhfbook.com/course · lecture 5</div>
+  <h1>The Rise of Reasoning Models</h1>
+  <p class="sub">An interactive tour of RLVR (RL with <i>verifiable</i> rewards) and inference-time scaling — the two ideas that turned 2025 into the year of reasoning models. Play with each widget to see why a verifier-driven reward, a thinking-token budget, and a few recipe decisions changed post-training.</p>
+  <p class="credit">Adapted from Nathan Lambert's "Lecture 5: The Rise of Reasoning Models (Chapter 7)" (rlhfbook.com/course). Interactive build only — original content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#rlvr">RLHF → RLVR</a>
+  <a href="#loop">Reward Loop</a>
+  <a href="#think">Thinking Tokens</a>
+  <a href="#scaling">Test-Time Scaling</a>
+  <a href="#passk">pass@k</a>
+  <a href="#landscape">Model Landscape</a>
+  <a href="#recipe">Recipe Explorer</a>
+  <a href="#clip">Clipping (CISPO)</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION A: FROM RLHF TO RLVR ============ -->
+  <section class="group" id="rlvr">
+    <div class="group-header"><span class="group-index">01</span><h2>How reward changes everything</h2></div>
+    <p class="group-intro">The post-training <i>algorithms</i> (PPO, GRPO) are the same ones from Lectures 3–4. What reasoning models changed is the <b>reward</b>: instead of a learned, subjective reward model, RLVR scores a completion with a deterministic <b>verifier</b> — <code>extracted_answer == 77</code> or "all unit tests pass." A clean, ungameable signal is what opened the door to reasoning.</p>
+
+    <article class="concept" id="loop">
+      <h3>RLVR feedback loop: learned reward vs. verifiable reward</h3>
+      <p class="concept-desc">Same RL loop, one swapped block. A <b>reward model</b> emits a continuous score the policy can <i>hack</i> — drift toward high-scoring-but-wrong outputs (over-optimization). A <b>verifier</b> emits a binary <code>1/0</code> that only fires when the answer is actually correct. Flip the reward type and watch the training signal — and what the policy is incentivized to do — change on a toy math task.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="loop-tabs">
+            <button data-mode="verifier" class="active">Verifiable reward</button>
+            <button data-mode="rm">Learned reward model</button>
+          </div>
+          <label>Answer correctness (is the boxed answer right?)</label>
+          <div class="tabs" id="loop-correct">
+            <button data-c="1" class="active">Correct (77)</button>
+            <button data-c="0">Wrong (76)</button>
+          </div>
+          <label>Stylistic polish / length (what an RM over-weights) = <span id="loop-style-val">0.50</span></label>
+          <input type="range" id="loop-style" min="0" max="1" step="0.01" value="0.5">
+          <p class="hint" id="loop-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="loop-stage"><div class="stage-title">1. Policy π<sub>θ</sub></div>samples a completion with a boxed answer</div>
+            <div class="loop-stage" id="loop-scorer"><div class="stage-title" id="loop-scorer-title">2. Verifier</div><span id="loop-scorer-body"></span></div>
+            <div class="loop-stage"><div class="stage-title">3. Advantage</div>reward → group-centered advantage A</div>
+            <div class="loop-stage"><div class="stage-title">4. Policy update</div>gradient pushes toward high-A samples</div>
+          </div>
+          <div class="formula-display" id="loop-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION B: REASONING & THINKING ============ -->
+  <section class="group" id="think">
+    <div class="group-header"><span class="group-index">02</span><h2>Reasoning: thinking tokens & where the loss lands</h2></div>
+    <p class="group-intro">A reasoning model emits a long <code>&lt;think&gt;</code> chain-of-thought <i>before</i> the final answer. The crucial RLVR fact: the reward is computed only on the extracted <b>outcome</b>, yet the policy-gradient credit from that single scalar is spread across <i>every</i> token — including all the thinking tokens that were never directly scored.</p>
+
+    <article class="concept" id="think-trace">
+      <h3>What thinking tokens look like (and where the reward applies)</h3>
+      <p class="concept-desc">Compare a standard model (answers directly) with a reasoning model (thinks first). Step the reasoning trace token-by-token. The verifier reward fires <b>only</b> on the boxed outcome, but in policy-gradient RL that one reward weights the log-prob gradient of <i>all</i> tokens in the trace — so longer thinking is reinforced when it leads to a correct answer.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="think-tabs">
+            <button data-mode="standard" class="active">Standard model</button>
+            <button data-mode="reasoning" class="active">Reasoning model</button>
+          </div>
+          <button id="think-step">Reveal next token ▶</button>
+          <button id="think-all">Reveal all</button>
+          <button id="think-reset">Reset</button>
+          <p class="hint" id="think-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="think-tokens"></div>
+          <div class="formula-display" id="think-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION C: SCALING ============ -->
+  <section class="group" id="scaling">
+    <div class="group-header"><span class="group-index">03</span><h2>Inference-time (test-time) scaling</h2></div>
+    <p class="group-intro">o1/R1 surfaced a second scaling axis. <b>Train-time scaling</b> bakes capability into the weights once. <b>Test-time scaling</b> spends more compute <i>per query</i> at fixed weights — a longer thinking budget. Accuracy climbs with the thinking budget, but with diminishing returns: the curve is concave and saturates at the model's competence ceiling.</p>
+
+    <article class="concept" id="ttscale">
+      <h3>Thinking-token budget → accuracy (diminishing returns)</h3>
+      <p class="concept-desc">At <b>fixed weights</b>, increase the chain-of-thought length budget and watch pass@1 accuracy rise then flatten. The model's capability ceiling (set by training) caps it — so two curves are shown: a weaker base model and a stronger reasoning-trained model. More thinking helps both, but cannot lift a model past its trained ceiling.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Thinking-token budget = <span id="tt-budget-val">512</span> tokens</label>
+          <input type="range" id="tt-budget" min="32" max="8192" step="32" value="512">
+          <label>Model competence ceiling A<sub>max</sub> = <span id="tt-ceil-val">0.85</span></label>
+          <input type="range" id="tt-ceil" min="0.3" max="0.98" step="0.01" value="0.85">
+          <label>How fast thinking pays off (rate k) = <span id="tt-rate-val">600</span></label>
+          <input type="range" id="tt-rate" min="100" max="2500" step="50" value="600">
+          <p class="hint" id="tt-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="tt-plot"></svg>
+          <div class="formula-display" id="tt-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="passk">
+      <h3>pass@1 vs pass@k: the coverage headroom</h3>
+      <p class="concept-desc">Test-time scaling also includes sampling many answers. <b>pass@1</b> is single-shot accuracy; <b>pass@k</b> asks whether <i>any</i> of k samples is correct. The unbiased estimator from <code>n</code> samples with <code>c</code> correct is <code>1 − C(n−c, k)/C(n, k)</code>. The gap between pass@1 and pass@k is the headroom a selector or majority vote can chase.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Per-sample accuracy p = <span id="pk-p-val">0.30</span></label>
+          <input type="range" id="pk-p" min="0.01" max="0.99" step="0.01" value="0.3">
+          <label>k (attempts) = <span id="pk-k-val">8</span></label>
+          <input type="range" id="pk-k" min="1" max="64" step="1" value="8">
+          <p class="hint" id="pk-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="pk-plot"></svg>
+          <div class="formula-display" id="pk-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION D: LANDSCAPE & RECIPES ============ -->
+  <section class="group" id="landscape">
+    <div class="group-header"><span class="group-index">04</span><h2>The reasoning-model cambrian explosion</h2></div>
+    <p class="group-intro">In 2025 reasoning models arrived in waves. Click a model on the timeline to read its date and one key contribution — from R1's pure-RL catalyst to CISPO, FP32 LM heads, and the shift into agentic, tool-using systems.</p>
+
+    <article class="concept" id="timeline">
+      <h3>Reasoning-model timeline</h3>
+      <p class="concept-desc">A selection of the landmark releases from the lecture, in order. Click to inspect each model's contribution. These are the models that scaled up earlier ideas (STaR, VinePPO, Tulu 3) into the mainstream.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="timeline" id="tl-buttons"></div>
+        </div>
+        <div class="panel-viz">
+          <div class="model-card" id="tl-card"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="recipe">
+      <h3>Recipe-decision explorer</h3>
+      <p class="concept-desc">Building a reasoning RLVR run is a series of choices the deck catalogs. Pick a path — zero-RL vs SFT-then-RL, reward design, data filtering, KL — and see the trade-offs and which labs made each call. A live "recipe summary" assembles your run.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="decision-block">
+            <div class="dlabel">Start point</div>
+            <div class="choice-row" id="rc-start">
+              <button data-v="zero" class="active">Zero-RL (base)</button>
+              <button data-v="sft">SFT → RL</button>
+            </div>
+          </div>
+          <div class="decision-block">
+            <div class="dlabel">Reward type</div>
+            <div class="choice-row" id="rc-reward">
+              <button data-v="verifiable" class="active">Verifiable</button>
+              <button data-v="mixed">Mixed + format</button>
+            </div>
+          </div>
+          <div class="decision-block">
+            <div class="dlabel">Data filtering</div>
+            <div class="choice-row" id="rc-data">
+              <button data-v="none" class="active">None</button>
+              <button data-v="offline">Offline difficulty</button>
+              <button data-v="online">Online curriculum</button>
+            </div>
+          </div>
+          <div class="decision-block">
+            <div class="dlabel">KL penalty β</div>
+            <div class="choice-row" id="rc-kl">
+              <button data-v="zero" class="active">β = 0</button>
+              <button data-v="on">KL / reference</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel-viz">
+          <div class="formula-display" id="rc-summary"></div>
+          <div class="formula-display" id="rc-notes" style="color:var(--text-dim)"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION E: ALGORITHMS ============ -->
+  <section class="group" id="clip">
+    <div class="group-header"><span class="group-index">05</span><h2>One algorithm detail: CISPO vs ratio clipping</h2></div>
+    <p class="group-intro">A recurring recipe choice from the deck: GRPO/PPO clips the <i>per-token probability ratio</i>, which can zero out the gradient on the very tokens that update the most. <b>CISPO</b> (MiniMax-M1) instead clips the <i>importance-sampling weight</i> while keeping every token's gradient alive. DAPO relaxes the upper clip. Drag the ratio to see which contributes a gradient.</p>
+
+    <article class="concept" id="cispo">
+      <h3>Ratio clipping vs CISPO weight clipping</h3>
+      <p class="concept-desc">The probability ratio is <code>r = π<sub>θ</sub>(a)/π<sub>old</sub>(a)</code>. PPO's surrogate <code>min(r·A, clip(r,1−ε,1+ε)·A)</code> kills the gradient outside the trust region (flat → zero slope). CISPO keeps the policy-gradient term <code>A·∇logπ</code> but only clips the IS weight as a multiplier — so high-update tokens still learn. Widen the upper clip to mimic DAPO's relaxed clipping.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Probability ratio r = <span id="ci-r-val">1.00</span></label>
+          <input type="range" id="ci-r" min="0.1" max="2.6" step="0.01" value="1">
+          <label>Advantage A = <span id="ci-a-val">1.00</span></label>
+          <input type="range" id="ci-a" min="-2" max="2" step="0.1" value="1">
+          <label>Lower clip ε<sub>low</sub> = <span id="ci-lo-val">0.20</span></label>
+          <input type="range" id="ci-lo" min="0.05" max="0.5" step="0.01" value="0.2">
+          <label>Upper clip ε<sub>high</sub> (DAPO widens this) = <span id="ci-hi-val">0.20</span></label>
+          <input type="range" id="ci-hi" min="0.05" max="0.8" step="0.01" value="0.2">
+          <p class="hint" id="ci-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="ci-plot"></svg>
+          <div class="formula-display" id="ci-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Built as an interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, Lecture 5 (The Rise of Reasoning Models — Chapter 7) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+
+  /* log of binomial coefficient via lgamma, numerically stable */
+  function lgamma(x){
+    var c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+             -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+    var ser = 1.000000000190015, xx = x, y = x, tmp = x + 5.5;
+    tmp -= (xx + 0.5) * Math.log(tmp);
+    for(var j=0;j<6;j++){ y += 1; ser += c[j]/y; }
+    return -tmp + Math.log(2.5066282746310005 * ser / xx);
+  }
+  function logChoose(n, k){
+    if(k < 0 || k > n) return -Infinity;
+    return lgamma(n+1) - lgamma(k+1) - lgamma(n-k+1);
+  }
+
+  /* ---------------- A1: RLVR feedback loop ---------------- */
+  function initRewardLoop(){
+    var tabs = document.querySelectorAll('#loop-tabs button');
+    var correctBtns = document.querySelectorAll('#loop-correct button');
+    var styleSlider = document.getElementById('loop-style');
+    var styleVal = document.getElementById('loop-style-val');
+    var scorer = document.getElementById('loop-scorer');
+    var scorerTitle = document.getElementById('loop-scorer-title');
+    var scorerBody = document.getElementById('loop-scorer-body');
+    var formula = document.getElementById('loop-formula');
+    var hint = document.getElementById('loop-hint');
+    var mode = 'verifier';
+    var correct = 1;
+
+    function render(){
+      var style = parseFloat(styleSlider.value);
+      styleVal.textContent = style.toFixed(2);
+
+      if(mode === 'verifier'){
+        scorer.classList.remove('rm');
+        scorerTitle.textContent = '2. Verifier (deterministic)';
+        var r = correct ? 1 : 0;
+        scorerBody.innerHTML = 'runs <code>extracted_answer == 77</code> → reward = <b>' + r + '</b>. Style is <b>ignored</b>.';
+        formula.innerHTML =
+          'R = <b>1</b> if answer correct else <b>0</b>&nbsp; (binary, ungameable)<br>' +
+          'This run: answer is ' + (correct ? '<span style="color:var(--accent-bright)">correct</span>' : '<span style="color:var(--red)">wrong</span>') +
+          ' → R = <b>' + r + '</b>. <span style="color:var(--text-dim)">Polishing style cannot raise R.</span>';
+        hint.innerHTML = 'A verifiable reward only rewards <b>being right</b>. There is no continuous score to climb, so reward hacking has nowhere to go — this is why RLVR resists over-optimization and single-turn math RLVR often sets β=0.';
+      } else {
+        scorer.classList.add('rm');
+        scorerTitle.textContent = '2. Reward model (learned)';
+        // RM: continuous, mostly driven by style/length, weakly by correctness
+        var rm = 0.55*style + 0.35*correct + 0.10;
+        rm = clamp(rm, 0, 1);
+        scorerBody.innerHTML = 'emits a continuous score <b>' + rm.toFixed(2) + '</b> — heavily swayed by style/length, only loosely by correctness.';
+        var hackable = style > 0.7 && !correct;
+        formula.innerHTML =
+          'R = RM(x,y) &isin; [0,1] &nbsp;(continuous, learned)<br>' +
+          'R &asymp; 0.55&middot;style + 0.35&middot;correct + 0.10 = <b>' + rm.toFixed(2) + '</b>' +
+          (hackable ? ' &nbsp;<span style="color:var(--red)">[reward-hacked: high score, WRONG answer]</span>' : '');
+        hint.innerHTML = 'A learned reward model gives a <b>gradient everywhere</b> — including toward longer, more polished, but <i>incorrect</i> answers. Push style up with a wrong answer and the RM still rewards it: that is over-optimization / reward hacking.';
+      }
+    }
+
+    tabs.forEach(function(b){
+      b.addEventListener('click', function(){
+        tabs.forEach(function(x){ x.classList.remove('active'); });
+        b.classList.add('active');
+        mode = b.dataset.mode;
+        render();
+      });
+    });
+    correctBtns.forEach(function(b){
+      b.addEventListener('click', function(){
+        correctBtns.forEach(function(x){ x.classList.remove('active'); });
+        b.classList.add('active');
+        correct = parseInt(b.dataset.c, 10);
+        render();
+      });
+    });
+    styleSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- B1: Thinking tokens ---------------- */
+  function initThinkingTokens(){
+    var standard = [
+      {t:'The', k:'a'},{t:'primes', k:'a'},{t:'below', k:'a'},{t:'20', k:'a'},
+      {t:'sum', k:'a'},{t:'to', k:'a'},{t:'\\boxed{77}', k:'ans'}
+    ];
+    var reasoning = [
+      {t:'<think>', k:'think'},{t:'find', k:'think'},{t:'primes', k:'think'},{t:'<20:', k:'think'},
+      {t:'2,3,5,7,', k:'think'},{t:'11,13,', k:'think'},{t:'17,19.', k:'think'},
+      {t:'2+3=5', k:'think'},{t:'+5=10', k:'think'},{t:'...', k:'think'},{t:'=77', k:'think'},
+      {t:'</think>', k:'think'},{t:'The', k:'a'},{t:'answer', k:'a'},{t:'is', k:'a'},{t:'\\boxed{77}', k:'ans'}
+    ];
+    var tabs = document.querySelectorAll('#think-tabs button');
+    var tokensEl = document.getElementById('think-tokens');
+    var formula = document.getElementById('think-formula');
+    var hint = document.getElementById('think-hint');
+    var stepBtn = document.getElementById('think-step');
+    var allBtn = document.getElementById('think-all');
+    var resetBtn = document.getElementById('think-reset');
+    var mode = 'reasoning';
+    var revealed = 0;
+
+    function seq(){ return mode === 'reasoning' ? reasoning : standard; }
+
+    function render(){
+      var s = seq();
+      tokensEl.innerHTML = '';
+      s.forEach(function(item, i){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        if(i >= revealed){ chip.style.opacity = '0.18'; }
+        if(item.k === 'think') chip.classList.add('think');
+        else if(item.k === 'ans') chip.classList.add('answer');
+        chip.textContent = item.t;
+        tokensEl.appendChild(chip);
+      });
+      var thinkCount = s.filter(function(x){ return x.k==='think'; }).length;
+      var ansShown = revealed >= s.length;
+      formula.innerHTML =
+        'tokens revealed: <b>' + Math.min(revealed, s.length) + '/' + s.length + '</b>' +
+        ' &nbsp;|&nbsp; thinking tokens: <b>' + thinkCount + '</b>' +
+        ' &nbsp;|&nbsp; reward = ' + (ansShown ? '<b>verify(\\boxed{77}) → 1</b>' : '<span style="color:var(--text-dim)">pending (only computed on the final boxed answer)</span>');
+      if(mode === 'reasoning'){
+        hint.innerHTML = 'Orange = <code>&lt;think&gt;</code> chain-of-thought; green = the scored answer. The verifier reward fires <b>only</b> on <code>\\boxed{77}</code>, yet &nabla;J &asymp; R&middot;&Sigma;<sub>t</sub>&nabla;log&pi;(y<sub>t</sub>) spreads that one scalar across <b>all</b> ' + thinkCount + ' thinking tokens. Correct outcome ⇒ this whole reasoning path is reinforced. Hard problems can need thousands of these tokens.';
+      } else {
+        hint.innerHTML = 'A standard model answers directly — no <code>&lt;think&gt;</code> block. Switch to the reasoning model to see the chain-of-thought that gets generated before the boxed answer.';
+      }
+    }
+    function setMode(m){
+      // single-select among the two mode buttons
+      tabs.forEach(function(b){ b.classList.toggle('active', b.dataset.mode === m); });
+      mode = m; revealed = 0; render();
+    }
+    tabs.forEach(function(b){
+      b.addEventListener('click', function(){ setMode(b.dataset.mode); });
+    });
+    stepBtn.addEventListener('click', function(){ revealed = Math.min(revealed+1, seq().length); render(); });
+    allBtn.addEventListener('click', function(){ revealed = seq().length; render(); });
+    resetBtn.addEventListener('click', function(){ revealed = 0; render(); });
+    setMode('reasoning');
+  }
+
+  /* ---------------- C1: Test-time / thinking-budget scaling ---------------- */
+  function initTestTimeScaling(){
+    var budgetSlider = document.getElementById('tt-budget');
+    var ceilSlider = document.getElementById('tt-ceil');
+    var rateSlider = document.getElementById('tt-rate');
+    var budgetVal = document.getElementById('tt-budget-val');
+    var ceilVal = document.getElementById('tt-ceil-val');
+    var rateVal = document.getElementById('tt-rate-val');
+    var formula = document.getElementById('tt-formula');
+    var hint = document.getElementById('tt-hint');
+    var svg = document.getElementById('tt-plot');
+
+    var W = 380, H = 220, PAD = 34;
+    var bMin = 32, bMax = 8192;
+    var floor = 0.05; // accuracy at ~0 thinking
+
+    // concave saturating accuracy: acc(b) = floor + (ceil-floor)*(1 - exp(-b/k))
+    function acc(b, ceil, k){ return floor + (ceil - floor) * (1 - Math.exp(-b/k)); }
+    // log-scale x so the diminishing-returns shape reads clearly
+    function bToFrac(b){ return (Math.log(b) - Math.log(bMin)) / (Math.log(bMax) - Math.log(bMin)); }
+
+    function render(){
+      var budget = parseFloat(budgetSlider.value);
+      var ceil = parseFloat(ceilSlider.value);
+      var k = parseFloat(rateSlider.value);
+      budgetVal.textContent = budget.toFixed(0);
+      ceilVal.textContent = ceil.toFixed(2);
+      rateVal.textContent = k.toFixed(0);
+
+      function xToPx(b){ return PAD + bToFrac(b) * (W - 2*PAD); }
+      function yToPx(v){ return PAD + (1 - v) * (H - 2*PAD); }
+
+      // strong (reasoning-trained) model = chosen ceiling; weak base model = lower ceiling
+      var weakCeil = ceil * 0.6;
+      var strongPts = [], weakPts = [];
+      for(var b = bMin; b <= bMax + 1e-9; b *= 1.06){
+        strongPts.push([xToPx(b), yToPx(acc(b, ceil, k))]);
+        weakPts.push([xToPx(b), yToPx(acc(b, weakCeil, k))]);
+      }
+      function toPath(p){ return p.map(function(pt,i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' '); }
+
+      var a = acc(budget, ceil, k);
+      var cx = xToPx(budget), cy = yToPx(a);
+
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + (H-PAD) + '" x2="' + (W-PAD) + '" y2="' + (H-PAD) + '"></line>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + PAD + '" x2="' + PAD + '" y2="' + (H-PAD) + '"></line>' +
+        '<line x1="' + PAD + '" y1="' + yToPx(ceil).toFixed(1) + '" x2="' + (W-PAD) + '" y2="' + yToPx(ceil).toFixed(1) + '" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<path class="plot-curve-2" d="' + toPath(weakPts) + '"></path>' +
+        '<path class="plot-curve" d="' + toPath(strongPts) + '"></path>' +
+        '<line x1="' + cx.toFixed(1) + '" y1="' + cy.toFixed(1) + '" x2="' + cx.toFixed(1) + '" y2="' + (H-PAD) + '" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD-8) + '" fill="var(--text-dim)" font-size="10">accuracy</text>' +
+        '<text x="' + (W-PAD-78) + '" y="' + (H-PAD+16) + '" fill="var(--text-dim)" font-size="10">thinking tokens (log)</text>' +
+        '<text x="' + (W-PAD-70) + '" y="' + (yToPx(ceil)-4).toFixed(1) + '" fill="var(--text-dim)" font-size="9">ceiling A_max</text>' +
+        '<text x="' + (PAD+4) + '" y="' + (yToPx(ceil*0.6)+12).toFixed(1) + '" fill="var(--orange)" font-size="9">weak base model</text>';
+
+      // marginal accuracy per doubling of budget at current point
+      var marg = acc(budget*2, ceil, k) - a;
+      formula.innerHTML =
+        'acc(b) = floor + (A<sub>max</sub>&minus;floor)(1 &minus; e<sup>&minus;b/k</sup>)<br>' +
+        'acc(' + budget.toFixed(0) + ') = <b>' + a.toFixed(3) + '</b> &nbsp;|&nbsp; gain from doubling budget: <b>+' + marg.toFixed(3) + '</b>';
+      hint.innerHTML = 'This is <b>test-time</b> scaling: fixed weights, more compute per query. The curve is concave — early thinking tokens buy a lot of accuracy, later ones almost none (diminishing returns), and it saturates at the trained ceiling A<sub>max</sub>. <b>Train-time</b> scaling (more RL) is what raises that ceiling — the dashed weak model can never reach the green one by thinking harder.';
+    }
+    budgetSlider.addEventListener('input', render);
+    ceilSlider.addEventListener('input', render);
+    rateSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- C2: pass@1 vs pass@k ---------------- */
+  function initPassK(){
+    var pSlider = document.getElementById('pk-p');
+    var kSlider = document.getElementById('pk-k');
+    var pVal = document.getElementById('pk-p-val');
+    var kVal = document.getElementById('pk-k-val');
+    var formula = document.getElementById('pk-formula');
+    var hint = document.getElementById('pk-hint');
+    var svg = document.getElementById('pk-plot');
+
+    var W = 380, H = 220, PAD = 34;
+    var kMax = 64;
+
+    // analytic pass@k for i.i.d. samples with per-sample prob p: 1 - (1-p)^k
+    function passk(p, k){ return 1 - Math.pow(1-p, k); }
+
+    function render(){
+      var p = parseFloat(pSlider.value);
+      var k = parseInt(kSlider.value, 10);
+      pVal.textContent = p.toFixed(2);
+      kVal.textContent = k;
+
+      function xToPx(kk){ return PAD + (kk-1)/(kMax-1) * (W - 2*PAD); }
+      function yToPx(v){ return PAD + (1 - v) * (H - 2*PAD); }
+
+      var pts = [];
+      for(var kk = 1; kk <= kMax; kk++){ pts.push([xToPx(kk), yToPx(passk(p, kk))]); }
+      function toPath(pp){ return pp.map(function(pt,i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' '); }
+
+      var pk = passk(p, k);
+      var p1 = p;
+      var cx = xToPx(k), cy = yToPx(pk);
+
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + (H-PAD) + '" x2="' + (W-PAD) + '" y2="' + (H-PAD) + '"></line>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + PAD + '" x2="' + PAD + '" y2="' + (H-PAD) + '"></line>' +
+        '<line x1="' + PAD + '" y1="' + yToPx(p1).toFixed(1) + '" x2="' + (W-PAD) + '" y2="' + yToPx(p1).toFixed(1) + '" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<path class="plot-curve" d="' + toPath(pts) + '"></path>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD-8) + '" fill="var(--text-dim)" font-size="10">pass@k</text>' +
+        '<text x="' + (W-PAD-26) + '" y="' + (H-PAD+16) + '" fill="var(--text-dim)" font-size="10">k</text>' +
+        '<text x="' + (W-PAD-58) + '" y="' + (yToPx(p1)-4).toFixed(1) + '" fill="var(--text-dim)" font-size="9">pass@1 = ' + p1.toFixed(2) + '</text>';
+
+      // also show the unbiased estimator form from the deck for a concrete n,c
+      var n = 64, c = Math.round(p*n);
+      var est = (k > n) ? NaN : 1 - Math.exp(logChoose(n-c, k) - logChoose(n, k));
+      formula.innerHTML =
+        'pass@k (i.i.d.) = 1 &minus; (1&minus;p)<sup>k</sup> = 1 &minus; (' + (1-p).toFixed(2) + ')<sup>' + k + '</sup> = <b>' + pk.toFixed(3) + '</b><br>' +
+        'unbiased est. 1 &minus; C(n&minus;c,k)/C(n,k) with n=64, c=' + c + ': <b>' + (isNaN(est)?'—':est.toFixed(3)) + '</b>';
+      hint.innerHTML = 'pass@1 = <b>' + p1.toFixed(2) + '</b>, pass@' + k + ' = <b>' + pk.toFixed(2) + '</b> — a headroom of <b>' + (pk-p1).toFixed(2) + '</b>. That gap is the coverage a majority vote (R1, Phi-4) or a selector model (DeepSeek-GRM) tries to convert into single-shot accuracy.';
+    }
+    pSlider.addEventListener('input', render);
+    kSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- D1: Reasoning-model timeline ---------------- */
+  function initTimeline(){
+    var models = [
+      { id:'r1', name:'DeepSeek R1', date:'Jan 20, 2025',
+        contrib:'A surprisingly fast o1 replication. R1-Zero showed pure RL on a base model (no SFT warm-start) induces chain-of-thought. The full recipe: cold-start SFT → large-scale RL → distillation into smaller models.',
+        tags:['pure-RL','distillation','format rewards'] },
+      { id:'kimi', name:'Kimi 1.5', date:'Jan 20, 2025',
+        contrib:'Landed in the same January wave, emphasizing RL scale plus curriculum: difficulty scheduling, online filtering, and progressive length extension to curb overthinking. Detailed report, but no open-weight release.',
+        tags:['curriculum','length control','online filtering'] },
+      { id:'orz', name:'Open-Reasoner-Zero', date:'Feb 18, 2025',
+        contrib:'First public dataset + code for an R1-style base-model RL run. Vanilla PPO with GAE (λ=1, γ=1), simple rule-based rewards, no KL penalty. Fully open: code, data, and weights.',
+        tags:['fully open','no KL','vanilla PPO'] },
+      { id:'qwen3', name:'Qwen 3', date:'Apr 29, 2025',
+        contrib:'New open-weight standard with toggleable thinking (/think and /no_think), thinking-budget length controls, and an R1-style multi-stage pipeline. Lightweight models use strong-to-weak distillation.',
+        tags:['hybrid reasoner','thinking budget','distillation'] },
+      { id:'mimo', name:'MiMo', date:'Apr 30, 2025',
+        contrib:'Xiaomi reports the entire pipeline from pretraining through post-training: three-stage data mixing, Multi-Token Prediction, and multi-domain RL. One of few to release intermediate post-training checkpoints.',
+        tags:['full pipeline','MTP','midtraining sets ceiling'] },
+      { id:'ot3', name:'OpenThoughts 3', date:'Jun 5, 2025',
+        contrib:'Foundational open reasoning data: 1.2M public examples across math/code/science from QwQ-32B traces, over 1,000 controlled data-pipeline experiments. OpenThinker3-7B is strong with SFT only.',
+        tags:['open data','SFT-only','data recipes'] },
+      { id:'m1', name:'MiniMax-M1', date:'Jun 16, 2025',
+        contrib:'A fun, durable RL paper: introduced CISPO (clip importance-sampling weights instead of dropping high-update tokens) and the now-famous FP32 LM-head train/inference mismatch plot.',
+        tags:['CISPO','FP32 LM head'] },
+      { id:'glm45', name:'GLM-4.5', date:'Jul 28, 2025',
+        contrib:'An early focus on agentic behaviors. 355B total / 32B active MoE, thinking and direct-response modes, expert-model iteration plus RL for agent, reasoning, and chat skills.',
+        tags:['agentic','MoE','355B/32B'] },
+      { id:'olmo3', name:'Olmo 3 Think', date:'Nov 20, 2025',
+        contrib:'The most comprehensive open documentation of a reasoning-model lifecycle: stages, checkpoints, data, infrastructure, and hyperparameters released. Zero-gradient filtering + active sampling for stable loss.',
+        tags:['fully documented','zero-grad filtering','DPO findings'] },
+      { id:'v32', name:'DeepSeek V3.2', date:'Dec 1, 2025',
+        contrib:'Pushes the R1 recipe into tool-use and agent environments. Open-weight MoE; thinking is integrated directly into tool use — no longer a distinct reasoning model.',
+        tags:['agentic','tool use','MoE'] },
+      { id:'nemo', name:'Nemotron 3 Nano', date:'Dec 15, 2025',
+        contrib:'Efficient agentic reasoning: 31.6B total / ~3.2B active, hybrid Mamba-Transformer MoE, post-trained with SFT, multi-environment RLVR, and RLHF.',
+        tags:['hybrid Mamba','multi-env RLVR','efficient'] },
+      { id:'flash', name:'MiMo-V2-Flash', date:'Dec 16, 2025',
+        contrib:'Multi-Teacher On-Policy Distillation (MOPD): train a specialist teacher per domain, then distill into one student using dense token-level rewards (not just sequence-level outcome rewards) — matching its strongest teacher in every domain.',
+        tags:['MOPD','dense rewards','distillation'] }
+    ];
+    var btnWrap = document.getElementById('tl-buttons');
+    var card = document.getElementById('tl-card');
+    var active = 'r1';
+
+    function renderCard(){
+      var m = models.filter(function(x){ return x.id === active; })[0];
+      card.innerHTML =
+        '<div class="mc-date">' + escapeHtml(m.date) + '</div>' +
+        '<h4>' + escapeHtml(m.name) + '</h4>' +
+        '<p>' + escapeHtml(m.contrib) + '</p>' +
+        m.tags.map(function(t){ return '<span class="mc-tag">' + escapeHtml(t) + '</span>'; }).join('');
+    }
+    models.forEach(function(m){
+      var b = document.createElement('button');
+      b.textContent = m.name;
+      if(m.id === active) b.classList.add('active');
+      b.addEventListener('click', function(){
+        active = m.id;
+        btnWrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
+        b.classList.add('active');
+        renderCard();
+      });
+      btnWrap.appendChild(b);
+    });
+    renderCard();
+  }
+
+  /* ---------------- D2: Recipe-decision explorer ---------------- */
+  function initRecipe(){
+    var choices = { start:'zero', reward:'verifiable', data:'none', kl:'zero' };
+    var groups = ['start','reward','data','kl'];
+    var summary = document.getElementById('rc-summary');
+    var notes = document.getElementById('rc-notes');
+
+    var labels = {
+      start: { zero:'Zero-RL on a base model', sft:'Cold-start SFT → RL' },
+      reward: { verifiable:'Verifiable rewards only', mixed:'Mixed rewards + format/language' },
+      data: { none:'No filtering', offline:'Offline difficulty filtering', online:'Online curriculum' },
+      kl: { zero:'KL penalty β = 0', on:'KL / reference term on' }
+    };
+    var labs = {
+      'start.zero':'R1-Zero, Open-Reasoner-Zero',
+      'start.sft':'Full DeepSeek R1, Qwen 3, Olmo 3',
+      'reward.verifiable':'math/code RLVR backbone',
+      'reward.mixed':'DeepSeek R1, Magistral, Skywork OR-1 (format + language-consistency rewards)',
+      'data.none':'simplest, but wastes compute on too-easy/too-hard prompts',
+      'data.offline':'Seed-Thinking 1.5, ORZ, Phi-4, INTELLECT-2, MiMo, Olmo 3',
+      'data.online':'Kimi 1.5, Magistral, Llama-Nemotron, INTELLECT-2',
+      'kl.zero':'Magistral, ORZ, Skywork OR-1 (verifiable rewards resist over-optimization)',
+      'kl.on':'long-horizon / off-policy agentic training (e.g. Cursor Composer 2) revives a reference term for stability'
+    };
+
+    function render(){
+      summary.innerHTML =
+        '<b>Your recipe:</b><br>' +
+        '• ' + labels.start[choices.start] + '<br>' +
+        '• ' + labels.reward[choices.reward] + '<br>' +
+        '• ' + labels.data[choices.data] + '<br>' +
+        '• ' + labels.kl[choices.kl];
+
+      var lines = [];
+      lines.push('start → ' + labs['start.'+choices.start]);
+      lines.push('reward → ' + labs['reward.'+choices.reward]);
+      lines.push('data → ' + labs['data.'+choices.data]);
+      lines.push('KL → ' + labs['kl.'+choices.kl]);
+
+      var verdict;
+      if(choices.start==='zero' && choices.reward==='verifiable' && choices.data==='none' && choices.kl==='zero'){
+        verdict = 'This is the minimalist R1-Zero / Open-Reasoner-Zero recipe: pure RL, clean binary rewards, no KL. Surprisingly strong, but leaves filtering/curriculum gains on the table.';
+      } else if(choices.start==='sft' && choices.data!=='none'){
+        verdict = 'A multi-stage production recipe (R1 / Qwen 3 / Olmo 3 flavor): SFT warm-start plus data shaping keeps gradients in the 20–80% pass-rate band where learning happens.';
+      } else if(choices.kl==='on'){
+        verdict = 'Adding KL signals an agentic / off-policy run — reviving a reference term for stability when rollouts go stale, the way long-horizon agent training does.';
+      } else {
+        verdict = 'A reasonable mid-point recipe. Note: verifiable rewards usually let you keep β=0; data filtering is the cheapest reliable win.';
+      }
+      notes.innerHTML = lines.map(escapeHtml).join('<br>') + '<br><br><span style="color:var(--accent-bright)">' + verdict + '</span>';
+    }
+
+    groups.forEach(function(g){
+      var wrap = document.getElementById('rc-' + g);
+      wrap.querySelectorAll('button').forEach(function(b){
+        b.addEventListener('click', function(){
+          wrap.querySelectorAll('button').forEach(function(x){ x.classList.remove('active'); });
+          b.classList.add('active');
+          choices[g] = b.dataset.v;
+          render();
+        });
+      });
+    });
+    render();
+  }
+
+  /* ---------------- E1: CISPO vs ratio clipping ---------------- */
+  function initCispo(){
+    var rSlider = document.getElementById('ci-r');
+    var aSlider = document.getElementById('ci-a');
+    var loSlider = document.getElementById('ci-lo');
+    var hiSlider = document.getElementById('ci-hi');
+    var rVal = document.getElementById('ci-r-val');
+    var aVal = document.getElementById('ci-a-val');
+    var loVal = document.getElementById('ci-lo-val');
+    var hiVal = document.getElementById('ci-hi-val');
+    var formula = document.getElementById('ci-formula');
+    var hint = document.getElementById('ci-hint');
+    var svg = document.getElementById('ci-plot');
+
+    var W = 380, H = 220, PAD = 34;
+    var rMin = 0, rMax = 2.6;
+
+    function ppoObj(r, A, lo, hi){ return Math.min(r*A, clamp(r, 1-lo, 1+hi) * A); }
+    // CISPO: keep A * grad term, multiply by clipped IS weight (clipped only as a stop-gradient scalar);
+    // its "objective contribution" still moves with r everywhere (no flat dead zone) — we depict the IS weight.
+    function cispoWeight(r, lo, hi){ return clamp(r, 1-lo, 1+hi); }
+    function cispoObj(r, A, lo, hi){ return cispoWeight(r, lo, hi) * A * (r > 0 ? 1 : 1); }
+
+    function render(){
+      var r = parseFloat(rSlider.value);
+      var A = parseFloat(aSlider.value);
+      var lo = parseFloat(loSlider.value);
+      var hi = parseFloat(hiSlider.value);
+      rVal.textContent = r.toFixed(2);
+      aVal.textContent = A.toFixed(2);
+      loVal.textContent = lo.toFixed(2);
+      hiVal.textContent = hi.toFixed(2);
+
+      var yMax = Math.max(0.6, Math.abs(A) * (1+hi) * 1.2);
+      function xToPx(rr){ return PAD + (rr-rMin)/(rMax-rMin) * (W - 2*PAD); }
+      function yToPx(v){ return PAD + (yMax - v)/(2*yMax) * (H - 2*PAD); }
+
+      var ppoPts = [], cispoPts = [];
+      for(var rr = rMin; rr <= rMax + 1e-9; rr += 0.02){
+        ppoPts.push([xToPx(rr), yToPx(clamp(ppoObj(rr, A, lo, hi), -yMax, yMax))]);
+        cispoPts.push([xToPx(rr), yToPx(clamp(cispoObj(rr, A, lo, hi), -yMax, yMax))]);
+      }
+      function toPath(p){ return p.map(function(pt,i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' '); }
+
+      var bandX1 = xToPx(1-lo), bandX2 = xToPx(1+hi);
+      var zeroY = yToPx(0);
+      var cx = xToPx(r), cyPpo = yToPx(clamp(ppoObj(r,A,lo,hi), -yMax, yMax));
+
+      svg.innerHTML =
+        '<rect x="' + bandX1.toFixed(1) + '" y="' + PAD + '" width="' + (bandX2-bandX1).toFixed(1) + '" height="' + (H-2*PAD) + '" fill="rgba(132,169,140,0.10)"></rect>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + zeroY.toFixed(1) + '" x2="' + (W-PAD) + '" y2="' + zeroY.toFixed(1) + '"></line>' +
+        '<line class="plot-axis" x1="' + xToPx(1).toFixed(1) + '" y1="' + PAD + '" x2="' + xToPx(1).toFixed(1) + '" y2="' + (H-PAD) + '" stroke-dasharray="2,3"></line>' +
+        '<path class="plot-curve-2" d="' + toPath(cispoPts) + '"></path>' +
+        '<path class="plot-curve" d="' + toPath(ppoPts) + '"></path>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cyPpo.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (xToPx(1)-6).toFixed(1) + '" y="' + (H-PAD+14) + '" fill="var(--text-dim)" font-size="10">r=1</text>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD+10) + '" fill="var(--accent)" font-size="10">PPO surrogate</text>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD+24) + '" fill="var(--orange)" font-size="10">CISPO weight·A</text>';
+
+      var lPpo = ppoObj(r, A, lo, hi);
+      var dead = (A >= 0 && r > 1+hi) || (A < 0 && r < 1-lo);
+      formula.innerHTML =
+        'PPO: min(r·A, clip(r,1&minus;&epsilon;<sub>lo</sub>,1+&epsilon;<sub>hi</sub>)·A) = <b>' + lPpo.toFixed(2) + '</b>' +
+        (dead ? ' &nbsp;<span style="color:var(--red)">[gradient killed]</span>' : '') + '<br>' +
+        'CISPO: weight = clip(r) = ' + cispoWeight(r, lo, hi).toFixed(2) + ', keeps A·&nabla;log&pi; alive everywhere.';
+      if(dead){
+        hint.innerHTML = 'Here PPO is <b>clipped</b>: the surrogate is flat, so &part;/&part;&theta; = 0 and this token contributes <b>no gradient</b> — even though it may be a high-update token. <b>CISPO</b> keeps the gradient by clipping only the IS weight as a multiplier. DAPO instead <i>widens</i> &epsilon;<sub>hi</sub> so fewer exploratory updates die.';
+      } else {
+        hint.innerHTML = 'Inside the trust region [1&minus;&epsilon;<sub>lo</sub>, 1+&epsilon;<sub>hi</sub>] both objectives move with r. Push r past 1+&epsilon;<sub>hi</sub> (with A&gt;0) and watch PPO flatten to a dead gradient while CISPO keeps learning. Raise &epsilon;<sub>hi</sub> to mimic DAPO.';
+      }
+    }
+    rSlider.addEventListener('input', render);
+    aSlider.addEventListener('input', render);
+    loSlider.addEventListener('input', render);
+    hiSlider.addEventListener('input', render);
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initRewardLoop();
+    initThinkingTokens();
+    initTestTimeScaling();
+    initPassK();
+    initTimeline();
+    initRecipe();
+    initCispo();
+  });
+})();
+</script>
+
+</body>
+</html>

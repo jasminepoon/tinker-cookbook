@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Direct Preference Optimization — Interactive Lecture 6</title>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --pink:#F28482;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(242,132,130,0.22), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+    line-height:1.7;
+  }
+  .formula-display b{ color:#fff; }
+  .formula-display .pos{ color:var(--accent-bright); }
+  .formula-display .neg{ color:var(--pink); }
+  .formula-display .dim{ color:var(--text-dim); }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  /* derivation stepper */
+  .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .deriv-eq{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-left:3px solid var(--pink);
+    border-radius:8px;
+    padding:16px 18px;
+    font-size:1.0em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+    line-height:1.7;
+    min-height:62px;
+  }
+  .deriv-gloss{ color:var(--text-dim); font-size:0.9em; line-height:1.55; }
+  .deriv-part{
+    display:inline-block;
+    font-family:var(--mono);
+    background:rgba(242,132,130,0.14);
+    border:1px solid var(--pink);
+    color:#f3b0af;
+    border-radius:6px;
+    padding:3px 9px;
+    font-size:0.78em;
+    margin-bottom:6px;
+  }
+  .dots{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .dot{ width:8px; height:8px; border-radius:50%; background:var(--border); cursor:pointer; }
+  .dot.on{ background:var(--pink); }
+  .dot.part-edge{ box-shadow:0 0 0 2px var(--panel-2), 0 0 0 3px var(--accent); }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+
+  table.cmp{ width:100%; border-collapse:collapse; font-size:0.86em; }
+  table.cmp th, table.cmp td{ border:1px solid var(--border); padding:9px 12px; text-align:left; vertical-align:top; }
+  table.cmp th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.cmp td.daa{ color:var(--accent-bright); }
+  table.cmp td.rl{ color:var(--orange); }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">rlhfbook.com/course · lecture 6</div>
+  <h1>Direct Preference Optimization</h1>
+  <p class="sub">Derive DPO from scratch and play with every piece: the KL-regularized RLHF objective, its closed-form optimal policy, the implicit reward hiding inside the policy, and the single differentiable loss you actually train — no reward model, no RL loop, no sampling.</p>
+  <p class="credit">Interactive companion to Nathan Lambert's "Lecture 6: Direct Preference Optimization" (rlhfbook.com/course, Chapter 8: Direct Alignment Algorithms). Math after Rafailov et al., 2023, "Your Language Model is Secretly a Reward Model." Interactive build only — content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#setup">The Promise</a>
+  <a href="#deriv">The Derivation</a>
+  <a href="#policy">Optimal Policy</a>
+  <a href="#reward">Implicit Reward</a>
+  <a href="#loss">The DPO Loss</a>
+  <a href="#grad">The Gradient</a>
+  <a href="#practice">In Practice</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION A: SETUP ============ -->
+  <section class="group" id="setup">
+    <div class="group-header"><span class="group-index">01</span><h2>The Promise of DPO</h2></div>
+    <p class="group-intro">Classic RLHF has three moving parts: collect preference pairs, train a reward model <code>r<sub>φ</sub>(x,y)</code>, then optimize the policy against it with RL (e.g. PPO) under a KL penalty. DPO collapses steps 2 and 3 into <b>one supervised-style loss</b>. The key realization we will prove: the optimal RLHF policy and the reward model are two views of the <i>same</i> object — know one, and you know the other in closed form.</p>
+
+    <article class="concept" id="pipeline">
+      <h3>Where DPO sits: collapsing the pipeline</h3>
+      <p class="concept-desc">RLHF is reward-model-then-RL. DPO trains the policy <i>directly</i> on preference pairs. Toggle between the two pipelines to see which stages each one needs — DPO drops the separate reward model and the online RL loop entirely.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="pipe-tabs">
+            <button data-mode="rlhf" class="active">Classic RLHF</button>
+            <button data-mode="dpo">DPO</button>
+          </div>
+          <p class="hint" id="pipe-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div id="pipe-stages" style="display:flex;flex-direction:column;gap:10px;"></div>
+          <div class="formula-display" id="pipe-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION B: DERIVATION STEPPER ============ -->
+  <section class="group" id="deriv">
+    <div class="group-header"><span class="group-index">02</span><h2>The Derivation, Step by Step</h2></div>
+    <p class="group-intro">The whole derivation runs in four parts: <b>(P1)</b> solve the KL-regularized RLHF objective for its optimal policy via the partition function; <b>(P2)</b> invert that to write the reward in terms of the policy; <b>(P3)</b> plug it into the Bradley–Terry preference model so the partition function cancels; <b>(P4)</b> read off the DPO loss. Step through every line — each shows the equation and a one-line plain-language gloss.</p>
+
+    <article class="concept" id="stepper">
+      <h3>DPO derivation walk-through</h3>
+      <p class="concept-desc">Use Prev / Next to move one line at a time, or jump between the four parts. The colored chip tells you which part of the derivation you are in.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="dv-prev">◀ Prev</button>
+          <button id="dv-next">Next ▶</button>
+          <div class="tabs" id="dv-parts" style="margin-top:10px;">
+            <button data-part="0" class="active">P1 · policy</button>
+            <button data-part="1">P2 · reward</button>
+            <button data-part="2">P3 · BT</button>
+            <button data-part="3">P4 · loss</button>
+          </div>
+          <div class="dots" id="dv-dots"></div>
+          <p class="hint" id="dv-counter"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="deriv-part" id="dv-partlabel"></div>
+          <div class="deriv-eq" id="dv-eq"></div>
+          <div class="deriv-gloss" id="dv-gloss"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION C: OPTIMAL POLICY ============ -->
+  <section class="group" id="policy">
+    <div class="group-header"><span class="group-index">03</span><h2>The Optimal Policy</h2></div>
+    <p class="group-intro">The RLHF objective's closed-form solution is <code>π*(y|x) = (1/Z(x)) · π<sub>ref</sub>(y|x) · exp(r(x,y)/β)</code>: take the reference policy and reweight each response by <code>e<sup>r/β</sup></code>, then renormalize with the partition function <code>Z(x)</code>. β controls how aggressive that reweighting is.</p>
+
+    <article class="concept" id="policyshape">
+      <h3>How β morphs π<sub>ref</sub> into the reward-tilted optimum</h3>
+      <p class="concept-desc">A small set of candidate responses, each with a reference probability and a reward. The green bars are <code>π<sub>ref</sub></code>; the bright bars are <code>π*</code>. Slide β: as <b>β→∞</b> the KL penalty dominates and π* collapses back onto π<sub>ref</sub>; as <b>β→0</b> the reward dominates and π* becomes greedy, piling all mass on the highest-reward response. Edit the rewards to see the tilt change.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>β = <span id="ps-beta-val">1.00</span> <span class="dim" id="ps-beta-tag"></span></label>
+          <input type="range" id="ps-beta" min="-2" max="2.3" step="0.02" value="0">
+          <div id="ps-rsliders"></div>
+          <p class="hint">β is shown on a log scale (slider value is log₁₀β). Reward sliders tilt the distribution; π<sub>ref</sub> is fixed.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="ps-bars"></div>
+          <div class="formula-display" id="ps-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION D: IMPLICIT REWARD ============ -->
+  <section class="group" id="reward">
+    <div class="group-header"><span class="group-index">04</span><h2>The Implicit Reward</h2></div>
+    <p class="group-intro">Inverting the optimal policy gives <code>r*(x,y) = β·log(π*(y|x)/π<sub>ref</sub>(y|x)) + β·log Z(x)</code> — "your language model is secretly a reward model." The reward is just β times the log-ratio of the policy against the reference (plus a per-prompt constant <code>β log Z</code> that cancels in any preference comparison).</p>
+
+    <article class="concept" id="implicit">
+      <h3>Reading the reward off the log-ratio</h3>
+      <p class="concept-desc">Drag the policy and reference log-probabilities for a response, and β. The implied reward is <code>β·(log π<sub>θ</sub> − log π<sub>ref</sub>)</code>. When the policy assigns the response <i>more</i> mass than the reference, the implicit reward is positive; less mass, negative. The <code>β log Z</code> term is a prompt-level offset — toggle it to see it shift every reward by the same amount.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>log π<sub>θ</sub>(y|x) = <span id="ir-pi-val">-1.20</span></label>
+          <input type="range" id="ir-pi" min="-6" max="-0.05" step="0.05" value="-1.2">
+          <label>log π<sub>ref</sub>(y|x) = <span id="ir-ref-val">-2.00</span></label>
+          <input type="range" id="ir-ref" min="-6" max="-0.05" step="0.05" value="-2.0">
+          <label>β = <span id="ir-beta-val">0.10</span></label>
+          <input type="range" id="ir-beta" min="0.01" max="1" step="0.01" value="0.1">
+          <label style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+            <input type="checkbox" id="ir-z"> include β·log Z(x) offset
+          </label>
+          <label id="ir-z-row" style="display:none;">log Z(x) = <span id="ir-z-val">0.50</span>
+            <input type="range" id="ir-z-slider" min="-2" max="2" step="0.05" value="0.5"></label>
+          <p class="hint">Only the log-ratio is learnable; log Z(x) is the same for every response to a given prompt, so it never affects which response is preferred.</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 340 200" id="ir-plot"></svg>
+          <div class="formula-display" id="ir-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION E: THE DPO LOSS ============ -->
+  <section class="group" id="loss">
+    <div class="group-header"><span class="group-index">05</span><h2>The DPO Loss</h2></div>
+    <p class="group-intro">Substituting the implicit reward into Bradley–Terry, the partition function cancels and the preference becomes a sigmoid of a difference of log-ratios. Minimizing the negative log-likelihood of the observed preferences gives the DPO loss: <code>L = −log σ( β·[ log(π<sub>θ</sub>(y<sub>w</sub>)/π<sub>ref</sub>(y<sub>w</sub>)) − log(π<sub>θ</sub>(y<sub>l</sub>)/π<sub>ref</sub>(y<sub>l</sub>)) ] )</code>.</p>
+
+    <article class="concept" id="dpoloss">
+      <h3>The DPO loss, live</h3>
+      <p class="concept-desc">Four log-probabilities (policy and reference, for the chosen <code>y<sub>w</sub></code> and rejected <code>y<sub>l</sub></code>) plus β. The loss rewards <b>widening the margin</b>: pushing the chosen log-ratio above the rejected one relative to the reference. Watch the implicit reward margin and loss respond. Notice that the loss only sees the <i>margin</i> — not the absolute log-probs (the likelihood-displacement risk).</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>log π<sub>θ</sub>(y<sub>w</sub>) = <span id="dl-pw-val">-1.00</span></label>
+          <input type="range" id="dl-pw" min="-6" max="-0.05" step="0.05" value="-1.0">
+          <label>log π<sub>ref</sub>(y<sub>w</sub>) = <span id="dl-rw-val">-1.50</span></label>
+          <input type="range" id="dl-rw" min="-6" max="-0.05" step="0.05" value="-1.5">
+          <label>log π<sub>θ</sub>(y<sub>l</sub>) = <span id="dl-pl-val">-2.50</span></label>
+          <input type="range" id="dl-pl" min="-6" max="-0.05" step="0.05" value="-2.5">
+          <label>log π<sub>ref</sub>(y<sub>l</sub>) = <span id="dl-rl-val">-2.00</span></label>
+          <input type="range" id="dl-rl" min="-6" max="-0.05" step="0.05" value="-2.0">
+          <label>β = <span id="dl-beta-val">0.10</span></label>
+          <input type="range" id="dl-beta" min="0.01" max="1" step="0.01" value="0.1">
+          <p class="hint" id="dl-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="dl-bars" style="height:150px;"></div>
+          <div class="formula-display" id="dl-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION F: GRADIENT ============ -->
+  <section class="group" id="grad">
+    <div class="group-header"><span class="group-index">06</span><h2>The Gradient: how DPO learns</h2></div>
+    <p class="group-intro">The DPO gradient is <code>∇L = −β·E[ w·(∇log π<sub>θ</sub>(y<sub>w</sub>) − ∇log π<sub>θ</sub>(y<sub>l</sub>)) ]</code> with weight <code>w = σ(r̂<sub>θ</sub>(y<sub>l</sub>) − r̂<sub>θ</sub>(y<sub>w</sub>))</code>. The bracket raises the likelihood of the chosen response and lowers the rejected one; the scalar weight <code>w ∈ (0,1)</code> is larger exactly when the model currently <b>misranks</b> the pair — the σ' weighting up-weights the wrong examples.</p>
+
+    <article class="concept" id="gradweight">
+      <h3>The "how-wrong" weight w</h3>
+      <p class="concept-desc">Slide the implicit-reward margin <code>Δ = r̂<sub>θ</sub>(y<sub>w</sub>) − r̂<sub>θ</sub>(y<sub>l</sub>)</code> (positive = correctly ranked). The gradient weight is <code>w = σ(−Δ)</code>. When the pair is badly misranked (Δ ≪ 0), <code>w → 1</code> and the step is large; when the model already ranks the pair confidently right (Δ ≫ 0), <code>w → 0</code> and the example is nearly ignored. This is the same σ' self-weighting as in logistic regression.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>implicit-reward margin Δ = r̂(y<sub>w</sub>) − r̂(y<sub>l</sub>) = <span id="gw-d-val">0.00</span></label>
+          <input type="range" id="gw-d" min="-6" max="6" step="0.1" value="0">
+          <p class="hint" id="gw-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 340 200" id="gw-plot"></svg>
+          <div class="formula-display" id="gw-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="dpovsppo">
+      <h3>DPO vs. PPO / online RL</h3>
+      <p class="concept-desc">DPO is <b>offline</b>: it steps directly to the optimum implied by a fixed dataset and the chosen β, so its final KL distance from the reference is static. Online RL (PPO) generates fresh completions, scores them with a reward model, and can explore — often a higher peak, at much more compute and complexity. Click a row to expand the contrast.</p>
+      <div class="panel" style="grid-template-columns:1fr;">
+        <div class="panel-viz">
+          <table class="cmp" id="cmp-table">
+            <thead><tr><th>Dimension</th><th class="daa">DPO / DAAs (offline)</th><th class="rl">PPO / policy gradient (online)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION G: PRACTICE ============ -->
+  <section class="group" id="practice">
+    <div class="group-header"><span class="group-index">07</span><h2>In Practice</h2></div>
+    <p class="group-intro">β trades correct ordering against drift from the reference, and the loss is genuinely a few lines of code. A subtle failure mode — likelihood displacement — is worth seeing directly.</p>
+
+    <article class="concept" id="displacement">
+      <h3>Likelihood displacement: the chosen probability can fall</h3>
+      <p class="concept-desc">The loss only cares about the <b>margin</b>. So the model can lower the loss by pushing the <i>rejected</i> log-prob down faster than the chosen — even while the chosen log-prob <i>also</i> falls. Drag the per-step changes to each policy log-prob and watch: the margin can widen (loss drops) while the chosen probability drifts downward. Practitioners sometimes add an SFT term on the chosen response to counter this.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Δ log π<sub>θ</sub>(y<sub>w</sub>) per step = <span id="ld-dw-val">-0.10</span></label>
+          <input type="range" id="ld-dw" min="-0.5" max="0.3" step="0.01" value="-0.1">
+          <label>Δ log π<sub>θ</sub>(y<sub>l</sub>) per step = <span id="ld-dl-val">-0.40</span></label>
+          <input type="range" id="ld-dl" min="-0.8" max="0.3" step="0.01" value="-0.4">
+          <button id="ld-step">Train step ▶</button>
+          <button id="ld-reset">Reset</button>
+          <p class="hint" id="ld-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="ld-plot"></svg>
+          <div class="formula-display" id="ld-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="code">
+      <h3>The whole loss, in code</h3>
+      <p class="concept-desc">No generation during training, no separate reward model. <code>π<sub>ref</sub></code> is frozen, so its log-probs can be precomputed and cached to cut peak memory roughly in half. Step through to see how the four cached log-probs become the loss.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="cd-prev">◀ Prev</button>
+          <button id="cd-next">Next ▶</button>
+          <div class="dots" id="cd-dots"></div>
+          <p class="hint" id="cd-note"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="code-block" id="cd-code"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, Lecture 6 (Direct Preference Optimization) by Nathan Lambert.
+  Derivation after Rafailov et al., 2023. No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  function normalize(arr){ var s = sum(arr); return arr.map(function(x){ return x/s; }); }
+
+  /* ---------------- A1: Pipeline comparison ---------------- */
+  function initPipeline(){
+    var stagesEl = document.getElementById('pipe-stages');
+    var hintEl = document.getElementById('pipe-hint');
+    var formulaEl = document.getElementById('pipe-formula');
+    var tabs = document.querySelectorAll('#pipe-tabs button');
+    var mode = 'rlhf';
+
+    var allStages = [
+      { key:'pref', label:'1 · Collect human / AI preference pairs', both:true },
+      { key:'rm',   label:'2 · Train a separate reward model r_φ(x,y)', rlhfOnly:true },
+      { key:'rl',   label:'3 · Optimize policy with online RL (PPO) under a KL penalty — sample, score, update', rlhfOnly:true },
+      { key:'dpo',  label:'2 · One supervised-style loss on the pairs — no reward model, no sampling', dpoOnly:true }
+    ];
+    var hints = {
+      rlhf: 'Three moving parts. The reward model and the RL loop are separate stages, each with its own training and tuning. Four models can sit in memory at once (policy, reference, reward, value).',
+      dpo: 'Steps 2 and 3 collapse into a single directly-differentiable loss. The reward model is gone — it was hiding inside the policy the whole time.'
+    };
+
+    function render(){
+      stagesEl.innerHTML = '';
+      allStages.forEach(function(s){
+        var show = s.both || (mode==='rlhf' && s.rlhfOnly) || (mode==='dpo' && s.dpoOnly);
+        if(!show) return;
+        var dropped = mode==='dpo' && s.rlhfOnly;
+        var div = document.createElement('div');
+        var accent = s.dpoOnly ? 'var(--accent)' : (s.rlhfOnly ? 'var(--orange)' : 'var(--border)');
+        div.style.cssText = 'border:1px solid var(--border);border-left:3px solid '+accent+';border-radius:8px;padding:10px 14px;font-size:0.9em;background:var(--panel-2);';
+        div.textContent = s.label;
+        stagesEl.appendChild(div);
+      });
+      hintEl.textContent = hints[mode];
+      if(mode==='rlhf'){
+        formulaEl.innerHTML = '<span class="dim">RLHF:</span> max<sub>π</sub> E[ r<sub>φ</sub>(x,y) ] &minus; β D<sub>KL</sub>(π &Vert; π<sub>ref</sub>) &nbsp;<span class="dim">via PPO on samples from π</span>';
+      } else {
+        formulaEl.innerHTML = '<span class="dim">DPO:</span> L = &minus;log σ( β[ log <span class="pos">π<sub>θ</sub>(y<sub>w</sub>)/π<sub>ref</sub>(y<sub>w</sub>)</span> &minus; log <span class="neg">π<sub>θ</sub>(y<sub>l</sub>)/π<sub>ref</sub>(y<sub>l</sub>)</span> ] )';
+      }
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        render();
+      });
+    });
+    render();
+  }
+
+  /* ---------------- B1: Derivation stepper ---------------- */
+  function initDerivation(){
+    // Each step: part index (0..3), equation HTML, gloss.
+    var steps = [
+      // P1: optimal policy
+      { part:0, eq:'max<sub>π</sub> &nbsp;E<sub>x~D, y~π</sub>[ r(x,y) ] &minus; β·D<sub>KL</sub>(π &Vert; π<sub>ref</sub>)',
+        gloss:'The RLHF objective: maximize expected reward while staying close to the reference policy. β sets how hard the KL leash pulls.' },
+      { part:0, eq:'= max<sub>π</sub> &nbsp;E[ r(x,y) &minus; β·log( π(y|x) / π<sub>ref</sub>(y|x) ) ]',
+        gloss:'Fold the KL into the expectation: D<sub>KL</sub>(π‖π<sub>ref</sub>) = E<sub>y~π</sub>[ log π/π<sub>ref</sub> ].' },
+      { part:0, eq:'= min<sub>π</sub> &nbsp;E[ log( π(y|x) / π<sub>ref</sub>(y|x) ) &minus; (1/β)·r(x,y) ]',
+        gloss:'Multiply by &minus;1 (max → min) and divide by β. Just rescaling — the optimizer is unchanged.' },
+      { part:0, eq:'= min<sub>π</sub> &nbsp;E[ log( π(y|x) / ( π<sub>ref</sub>(y|x)·e<sup>r(x,y)/β</sup> ) ) ]',
+        gloss:'Use (1/β)r = log e^{r/β} to fold the reward into the denominator: the reference reweighted by reward.' },
+      { part:0, eq:'Z(x) = Σ<sub>y</sub> π<sub>ref</sub>(y|x)·exp( r(x,y)/β )',
+        gloss:'The denominator is not a distribution (it does not sum to 1). Define the partition function Z(x) to normalize it. Z depends on x and r, not on π.' },
+      { part:0, eq:'q(y|x) = (1/Z(x))·π<sub>ref</sub>(y|x)·e<sup>r/β</sup> &nbsp;&nbsp;<span class="dim">— now a valid distribution</span>',
+        gloss:'With Z(x) dividing through, q is a genuine probability distribution over y.' },
+      { part:0, eq:'= min<sub>π</sub> &nbsp;E<sub>x~D</sub>[ D<sub>KL</sub>( π(y|x) &Vert; q(y|x) ) &minus; log Z(x) ]',
+        gloss:'After adding 0 = logZ − logZ and grouping, the objective is a KL plus a π-independent constant log Z(x).' },
+      { part:0, eq:'⇒ &nbsp;π*(y|x) = q(y|x) = (1/Z(x))·π<sub>ref</sub>(y|x)·exp( r(x,y)/β )',
+        gloss:'Gibbs\' inequality: a KL is ≥ 0 and equals 0 only when π = q. log Z does not depend on π, so the minimizer is π* = q. This is the closed-form RLHF optimum.' },
+      // P2: implicit reward
+      { part:1, eq:'π*(y|x) = (1/Z(x))·π<sub>ref</sub>(y|x)·exp( r*(x,y)/β )',
+        gloss:'Start from the optimal policy and solve it for the reward instead. We want r in terms of π.' },
+      { part:1, eq:'log π*(y|x) = &minus;log Z(x) + log π<sub>ref</sub>(y|x) + (1/β)·r*(x,y)',
+        gloss:'Take logs of both sides; log of a product becomes a sum.' },
+      { part:1, eq:'(1/β)·r*(x,y) = log π*(y|x) &minus; log π<sub>ref</sub>(y|x) + log Z(x)',
+        gloss:'Rearrange to isolate the reward term.' },
+      { part:1, eq:'⇒ &nbsp;r*(x,y) = β·log( π*(y|x) / π<sub>ref</sub>(y|x) ) + β·log Z(x)',
+        gloss:'Multiply by β. The reward is just β times a log-ratio of policy to reference, plus a prompt-level constant. "Your language model is secretly a reward model."' },
+      // P3: Bradley-Terry
+      { part:2, eq:'p*(y<sub>1</sub> ≻ y<sub>2</sub> | x) = e<sup>r*(x,y₁)</sup> / ( e<sup>r*(x,y₁)</sup> + e<sup>r*(x,y₂)</sup> )',
+        gloss:'Bradley–Terry: the probability that y₁ is preferred is a softmax over the two rewards.' },
+      { part:2, eq:'= e<sup>Δ₁ + β log Z</sup> / ( e<sup>Δ₁ + β log Z</sup> + e<sup>Δ₂ + β log Z</sup> ), &nbsp; Δ<sub>i</sub> = β log(π*(y<sub>i</sub>)/π<sub>ref</sub>(y<sub>i</sub>))',
+        gloss:'Substitute the implicit reward. Every term carries the same factor e^{β log Z} = Z(x)^β.' },
+      { part:2, eq:'= e<sup>Δ₁</sup> / ( e<sup>Δ₁</sup> + e<sup>Δ₂</sup> ) &nbsp;&nbsp;<span class="dim">— the intractable Z cancels</span>',
+        gloss:'The shared Z(x)^β factors out of numerator and denominator and cancels. The intractable partition function is gone.' },
+      { part:2, eq:'= 1 / ( 1 + e<sup>Δ₂ − Δ₁</sup> ) = σ( Δ₁ − Δ₂ )',
+        gloss:'Multiply through by e^{−Δ₁}: the numerator becomes 1 and the denominator holds the difference. That is exactly a sigmoid.' },
+      { part:2, eq:'⇒ &nbsp;p*(y<sub>1</sub> ≻ y<sub>2</sub>) = σ( β log(π*(y<sub>1</sub>)/π<sub>ref</sub>(y<sub>1</sub>)) &minus; β log(π*(y<sub>2</sub>)/π<sub>ref</sub>(y<sub>2</sub>)) )',
+        gloss:'Bradley–Terry, with the policy log-ratio in place of the reward model. A sigmoid of a difference of log-ratios.' },
+      // P4: loss
+      { part:3, eq:'L<sub>DPO</sub> = &minus;E<sub>(x,y_c,y_r)~D</sub>[ log p(y<sub>c</sub> ≻ y<sub>r</sub> | x) ]',
+        gloss:'Train by minimizing the negative log-likelihood of the observed preferences (chosen ≻ rejected).' },
+      { part:3, eq:'⇒ &nbsp;L<sub>DPO</sub> = &minus;E[ log σ( β log <span class="pos">π<sub>θ</sub>(y<sub>c</sub>)/π<sub>ref</sub>(y<sub>c</sub>)</span> &minus; β log <span class="neg">π<sub>θ</sub>(y<sub>r</sub>)/π<sub>ref</sub>(y<sub>r</sub>)</span> ) ]',
+        gloss:'Plug in the sigmoid form with the trainable policy π_θ as the implicit reward. Directly differentiable — no reward model, no sampling, no RL loop.' },
+      { part:3, eq:'∇<sub>θ</sub>L<sub>DPO</sub> = &minus;β·E[ σ(−u)·( ∇log π<sub>θ</sub>(y<sub>c</sub>) − ∇log π<sub>θ</sub>(y<sub>r</sub>) ) ], &nbsp; u = the term inside σ',
+        gloss:'The gradient: a weight w = σ(−u) = σ(r̂(y_r) − r̂(y_c)) times a bracket that raises log π_θ(y_c) and lowers log π_θ(y_r). w is largest exactly when the model misranks the pair.' }
+    ];
+    var partLabels = ['P1 — Optimal policy','P2 — Implicit reward','P3 — Bradley–Terry','P4 — Loss & gradient'];
+    var idx = 0;
+    var eqEl = document.getElementById('dv-eq');
+    var glossEl = document.getElementById('dv-gloss');
+    var partLabelEl = document.getElementById('dv-partlabel');
+    var counterEl = document.getElementById('dv-counter');
+    var dotsEl = document.getElementById('dv-dots');
+    var prevBtn = document.getElementById('dv-prev');
+    var nextBtn = document.getElementById('dv-next');
+    var partBtns = document.querySelectorAll('#dv-parts button');
+
+    function firstStepOfPart(p){
+      for(var i=0;i<steps.length;i++){ if(steps[i].part===p) return i; }
+      return 0;
+    }
+    function render(){
+      var s = steps[idx];
+      eqEl.innerHTML = s.eq;
+      glossEl.innerHTML = s.gloss;
+      partLabelEl.innerHTML = partLabels[s.part];
+      counterEl.textContent = 'Step ' + (idx+1) + ' of ' + steps.length + '.';
+      dotsEl.innerHTML = steps.map(function(st, i){
+        var edge = (i===0 || steps[i-1].part !== st.part) ? ' part-edge' : '';
+        return '<span class="dot' + (i===idx?' on':'') + edge + '" data-i="' + i + '"></span>';
+      }).join('');
+      Array.prototype.forEach.call(dotsEl.querySelectorAll('.dot'), function(d){
+        d.addEventListener('click', function(){ idx = parseInt(d.dataset.i,10); render(); });
+      });
+      partBtns.forEach(function(b){
+        b.classList.toggle('active', parseInt(b.dataset.part,10) === s.part);
+      });
+      prevBtn.disabled = idx === 0;
+      nextBtn.disabled = idx === steps.length - 1;
+    }
+    prevBtn.addEventListener('click', function(){ idx = Math.max(0, idx-1); render(); });
+    nextBtn.addEventListener('click', function(){ idx = Math.min(steps.length-1, idx+1); render(); });
+    partBtns.forEach(function(b){
+      b.addEventListener('click', function(){ idx = firstStepOfPart(parseInt(b.dataset.part,10)); render(); });
+    });
+    render();
+  }
+
+  /* ---------------- C1: Optimal policy shape ---------------- */
+  function initPolicyShape(){
+    var labels = ['y₁','y₂','y₃','y₄'];
+    var piRef = [0.40, 0.30, 0.20, 0.10];   // fixed reference distribution
+    var rewards = [1.0, 2.5, -0.5, 0.5];     // editable rewards
+    var betaSlider = document.getElementById('ps-beta');
+    var betaVal = document.getElementById('ps-beta-val');
+    var betaTag = document.getElementById('ps-beta-tag');
+    var rsEl = document.getElementById('ps-rsliders');
+    var barsEl = document.getElementById('ps-bars');
+    var formulaEl = document.getElementById('ps-formula');
+
+    rewards.forEach(function(v,i){
+      var row = document.createElement('div');
+      row.className = 'slider-row';
+      row.innerHTML = '<label>r(' + labels[i] + ') = <span id="ps-r-val-' + i + '">' + v.toFixed(1) + '</span></label>' +
+        '<input type="range" min="-3" max="3" step="0.1" value="' + v + '" id="ps-r-' + i + '">';
+      rsEl.appendChild(row);
+    });
+
+    function render(){
+      var logBeta = parseFloat(betaSlider.value);
+      var beta = Math.pow(10, logBeta);
+      betaVal.textContent = beta < 10 ? beta.toFixed(2) : beta.toFixed(0);
+      if(logBeta <= -1.6) betaTag.textContent = '(reward-greedy)';
+      else if(logBeta >= 1.8) betaTag.textContent = '(≈ π_ref)';
+      else betaTag.textContent = '';
+
+      // pi* ∝ pi_ref * exp(r/beta)
+      var unnorm = piRef.map(function(pr, i){ return pr * Math.exp(rewards[i]/beta); });
+      var piStar = normalize(unnorm);
+
+      barsEl.innerHTML = '';
+      for(var i=0;i<labels.length;i++){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        col.innerHTML =
+          '<div style="display:flex;gap:4px;height:100%;width:100%;justify-content:center;">' +
+            '<div class="bar-track" style="width:42%;height:100%;"><div class="bar-fill" style="height:' + (piRef[i]*100).toFixed(1) + '%;background:linear-gradient(to top,#3a5a44,#84A98C);"></div></div>' +
+            '<div class="bar-track" style="width:42%;height:100%;"><div class="bar-fill" style="height:' + (piStar[i]*100).toFixed(1) + '%"></div></div>' +
+          '</div>' +
+          '<div class="bar-label">' + labels[i] + '<br>r=' + rewards[i].toFixed(1) + '</div>';
+        barsEl.appendChild(col);
+      }
+      var maxI = piStar.indexOf(Math.max.apply(null, piStar));
+      formulaEl.innerHTML =
+        '<span class="dim">π_ref (dark) vs π* (bright). π*(y|x) = (1/Z)·π_ref·exp(r/β)</span><br>' +
+        'π*: [ ' + piStar.map(function(p){ return p.toFixed(3); }).join(', ') + ' ]<br>' +
+        'argmax π* = <b>' + labels[maxI] + '</b> &nbsp;|&nbsp; β = ' + (beta<10?beta.toFixed(2):beta.toFixed(0));
+    }
+    rewards.forEach(function(_,i){
+      document.getElementById('ps-r-' + i).addEventListener('input', function(e){
+        rewards[i] = parseFloat(e.target.value);
+        document.getElementById('ps-r-val-' + i).textContent = rewards[i].toFixed(1);
+        render();
+      });
+    });
+    betaSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- D1: Implicit reward ---------------- */
+  function initImplicit(){
+    var piS = document.getElementById('ir-pi');
+    var refS = document.getElementById('ir-ref');
+    var betaS = document.getElementById('ir-beta');
+    var zChk = document.getElementById('ir-z');
+    var zRow = document.getElementById('ir-z-row');
+    var zS = document.getElementById('ir-z-slider');
+    var plot = document.getElementById('ir-plot');
+    var formulaEl = document.getElementById('ir-formula');
+
+    function render(){
+      var lpi = parseFloat(piS.value);
+      var lref = parseFloat(refS.value);
+      var beta = parseFloat(betaS.value);
+      var useZ = zChk.checked;
+      var logZ = parseFloat(zS.value);
+      document.getElementById('ir-pi-val').textContent = lpi.toFixed(2);
+      document.getElementById('ir-ref-val').textContent = lref.toFixed(2);
+      document.getElementById('ir-beta-val').textContent = beta.toFixed(2);
+      document.getElementById('ir-z-val').textContent = logZ.toFixed(2);
+      zRow.style.display = useZ ? 'block' : 'none';
+
+      var logratio = lpi - lref;
+      var rBase = beta * logratio;
+      var zTerm = useZ ? beta*logZ : 0;
+      var r = rBase + zTerm;
+
+      // Plot: r as a function of log-ratio (x from -4..4), marker at current
+      var W=340,H=200,PAD=26;
+      var xmin=-4, xmax=4;
+      // y-range for beta*x (+ zTerm) over xmin..xmax
+      var ylo = beta*xmin + zTerm, yhi = beta*xmax + zTerm;
+      var ypad = 0.15*(yhi-ylo) + 0.5;
+      ylo -= ypad; yhi += ypad;
+      function xpx(x){ return PAD + (x-xmin)/(xmax-xmin)*(W-2*PAD); }
+      function ypx(y){ return H-PAD - (y-ylo)/(yhi-ylo)*(H-2*PAD); }
+      var p1x=xpx(xmin), p1y=ypx(beta*xmin+zTerm), p2x=xpx(xmax), p2y=ypx(beta*xmax+zTerm);
+      var cx=xpx(clamp(logratio,xmin,xmax)), cy=ypx(clamp(r,ylo,yhi));
+      var zeroY = ypx(0);
+      plot.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+xpx(0)+'" y1="'+PAD+'" x2="'+xpx(0)+'" y2="'+(H-PAD)+'"></line>' +
+        (zeroY>PAD&&zeroY<H-PAD?'<line x1="'+PAD+'" y1="'+zeroY+'" x2="'+(W-PAD)+'" y2="'+zeroY+'" stroke="var(--border)" stroke-dasharray="3,3"></line>':'') +
+        '<line class="plot-curve" x1="'+p1x.toFixed(1)+'" y1="'+p1y.toFixed(1)+'" x2="'+p2x.toFixed(1)+'" y2="'+p2y.toFixed(1)+'"></line>' +
+        '<line x1="'+cx.toFixed(1)+'" y1="'+cy.toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+(H-PAD)+'" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(W-PAD-66)+'" y="'+(H-PAD-5)+'" fill="var(--text-dim)" font-size="9">log π_θ − log π_ref</text>' +
+        '<text x="'+(xpx(0)+4)+'" y="'+(PAD+10)+'" fill="var(--text-dim)" font-size="9">r̂</text>';
+
+      var sign = r>0.0005?'pos':(r<-0.0005?'neg':'dim');
+      formulaEl.innerHTML =
+        'log-ratio = ' + lpi.toFixed(2) + ' &minus; (' + lref.toFixed(2) + ') = <b>' + logratio.toFixed(2) + '</b><br>' +
+        'r̂ = β·(log π_θ − log π_ref)' + (useZ?' + β·log Z':'') + ' = ' + beta.toFixed(2) + '·' + logratio.toFixed(2) +
+        (useZ?(' + ' + beta.toFixed(2) + '·' + logZ.toFixed(2)):'') +
+        ' = <span class="' + sign + '"><b>' + r.toFixed(3) + '</b></span>';
+    }
+    [piS,refS,betaS,zS].forEach(function(s){ s.addEventListener('input', render); });
+    zChk.addEventListener('change', render);
+    render();
+  }
+
+  /* ---------------- E1: DPO loss ---------------- */
+  function initDpoLoss(){
+    var ids = ['dl-pw','dl-rw','dl-pl','dl-rl','dl-beta'];
+    var els = {};
+    ids.forEach(function(id){ els[id] = document.getElementById(id); });
+    var barsEl = document.getElementById('dl-bars');
+    var formulaEl = document.getElementById('dl-formula');
+    var hintEl = document.getElementById('dl-hint');
+
+    function render(){
+      var pw = parseFloat(els['dl-pw'].value);
+      var rw = parseFloat(els['dl-rw'].value);
+      var pl = parseFloat(els['dl-pl'].value);
+      var rl = parseFloat(els['dl-rl'].value);
+      var beta = parseFloat(els['dl-beta'].value);
+      document.getElementById('dl-pw-val').textContent = pw.toFixed(2);
+      document.getElementById('dl-rw-val').textContent = rw.toFixed(2);
+      document.getElementById('dl-pl-val').textContent = pl.toFixed(2);
+      document.getElementById('dl-rl-val').textContent = rl.toFixed(2);
+      document.getElementById('dl-beta-val').textContent = beta.toFixed(2);
+
+      var rHatW = beta*(pw - rw);     // implicit reward, chosen
+      var rHatL = beta*(pl - rl);     // implicit reward, rejected
+      var margin = rHatW - rHatL;     // u inside sigmoid
+      var pPref = sigmoid(margin);
+      var loss = -Math.log(Math.max(pPref, 1e-12));
+
+      // Bars: implicit reward chosen vs rejected (signed). Map to 0..100% with shared scale.
+      var maxAbs = Math.max(0.5, Math.abs(rHatW), Math.abs(rHatL));
+      function h(v){ return (50 + 50*(v/maxAbs)/2 + 25*(v/maxAbs)/2); } // not used; simpler below
+      function barH(v){ return clamp(50 + 45*(v/maxAbs), 2, 100); }
+      barsEl.innerHTML =
+        '<div class="bar-col"><div class="bar-track" style="height:100%;"><div class="bar-fill" style="height:' + barH(rHatW).toFixed(1) + '%"></div></div><div class="bar-label">r̂(y_w)<br>' + rHatW.toFixed(3) + '</div></div>' +
+        '<div class="bar-col"><div class="bar-track" style="height:100%;"><div class="bar-fill" style="height:' + barH(rHatL).toFixed(1) + '%;background:linear-gradient(to top,var(--pink),#f6b3b2);"></div></div><div class="bar-label">r̂(y_l)<br>' + rHatL.toFixed(3) + '</div></div>' +
+        '<div class="bar-col"><div class="bar-track" style="height:100%;"><div class="bar-fill" style="height:' + clamp(loss/4*100,2,100).toFixed(1) + '%;background:linear-gradient(to top,var(--orange),#f0c98a);"></div></div><div class="bar-label">loss<br>' + loss.toFixed(3) + '</div></div>';
+
+      var mSign = margin>0?'pos':(margin<0?'neg':'dim');
+      formulaEl.innerHTML =
+        'r̂(y_w) = β(log π_θ − log π_ref) = ' + rHatW.toFixed(3) + ' &nbsp;|&nbsp; r̂(y_l) = ' + rHatL.toFixed(3) + '<br>' +
+        'margin u = r̂(y_w) − r̂(y_l) = <span class="' + mSign + '"><b>' + margin.toFixed(3) + '</b></span><br>' +
+        'P(y_w ≻ y_l) = σ(u) = ' + pPref.toFixed(3) + ' &nbsp;|&nbsp; L = −log σ(u) = <b>' + loss.toFixed(3) + '</b>';
+
+      if(margin > 0.5) hintEl.textContent = 'Healthy margin: chosen implicit reward beats rejected, loss is low. The loss reads only this margin — try lowering both policy log-probs by the same amount and watch the loss stay put.';
+      else if(margin < -0.5) hintEl.textContent = 'Misranked: the model assigns the rejected response a higher implicit reward. Loss is high; the gradient will push hard to flip the ordering.';
+      else hintEl.textContent = 'Near a toss-up: margin ≈ 0, P ≈ 0.5, loss ≈ 0.693 = log 2.';
+    }
+    ids.forEach(function(id){ els[id].addEventListener('input', render); });
+    render();
+  }
+
+  /* ---------------- F1: gradient weight ---------------- */
+  function initGradWeight(){
+    var slider = document.getElementById('gw-d');
+    var plot = document.getElementById('gw-plot');
+    var formulaEl = document.getElementById('gw-formula');
+    var hintEl = document.getElementById('gw-hint');
+
+    var W=340,H=200,PAD=28;
+    var xmin=-6,xmax=6;
+    function xpx(x){ return PAD + (x-xmin)/(xmax-xmin)*(W-2*PAD); }
+    function ypx(y){ return H-PAD - y*(H-2*PAD); } // y in 0..1
+    // w = sigma(-Delta)
+    var pts=[];
+    for(var x=xmin;x<=xmax+1e-9;x+=0.1){ pts.push([xpx(x), ypx(sigmoid(-x))]); }
+    var pathD = pts.map(function(p,i){ return (i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' ');
+
+    function render(){
+      var d = parseFloat(slider.value);
+      document.getElementById('gw-d-val').textContent = d.toFixed(2);
+      var w = sigmoid(-d);
+      var cx=xpx(d), cy=ypx(w);
+      plot.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+xpx(0)+'" y1="'+PAD+'" x2="'+xpx(0)+'" y2="'+(H-PAD)+'"></line>' +
+        '<path class="plot-curve" d="'+pathD+'"></path>' +
+        '<line x1="'+cx.toFixed(1)+'" y1="'+cy.toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+(H-PAD)+'" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(W-PAD-78)+'" y="'+(H-PAD-6)+'" fill="var(--text-dim)" font-size="9">margin Δ (correct →)</text>' +
+        '<text x="'+(xpx(0)+4)+'" y="'+(PAD+10)+'" fill="var(--text-dim)" font-size="9">w = σ(−Δ)</text>';
+      formulaEl.innerHTML =
+        'w = σ(−Δ) = σ(' + (-d).toFixed(2) + ') = <b>' + w.toFixed(3) + '</b><br>' +
+        '<span class="dim">∇L = −β·w·( ∇log π_θ(y_w) − ∇log π_θ(y_l) )</span>';
+      if(d < -1) hintEl.textContent = 'Strongly misranked (Δ ≪ 0): w → 1. This example dominates the batch gradient — DPO up-weights exactly the pairs it currently gets wrong.';
+      else if(d > 1) hintEl.textContent = 'Confidently correct (Δ ≫ 0): w → 0. The example is nearly ignored — no need to push a pair the model already ranks right.';
+      else hintEl.textContent = 'Near the decision boundary (Δ ≈ 0): w ≈ 0.5, a moderate update.';
+    }
+    slider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- F2: DPO vs PPO table ---------------- */
+  function initCompare(){
+    var rows = [
+      ['Data', 'Fixed preference dataset collected ahead of time.', 'Fresh completions generated during training.'],
+      ['Reward model', 'None — the policy is the implicit reward model.', 'A separate trained reward model scores samples.'],
+      ['Sampling / generation', 'No generation during training.', 'Generate from the current policy every step.'],
+      ['KL to reference', 'Static: steps directly to the optimum implied by data + β.', 'Per-sample, online; sometimes a dynamic KL controller.'],
+      ['Models in memory', 'Two (policy + frozen reference); ref log-probs cacheable.', 'Up to four (policy, reference, reward, value).'],
+      ['Strengths', 'Simple, stable, fast to iterate on data.', 'Can explore new regions → often higher peak.'],
+      ['Limits', 'Capped by dataset coverage; lower ceiling.', 'More compute, more moving parts, more engineering.']
+    ];
+    var tbody = document.querySelector('#cmp-table tbody');
+    rows.forEach(function(r){
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><b>' + escapeHtml(r[0]) + '</b></td><td class="daa">' + escapeHtml(r[1]) + '</td><td class="rl">' + escapeHtml(r[2]) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* ---------------- G1: Likelihood displacement ---------------- */
+  function initDisplacement(){
+    var dwS = document.getElementById('ld-dw');
+    var dlS = document.getElementById('ld-dl');
+    var stepBtn = document.getElementById('ld-step');
+    var resetBtn = document.getElementById('ld-reset');
+    var plot = document.getElementById('ld-plot');
+    var formulaEl = document.getElementById('ld-formula');
+    var hintEl = document.getElementById('ld-hint');
+
+    var initW = -1.0, initL = -1.5;
+    var histW = [initW], histL = [initL];
+
+    function render(){
+      var dw = parseFloat(dwS.value), dl = parseFloat(dlS.value);
+      document.getElementById('ld-dw-val').textContent = dw.toFixed(2);
+      document.getElementById('ld-dl-val').textContent = dl.toFixed(2);
+
+      var W=380,H=220,PAD=34;
+      var n = histW.length;
+      var maxStep = Math.max(8, n-1);
+      var ymin=-6, ymax=0;
+      function xpx(i){ return PAD + (maxStep<=0?0:i/maxStep)*(W-2*PAD); }
+      function ypx(v){ return PAD + (ymax-v)/(ymax-ymin)*(H-2*PAD); }
+      function pathOf(arr){ return arr.map(function(v,i){ return (i===0?'M':'L')+xpx(i).toFixed(1)+','+ypx(v).toFixed(1); }).join(' '); }
+      // margin history
+      var marg = histW.map(function(w,i){ return w - histL[i]; });
+
+      plot.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path d="'+pathOf(histW)+'" fill="none" stroke="var(--accent-bright)" stroke-width="2"></path>' +
+        '<path d="'+pathOf(histL)+'" fill="none" stroke="var(--pink)" stroke-width="2"></path>' +
+        '<path d="'+pathOf(marg)+'" fill="none" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="4,3"></path>' +
+        '<text x="'+(PAD+6)+'" y="'+(PAD+12)+'" fill="var(--accent-bright)" font-size="10">log π_θ(y_w) chosen</text>' +
+        '<text x="'+(PAD+6)+'" y="'+(PAD+26)+'" fill="var(--pink)" font-size="10">log π_θ(y_l) rejected</text>' +
+        '<text x="'+(PAD+6)+'" y="'+(PAD+40)+'" fill="var(--orange)" font-size="10">margin (chosen − rejected)</text>' +
+        '<text x="'+(W-PAD-26)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="9">step</text>';
+
+      var curW = histW[n-1], curL = histL[n-1], curM = curW - curL;
+      formulaEl.innerHTML =
+        'step ' + (n-1) + ': &nbsp;log π_θ(y_w) = <span class="pos">' + curW.toFixed(3) + '</span> &nbsp;|&nbsp; log π_θ(y_l) = <span class="neg">' + curL.toFixed(3) + '</span><br>' +
+        'margin = <b>' + curM.toFixed(3) + '</b> &nbsp;<span class="dim">(this is what the loss optimizes)</span>';
+
+      var widening = dw - dl > 0; // margin grows
+      if(widening && dw < 0) hintEl.textContent = 'Displacement in action: the margin widens (loss drops) yet the CHOSEN log-prob is itself falling — the model wins by pushing the rejected down faster. Probability mass can leak to unaddressed, off-distribution behaviors.';
+      else if(widening) hintEl.textContent = 'Margin widening with the chosen log-prob rising — the healthy case. Keep Δlog π_θ(y_w) ≥ 0 to avoid displacement.';
+      else hintEl.textContent = 'Margin shrinking: this step increases the loss. DPO would not take it; flip the sign of the deltas.';
+    }
+    stepBtn.addEventListener('click', function(){
+      var dw = parseFloat(dwS.value), dl = parseFloat(dlS.value);
+      var n = histW.length;
+      histW.push(clamp(histW[n-1] + dw, -6, -0.01));
+      histL.push(clamp(histL[n-1] + dl, -6, -0.01));
+      if(histW.length > 14){ histW.shift(); histL.shift(); }
+      render();
+    });
+    resetBtn.addEventListener('click', function(){
+      histW = [initW]; histL = [initL]; render();
+    });
+    dwS.addEventListener('input', render);
+    dlS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- G2: Code stepper ---------------- */
+  function initCode(){
+    var steps = [
+      { lines:[0], note:'Cached log-probs of the chosen and rejected responses under the trainable policy.' },
+      { lines:[0,1], note:'And under the frozen reference. These can be precomputed once and cached — π_ref never changes — cutting peak memory ~50%.' },
+      { lines:[0,1,3], note:'Policy log-ratio: how much more mass the policy puts on chosen vs rejected.' },
+      { lines:[0,1,3,4], note:'Reference log-ratio: the same gap under the frozen reference.' },
+      { lines:[0,1,3,4,6,7], note:'logits = the difference of the two log-ratios — positive when the policy shifts mass toward the chosen completion relative to the reference.' },
+      { lines:[0,1,3,4,6,7,8], note:'The loss is just −log σ(β·logits). No generation, no reward model, no RL loop.' }
+    ];
+    var code = [
+      'policy_chosen_logps, policy_rejected_logps = policy(batch)',
+      'reference_chosen_logps, reference_rejected_logps = ref(batch)  # cached',
+      '',
+      'pi_logratios  = policy_chosen_logps    - policy_rejected_logps',
+      'ref_logratios = reference_chosen_logps - reference_rejected_logps',
+      '',
+      '# positive when policy shifts mass toward the chosen completion',
+      'logits = pi_logratios - ref_logratios',
+      'losses = -F.logsigmoid(beta * logits)'
+    ];
+    var idx = 0;
+    var codeEl = document.getElementById('cd-code');
+    var noteEl = document.getElementById('cd-note');
+    var dotsEl = document.getElementById('cd-dots');
+    var prevBtn = document.getElementById('cd-prev');
+    var nextBtn = document.getElementById('cd-next');
+
+    function render(){
+      var active = steps[idx].lines;
+      codeEl.innerHTML = code.map(function(line, i){
+        var on = active.indexOf(i) >= 0;
+        var op = on ? '1' : '0.28';
+        var col = on ? 'var(--accent-bright)' : 'var(--text-dim)';
+        return '<div style="opacity:' + op + ';color:' + col + ';padding:2px 0;white-space:pre;">' + (escapeHtml(line) || '&nbsp;') + '</div>';
+      }).join('');
+      noteEl.textContent = steps[idx].note;
+      dotsEl.innerHTML = steps.map(function(_, i){ return '<span class="dot' + (i===idx?' on':'') + '" data-i="'+i+'"></span>'; }).join('');
+      Array.prototype.forEach.call(dotsEl.querySelectorAll('.dot'), function(d){
+        d.addEventListener('click', function(){ idx = parseInt(d.dataset.i,10); render(); });
+      });
+      prevBtn.disabled = idx===0;
+      nextBtn.disabled = idx===steps.length-1;
+    }
+    prevBtn.addEventListener('click', function(){ idx=Math.max(0,idx-1); render(); });
+    nextBtn.addEventListener('click', function(){ idx=Math.min(steps.length-1,idx+1); render(); });
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initPipeline();
+    initDerivation();
+    initPolicyShape();
+    initImplicit();
+    initDpoLoss();
+    initGradWeight();
+    initCompare();
+    initDisplacement();
+    initCode();
+  });
+})();
+</script>
+
+</body>
+</html>

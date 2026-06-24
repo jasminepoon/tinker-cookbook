@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IFT, Reward Models & Rejection Sampling — Interactive Lecture 2</title>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --rose:#F28482;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(242,132,130,0.22), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"], .panel-controls textarea{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+    resize:vertical;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .toggle-row{ display:flex; align-items:center; gap:8px; margin-top:12px; }
+  .toggle-row input[type="checkbox"]{ accent-color:var(--accent); width:16px; height:16px; }
+  .toggle-row label{ margin:0; font-size:0.82em; color:var(--text); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+  .formula-display .muted{ color:var(--text-dim); }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    transition:all 0.15s;
+  }
+  .token-chip.role-tok{ background:rgba(242,132,130,0.16); border-color:var(--rose); color:#f7b4b3; font-weight:600; }
+  .token-chip.loss-token{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.cond-token{ opacity:0.4; }
+  .token-chip.role-tok.cond-token{ opacity:0.4; }
+
+  /* rendered chat template box */
+  .chat-render{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.82em;
+    white-space:pre-wrap;
+    line-height:1.7;
+    overflow-x:auto;
+  }
+  .chat-render .sp{ color:var(--rose); font-weight:600; }
+  .chat-render .role{ color:var(--orange); }
+  .chat-render .masked{ opacity:0.38; }
+  .chat-render .trained{ background:rgba(132,169,140,0.18); border-radius:3px; }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  /* derivation step-through */
+  .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .deriv-step{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:14px 16px; font-size:0.95em; min-height:90px; }
+  .deriv-step .eq{ font-family:var(--mono); color:var(--accent-bright); font-size:1.05em; margin:8px 0; overflow-x:auto; }
+  .deriv-step .why{ color:var(--text-dim); font-size:0.85em; }
+  .dots{ display:flex; gap:6px; margin-top:8px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--border); }
+  .dot.on{ background:var(--accent); }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; }
+
+  /* rejection sampling grid */
+  .rs-grid{ display:flex; flex-wrap:wrap; gap:8px; }
+  .rs-cand{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:7px 11px;
+    font-size:0.82em;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .rs-cand .score{ color:var(--text-dim); }
+  .rs-cand.best{ border-color:var(--accent); background:rgba(132,169,140,0.16); color:var(--accent-bright); font-weight:600; }
+  .rs-cand.best .score{ color:var(--accent-bright); }
+
+  table.mdp{ width:100%; border-collapse:collapse; font-size:0.85em; }
+  table.mdp th, table.mdp td{ border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  table.mdp th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.mdp td.num{ font-family:var(--mono); }
+  td.sel{ background:rgba(132,169,140,0.22); color:var(--accent-bright); font-weight:600; }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">rlhfbook.com/course · lecture 2</div>
+  <h1>IFT, Reward Models &amp; Rejection Sampling</h1>
+  <p class="sub">The simplest complete path from a pretrained model to a preference-tuned one: teach the format (instruction tuning), learn the signal (reward models), then curate better data (rejection sampling). Play with each idea and watch the math respond.</p>
+  <p class="credit">Interactive companion to Nathan Lambert's RLHF course, Lecture 2 (Chapters 4, 5 &amp; 9 — rlhfbook.com/course). Interactive build only — original content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#ift">Instruction Tuning</a>
+  <a href="#chat">Chat Templates</a>
+  <a href="#mask">Loss Masking</a>
+  <a href="#scaling">Data Scaling</a>
+  <a href="#bt">Bradley–Terry</a>
+  <a href="#loss">RM Loss</a>
+  <a href="#variants">RM Variants</a>
+  <a href="#rs">Rejection Sampling</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 1: INSTRUCTION TUNING ============ -->
+  <section class="group" id="ift">
+    <div class="group-header"><span class="group-index">01</span><h2>Instruction Tuning</h2></div>
+    <p class="group-intro">Instruction fine-tuning (IFT / SFT) is the first post-training step: it takes a pretrained next-token model and teaches it to <b>follow instructions</b> in a conversational format. It is the foundation for all downstream preference tuning. It uses the same cross-entropy loss as pretraining — but only on the right tokens, in the right structure.</p>
+
+    <article class="concept" id="chat">
+      <h3>Chat-template renderer</h3>
+      <p class="concept-desc">Post-training data is stored model-agnostically as a list of <code>{role, content}</code> messages. Before tokenization, <code>tokenizer.apply_chat_template(messages)</code> renders it into one flat token sequence with special <b>role markers</b>. Edit the conversation and watch it render — special tokens are highlighted in <span style="color:var(--rose)">rose</span>. Try the different model families: each uses different markers, but the same structure.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Template family</label>
+          <div class="tabs" id="chat-tabs">
+            <button data-fam="chatml" class="active">ChatML</button>
+            <button data-fam="zephyr">Zephyr</button>
+            <button data-fam="tulu">Tülu</button>
+          </div>
+          <label>System (optional)</label>
+          <input type="text" id="chat-system" value="You are a friendly chatbot who always responds in the style of a pirate">
+          <label>Conversation (one turn per line, <code>u:</code> / <code>a:</code> prefix)</label>
+          <textarea id="chat-convo" rows="4">u: How many helicopters can a human eat in one sitting?
+a: Arr, just six, matey!
+u: Are you sure about that?</textarea>
+          <div class="toggle-row">
+            <input type="checkbox" id="chat-gen" checked>
+            <label for="chat-gen">add_generation_prompt (open assistant turn)</label>
+          </div>
+          <p class="hint" id="chat-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="chat-render" id="chat-render"></div>
+          <div class="formula-display" id="chat-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="mask">
+      <h3>Prompt masking &amp; the loss mask</h3>
+      <p class="concept-desc">During IFT the model only learns to predict <b>assistant responses</b> — system and user tokens (and the role markers) are masked out of the loss. The model learns <i>how to respond</i>, not <i>how to ask</i>. Toggle the loss mask, and for multi-turn pick the masking strategy: <b>all assistant turns</b> (train every response) or <b>final-turn only</b> (mask all but the last). Grey tokens condition the prediction but contribute no gradient.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="toggle-row">
+            <input type="checkbox" id="mask-on" checked>
+            <label for="mask-on">Apply loss mask (train on assistant only)</label>
+          </div>
+          <label>Multi-turn strategy</label>
+          <div class="tabs" id="mask-strat">
+            <button data-strat="all" class="active">All assistant turns</button>
+            <button data-strat="final">Final-turn only</button>
+          </div>
+          <p class="hint" id="mask-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="chat-render" id="mask-render"></div>
+          <div class="formula-display" id="mask-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="scaling">
+      <h3>IFT data: quality vs. quantity</h3>
+      <p class="concept-desc">"Data quality matters more than quantity." Early post-ChatGPT work (LIMA, no_robots) showed ~10K high-quality human samples could be state-of-the-art; current practice scales to ~1M+ synthetic prompts, but <b>quality filtering is essential</b> and returns diminish. This toy model lets you trade dataset <b>size</b> against per-sample <b>quality</b>: model skill rises with the log of <i>effective</i> clean data <code>N·q</code>, but noisy samples actively subtract. Find the sweet spot — bigger isn't always better.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Dataset size N = <span id="sc-n-val">10,000</span> samples</label>
+          <input type="range" id="sc-n" min="1" max="100" step="1" value="20">
+          <label>Avg. sample quality q = <span id="sc-q-val">0.90</span></label>
+          <input type="range" id="sc-q" min="0.1" max="1" step="0.01" value="0.9">
+          <p class="hint" id="sc-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="sc-plot"></svg>
+          <div class="formula-display" id="sc-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 2: REWARD MODELS ============ -->
+  <section class="group" id="bt">
+    <div class="group-header"><span class="group-index">02</span><h2>Reward Models</h2></div>
+    <p class="group-intro">A reward model compresses complex, subjective human judgments into a single scalar score. In RLHF it plays the role of the environment's reward signal — but unlike classical RL we get to <b>learn</b> it from human preferences. The canonical formulation is the Bradley–Terry model: humans compare two responses, and the model learns to score the preferred one higher.</p>
+
+    <article class="concept" id="bt-model">
+      <h3>The Bradley–Terry model of preferences</h3>
+      <p class="concept-desc">Bradley–Terry (1952) gives each item a latent strength <code>p_i&gt;0</code>; the chance a judge prefers <code>i</code> over <code>j</code> is <code>p_i/(p_i+p_j)</code>. Reparametrizing <code>p_i=e^{r_i}</code> gives unbounded scores — exactly what a network outputs — and the preference becomes <code>σ(r_i − r_j)</code>. Only the <b>difference</b> matters: shift both rewards by the same constant and the probability is unchanged. Drag the two reward sliders.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>r<sub>w</sub> (chosen / y<sub>w</sub>) = <span id="bt-rw-val">1.50</span></label>
+          <input type="range" id="bt-rw" min="-5" max="5" step="0.1" value="1.5">
+          <label>r<sub>l</sub> (rejected / y<sub>l</sub>) = <span id="bt-rl-val">0.00</span></label>
+          <input type="range" id="bt-rl" min="-5" max="5" step="0.1" value="0">
+          <p class="hint" id="bt-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 340 210" id="bt-plot"></svg>
+          <div class="formula-display" id="bt-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="loss">
+      <h3>Deriving the reward-model loss</h3>
+      <p class="concept-desc">Step through the algebra from "maximize the preference probability" to the InstructGPT loss <code>L = −log σ(r<sub>w</sub> − r<sub>l</sub>)</code>. Each step is a single, reversible rewrite. The live readout on the right evaluates every line at your current <code>r<sub>w</sub></code>, <code>r<sub>l</sub></code> — drag the sliders and watch the loss, then step through to see <i>why</i> each form is equal.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="dv-prev">◀ Prev</button>
+          <button id="dv-next">Next ▶</button>
+          <div class="dots" id="dv-dots"></div>
+          <label style="margin-top:14px;">r<sub>w</sub> = <span id="dv-rw-val">2.00</span></label>
+          <input type="range" id="dv-rw" min="-5" max="5" step="0.1" value="2">
+          <label>r<sub>l</sub> = <span id="dv-rl-val">0.50</span></label>
+          <input type="range" id="dv-rl" min="-5" max="5" step="0.1" value="0.5">
+        </div>
+        <div class="panel-viz">
+          <div class="deriv-step" id="dv-step"></div>
+          <div class="formula-display" id="dv-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="variants">
+      <h3>Loss variants: BT, margin, ORM</h3>
+      <p class="concept-desc">The same contrastive idea has variants. <b>Bradley–Terry</b> is the base. <b>Llama 2's margin loss</b> subtracts a margin <code>m</code> (from Likert gaps) inside the sigmoid, forcing larger score gaps for strongly-preferred pairs. <b>Outcome RMs</b> drop pairwise comparisons entirely: a per-token binary cross-entropy against a single correctness label <code>r∈{0,1}</code> broadcast over every completion token. Switch the loss and drag the inputs.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="var-tabs">
+            <button data-mode="bt" class="active">Bradley–Terry</button>
+            <button data-mode="margin">Margin (Llama 2)</button>
+            <button data-mode="orm">ORM (per-token)</button>
+          </div>
+          <div id="var-bt-ctrl">
+            <label>r<sub>w</sub> − r<sub>l</sub> = Δ = <span id="var-d-val">1.00</span></label>
+            <input type="range" id="var-d" min="-5" max="5" step="0.1" value="1">
+          </div>
+          <div id="var-m-ctrl" style="display:none;">
+            <label>margin m = <span id="var-m-val">0.50</span></label>
+            <input type="range" id="var-m" min="0" max="4" step="0.1" value="0.5">
+          </div>
+          <div id="var-orm-ctrl" style="display:none;">
+            <label>predicted p(correct) = <span id="var-p-val">0.70</span></label>
+            <input type="range" id="var-p" min="0.01" max="0.99" step="0.01" value="0.7">
+            <label>true label r</label>
+            <div class="tabs" id="var-label">
+              <button data-r="1" class="active">r = 1 (correct)</button>
+              <button data-r="0">r = 0 (incorrect)</button>
+            </div>
+          </div>
+          <p class="hint" id="var-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 340 210" id="var-plot"></svg>
+          <div class="formula-display" id="var-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 3: REJECTION SAMPLING ============ -->
+  <section class="group" id="rs">
+    <div class="group-header"><span class="group-index">03</span><h2>Rejection Sampling &amp; Best-of-N</h2></div>
+    <p class="group-intro">The simplest thing you can do with a reward model: generate many candidate completions, score them, keep the best, and (optionally) fine-tune on them. No policy gradients, no online RL — just filtered supervised learning. Best-of-N is the same procedure used at inference time without the fine-tuning step.</p>
+
+    <article class="concept" id="bon">
+      <h3>Best-of-N: expected best score vs. N</h3>
+      <p class="concept-desc">Sample <code>N</code> completions, score each with a (toy) reward model, keep the <code>argmax</code>: <code>S(R)=argmax<sub>j∈[1,N]</sub> r<sub>j</sub></code>. As <code>N</code> grows the expected best score rises — but with <b>diminishing returns</b>. The bars below are one fresh draw at your current temperature; the curve is the analytic expected max of <code>N</code> draws. Resample to see the variance.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>N (completions per prompt) = <span id="bon-n-val">8</span></label>
+          <input type="range" id="bon-n" min="1" max="30" step="1" value="8">
+          <label>Sampling temperature = <span id="bon-t-val">0.90</span></label>
+          <input type="range" id="bon-t" min="0.2" max="1.5" step="0.05" value="0.9">
+          <button id="bon-resample">Resample completions</button>
+          <p class="hint" id="bon-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="rs-grid" id="bon-grid"></div>
+          <svg class="plot" viewBox="0 0 380 200" id="bon-plot"></svg>
+          <div class="formula-display" id="bon-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="select">
+      <h3>Selection: top-per-prompt vs. top-overall</h3>
+      <p class="concept-desc">Given <code>M</code> prompts × <code>N</code> completions and their reward matrix <code>R</code>, two ways to pick training data. <b>Top-per-prompt</b>: one argmax per row → every prompt represented. <b>Top-K overall</b>: flatten and keep the global top <code>K</code> → optimizes absolute quality, but can give one easy prompt several completions and leave hard prompts with none. Toggle the method and slide K; selected cells highlight.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="sel-tabs">
+            <button data-mode="row" class="active">Top per prompt</button>
+            <button data-mode="global">Top-K overall</button>
+          </div>
+          <div id="sel-k-ctrl" style="display:none;">
+            <label>K (global picks) = <span id="sel-k-val">5</span></label>
+            <input type="range" id="sel-k" min="1" max="20" step="1" value="5">
+          </div>
+          <button id="sel-reshuffle">New reward matrix</button>
+          <p class="hint" id="sel-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <table class="mdp" id="sel-table"></table>
+          <div class="formula-display" id="sel-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, Lecture 2 (Instruction Tuning, Reward Models &amp; Rejection Sampling) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+  function logsigmoid(z){ // numerically stable -log(1+e^-z) -> returns log sigmoid
+    if(z >= 0) return -Math.log1p(Math.exp(-z));
+    return z - Math.log1p(Math.exp(z));
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  // gaussian sample (Box-Muller)
+  function gauss(){
+    var u=0,v=0;
+    while(u===0) u=Math.random();
+    while(v===0) v=Math.random();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+  }
+
+  /* parse conversation textarea into [{role,content}] */
+  function parseConvo(text){
+    var out = [];
+    text.split(/\n/).forEach(function(line){
+      var m = line.match(/^\s*(u|a|user|assistant)\s*:\s*(.*)$/i);
+      if(!m) return;
+      var role = /^u/i.test(m[1]) ? 'user' : 'assistant';
+      var content = m[2].trim();
+      if(content.length) out.push({role:role, content:content});
+    });
+    return out;
+  }
+
+  /* ---------------- 1A: Chat-template renderer ---------------- */
+  var FAMILIES = {
+    chatml: { start:'<|im_start|>', end:'<|im_end|>', genRole:'assistant', label:'ChatML (Qwen / Olmo style)' },
+    zephyr: { wrapL:'<|', wrapR:'|>', end:'</s>', genRole:'assistant', label:'Zephyr', zephyr:true },
+    tulu:   { tulu:true, end:'<|endoftext|>', genRole:'assistant', label:'Tülu' }
+  };
+
+  function renderTemplate(fam, messages, system, addGen){
+    // returns array of segments: {text, kind:'special'|'role'|'content'|'newline'}
+    var segs = [];
+    function special(t){ segs.push({text:t, kind:'special'}); }
+    function role(t){ segs.push({text:t, kind:'role'}); }
+    function content(t){ segs.push({text:t, kind:'content'}); }
+    function nl(){ segs.push({text:'\n', kind:'nl'}); }
+
+    var all = [];
+    if(system && system.trim().length) all.push({role:'system', content:system.trim()});
+    all = all.concat(messages);
+
+    var f = FAMILIES[fam];
+    all.forEach(function(msg){
+      if(f.zephyr){
+        special('<|'); role(msg.role); special('|>'); nl();
+        content(msg.content); special(f.end); nl();
+      } else if(f.tulu){
+        special('<|'); role(msg.role); special('|>'); nl();
+        content(msg.content);
+        if(msg.role==='assistant'){ special(f.end); }
+        nl();
+      } else { // chatml
+        special(f.start); role(msg.role); nl();
+        content(msg.content); special(f.end); nl();
+      }
+    });
+    if(addGen){
+      if(f.zephyr){ special('<|'); role(f.genRole); special('|>'); nl(); }
+      else if(f.tulu){ special('<|'); role(f.genRole); special('|>'); nl(); }
+      else { special(f.start); role(f.genRole); nl(); }
+    }
+    return segs;
+  }
+
+  function segsToHtml(segs){
+    return segs.map(function(s){
+      if(s.kind==='special') return '<span class="sp">' + escapeHtml(s.text) + '</span>';
+      if(s.kind==='role') return '<span class="role">' + escapeHtml(s.text) + '</span>';
+      if(s.kind==='nl') return '\n';
+      return escapeHtml(s.text);
+    }).join('');
+  }
+
+  function initChatTemplate(){
+    var tabs = document.querySelectorAll('#chat-tabs button');
+    var sysEl = document.getElementById('chat-system');
+    var convoEl = document.getElementById('chat-convo');
+    var genEl = document.getElementById('chat-gen');
+    var renderEl = document.getElementById('chat-render');
+    var formulaEl = document.getElementById('chat-formula');
+    var hintEl = document.getElementById('chat-hint');
+    var fam = 'chatml';
+
+    function render(){
+      var msgs = parseConvo(convoEl.value);
+      var segs = renderTemplate(fam, msgs, sysEl.value, genEl.checked);
+      renderEl.innerHTML = segsToHtml(segs);
+      var nSpecial = segs.filter(function(s){ return s.kind==='special'; }).length;
+      var turns = msgs.length + (sysEl.value.trim().length?1:0);
+      formulaEl.innerHTML = '<span class="muted">apply_chat_template</span> &rarr; <b>' + turns +
+        '</b> messages rendered, <b>' + nSpecial + '</b> special role tokens, family = <b>' +
+        escapeHtml(FAMILIES[fam].label) + '</b>';
+      hintEl.textContent = 'The entire history packs into one token sequence — the model sees all prior turns as context. The open assistant marker (if enabled) is where generation begins, continuing until an end-of-text token.';
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        fam = btn.dataset.fam;
+        render();
+      });
+    });
+    sysEl.addEventListener('input', render);
+    convoEl.addEventListener('input', render);
+    genEl.addEventListener('change', render);
+    render();
+  }
+
+  /* ---------------- 1B: Loss masking ---------------- */
+  function initLossMask(){
+    var maskOnEl = document.getElementById('mask-on');
+    var stratTabs = document.querySelectorAll('#mask-strat button');
+    var renderEl = document.getElementById('mask-render');
+    var formulaEl = document.getElementById('mask-formula');
+    var hintEl = document.getElementById('mask-hint');
+    var strat = 'all';
+
+    var system = 'You are a friendly chatbot who always responds in the style of a pirate';
+    var msgs = [
+      {role:'user', content:'How many helicopters can a human eat in one sitting?'},
+      {role:'assistant', content:'Arr, just six, matey!'},
+      {role:'user', content:'Are you sure about that?'},
+      {role:'assistant', content:"Aye, I'd stake me treasure on it."}
+    ];
+
+    function render(){
+      var maskOn = maskOnEl.checked;
+      // last assistant index
+      var lastA = -1;
+      msgs.forEach(function(m,i){ if(m.role==='assistant') lastA=i; });
+
+      var f = FAMILIES.chatml;
+      var trainedTok = 0, totalContentTok = 0;
+      var html = '';
+      var all = [{role:'system', content:system}].concat(msgs);
+      all.forEach(function(msg, idx){
+        // idx 0 is system; map back to msgs index = idx-1
+        var msgI = idx - 1;
+        var isAssistant = msg.role==='assistant';
+        var train = false;
+        if(maskOn){
+          if(isAssistant){
+            train = (strat==='all') || (msgI===lastA);
+          }
+        } else {
+          train = true; // no mask: everything trained (pretraining-like)
+        }
+        // role markers are never trained (special tokens)
+        html += '<span class="sp masked">' + escapeHtml(f.start) + '</span>';
+        html += '<span class="role masked">' + escapeHtml(msg.role) + '</span>\n';
+        var words = msg.content.split(/\s+/);
+        totalContentTok += words.length;
+        if(train) trainedTok += words.length;
+        var cls = train ? 'trained' : 'masked';
+        html += '<span class="' + cls + '">' + escapeHtml(msg.content) + '</span>';
+        html += '<span class="sp masked">' + escapeHtml(f.end) + '</span>\n';
+      });
+      renderEl.innerHTML = html;
+
+      formulaEl.innerHTML = 'L = &minus; &Sigma;<sub>t &isin; mask</sub> log P<sub>&theta;</sub>(x<sub>t</sub> | x<sub>&lt;t</sub>) &nbsp;&middot;&nbsp; ' +
+        '<b>' + trainedTok + '</b> / ' + totalContentTok + ' content tokens trained ' +
+        '(<span class="muted">' + (maskOn ? (strat==='all'?'all assistant turns':'final turn only') : 'no mask — every token') + '</span>)';
+
+      hintEl.textContent = maskOn
+        ? (strat==='all'
+            ? 'All assistant turns: mask system/user + role markers, train on every assistant response. Maximizes signal per conversation.'
+            : 'Final-turn only: train solely on the last assistant response; earlier turns are pure context. Useful when only the last response is curated.')
+        : 'Mask off: this is the pretraining regime — every token (including the prompt and user turns) contributes to the loss. The model would learn to imitate users too, not just respond.';
+    }
+    maskOnEl.addEventListener('change', render);
+    stratTabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        stratTabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        strat = btn.dataset.strat;
+        render();
+      });
+    });
+    render();
+  }
+
+  /* ---------------- 1C: IFT data quality vs quantity ---------------- */
+  function initDataScaling(){
+    var nSlider = document.getElementById('sc-n');
+    var qSlider = document.getElementById('sc-q');
+    var nVal = document.getElementById('sc-n-val');
+    var qVal = document.getElementById('sc-q-val');
+    var svg = document.getElementById('sc-plot');
+    var formulaEl = document.getElementById('sc-formula');
+    var hintEl = document.getElementById('sc-hint');
+
+    // N in thousands; slider 1..100 -> 1k..1M (log)
+    function sliderToN(s){ // returns sample count
+      // map 1..100 -> 1e3 .. 1e6 log-spaced
+      var t=(s-1)/99;
+      return Math.round(Math.pow(10, 3 + 3*t));
+    }
+    // skill model: effective clean data = N*q ; noisy fraction (1-q) actively hurts.
+    // skill = a*log10(N*q + 1) - penalty*N*(1-q)/scale, clamped to [0,1]
+    function skill(N, q){
+      var clean = N*q;
+      var noise = N*(1-q);
+      var s = 0.16*Math.log10(clean+1) - 0.00000045*noise;
+      return clamp(s, 0, 1);
+    }
+
+    var PAD=30, W=380, H=220, plotW=W-PAD*2, plotH=H-PAD*2;
+    // x axis: log10(N) from 3..6
+    function xToPx(log10N){ return PAD + (log10N-3)/3*plotW; }
+    function yToPx(v){ return PAD + (1-v)*plotH; }
+
+    function render(){
+      var N = sliderToN(parseFloat(nSlider.value));
+      var q = parseFloat(qSlider.value);
+      nVal.textContent = N.toLocaleString();
+      qVal.textContent = q.toFixed(2);
+      var sk = skill(N,q);
+
+      // curve: skill vs N at the CURRENT quality q
+      var d='';
+      for(var i=0;i<=120;i++){
+        var log10N = 3 + 3*(i/120);
+        var Ni = Math.pow(10, log10N);
+        var y = skill(Ni, q);
+        d += (i===0?'M':'L') + xToPx(log10N).toFixed(1) + ',' + yToPx(y).toFixed(1) + ' ';
+      }
+      // reference curve at q=1 (perfectly clean)
+      var dRef='';
+      for(var j=0;j<=120;j++){
+        var l2 = 3 + 3*(j/120);
+        var N2 = Math.pow(10,l2);
+        dRef += (j===0?'M':'L') + xToPx(l2).toFixed(1) + ',' + yToPx(skill(N2,1)).toFixed(1) + ' ';
+      }
+      var cx = xToPx(Math.log10(N)), cy = yToPx(sk);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path class="plot-true" d="'+dRef+'"></path>' +
+        '<path class="plot-curve" d="'+d+'"></path>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-8)+'" fill="var(--text-dim)" font-size="10">model skill</text>' +
+        '<text x="'+(W-PAD-86)+'" y="'+(H-PAD+18)+'" fill="var(--text-dim)" font-size="10">dataset size (log N)</text>' +
+        '<text x="'+(W-PAD-92)+'" y="'+(yToPx(skill(1e6,1))-4).toFixed(1)+'" fill="var(--text-dim)" font-size="9">q = 1 (perfectly clean)</text>';
+
+      formulaEl.innerHTML = 'effective clean data N&middot;q = <b>' + Math.round(N*q).toLocaleString() + '</b><br>' +
+        'model skill &asymp; <b>' + sk.toFixed(3) + '</b> &nbsp;<span class="muted">(0&ndash;1; noise term subtracts ' + (0.00000045*N*(1-q)).toFixed(3) + ')</span>';
+
+      var clean = Math.round(N*q), noise = Math.round(N*(1-q));
+      if(q > 0.85){
+        hintEl.textContent = 'High quality: almost all of your ' + N.toLocaleString() + ' samples are clean. Scaling N helps with diminishing returns (log curve). This is the modern recipe — scale, but filter hard.';
+      } else if(q < 0.5){
+        hintEl.textContent = 'Low quality: ' + noise.toLocaleString() + ' noisy samples actively drag skill down. A small clean set would beat this large noisy one — the LIMA lesson. Raise q or shrink N.';
+      } else {
+        hintEl.textContent = 'Mixed: ' + clean.toLocaleString() + ' clean vs ' + noise.toLocaleString() + ' noisy. Notice the gap to the dashed q=1 curve — that gap is everything quality filtering buys you.';
+      }
+    }
+    nSlider.addEventListener('input', render);
+    qSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 2A: Bradley-Terry ---------------- */
+  function initBradleyTerry(){
+    var rwSlider = document.getElementById('bt-rw');
+    var rlSlider = document.getElementById('bt-rl');
+    var rwVal = document.getElementById('bt-rw-val');
+    var rlVal = document.getElementById('bt-rl-val');
+    var svg = document.getElementById('bt-plot');
+    var formulaEl = document.getElementById('bt-formula');
+    var hintEl = document.getElementById('bt-hint');
+
+    var PAD=28, W=340, H=210, plotW=W-PAD*2, plotH=H-PAD*2;
+    var dmin=-8, dmax=8;
+    function xToPx(d){ return PAD + (d-dmin)/(dmax-dmin)*plotW; }
+    function yToPx(p){ return PAD + (1-p)*plotH; }
+
+    // precompute sigmoid curve
+    var curve='';
+    for(var i=0;i<=160;i++){
+      var d = dmin + (dmax-dmin)*(i/160);
+      curve += (i===0?'M':'L') + xToPx(d).toFixed(1) + ',' + yToPx(sigmoid(d)).toFixed(1) + ' ';
+    }
+
+    function render(){
+      var rw=parseFloat(rwSlider.value), rl=parseFloat(rlSlider.value);
+      rwVal.textContent=rw.toFixed(2); rlVal.textContent=rl.toFixed(2);
+      var d=rw-rl;
+      var p=sigmoid(d);
+      var dc=clamp(d,dmin,dmax);
+      var cx=xToPx(dc), cy=yToPx(p);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+yToPx(0.5).toFixed(1)+'" x2="'+(W-PAD)+'" y2="'+yToPx(0.5).toFixed(1)+'"></line>' +
+        '<line class="plot-axis" x1="'+xToPx(0).toFixed(1)+'" y1="'+PAD+'" x2="'+xToPx(0).toFixed(1)+'" y2="'+(H-PAD)+'"></line>' +
+        '<path class="plot-curve" d="'+curve+'"></path>' +
+        '<line x1="'+cx.toFixed(1)+'" y1="'+cy.toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+yToPx(0.5).toFixed(1)+'" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD+2)+'" fill="var(--text-dim)" font-size="10">P=1</text>' +
+        '<text x="'+(W-PAD-44)+'" y="'+(yToPx(0.5)-4).toFixed(1)+'" fill="var(--text-dim)" font-size="10">&Delta;r = r_w&minus;r_l</text>';
+      formulaEl.innerHTML =
+        'P(y<sub>w</sub> &succ; y<sub>l</sub>) = &sigma;(r<sub>w</sub> &minus; r<sub>l</sub>) = &sigma;(' + rw.toFixed(2) + ' &minus; ' + rl.toFixed(2) + ') = &sigma;(' + d.toFixed(2) + ') = <b>' + p.toFixed(3) + '</b><br>' +
+        '<span class="muted">= e^{r_w}/(e^{r_w}+e^{r_l}) = ' + Math.exp(rw).toFixed(2) + '/(' + Math.exp(rw).toFixed(2) + '+' + Math.exp(rl).toFixed(2) + ')</span>';
+      if(Math.abs(d)<0.15) hintEl.textContent='Δr ≈ 0 → a toss-up (P = 0.5). The model is indifferent between the two responses.';
+      else if(d>0) hintEl.textContent='r_w > r_l → the chosen response is preferred with probability '+(p*100).toFixed(1)+'%. Only the difference '+d.toFixed(2)+' matters, not absolute values.';
+      else hintEl.textContent='r_w < r_l → the model currently prefers the REJECTED response ('+(p*100).toFixed(1)+'% for y_w). Training pushes r_w up / r_l down.';
+    }
+    rwSlider.addEventListener('input', render);
+    rlSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 2B: Deriving the RM loss ---------------- */
+  function initDerivation(){
+    var steps = [
+      {
+        eq: 'θ* = argmax  e^{r_w} / (e^{r_w} + e^{r_l})',
+        why: 'Start from the Bradley–Terry preference probability: maximize the chance the model ranks the chosen completion above the rejected one.',
+        val: function(rw,rl){ return Math.exp(rw)/(Math.exp(rw)+Math.exp(rl)); },
+        label: 'P(y_w ≻ y_l)'
+      },
+      {
+        eq: '= argmax  [e^{r_w}/e^{r_w}] / [(e^{r_w}+e^{r_l})/e^{r_w}]',
+        why: 'Divide numerator and denominator by e^{r_w}. Nothing changes — it is the same ratio.',
+        val: function(rw,rl){ return Math.exp(rw)/(Math.exp(rw)+Math.exp(rl)); },
+        label: 'P(y_w ≻ y_l)'
+      },
+      {
+        eq: '= argmax  1 / (1 + e^{r_l − r_w})',
+        why: 'Numerator becomes 1; the cross term e^{r_l}/e^{r_w} = e^{r_l − r_w}.',
+        val: function(rw,rl){ return 1/(1+Math.exp(rl-rw)); },
+        label: 'P(y_w ≻ y_l)'
+      },
+      {
+        eq: '= argmax  σ(r_w − r_l)',
+        why: 'Rewrite as 1/(1 + e^{−(r_w − r_l)}) and recognize the sigmoid σ(z) = 1/(1+e^{−z}).',
+        val: function(rw,rl){ return sigmoid(rw-rl); },
+        label: 'σ(r_w − r_l)'
+      },
+      {
+        eq: '= argmax  log σ(r_w − r_l)',
+        why: 'log is monotonic, so argmax of σ equals argmax of log σ. (Value shown is now log σ, ≤ 0.)',
+        val: function(rw,rl){ return logsigmoid(rw-rl); },
+        label: 'log σ(r_w − r_l)'
+      },
+      {
+        eq: 'L(θ) = − log σ(r_w − r_l)',
+        why: 'Flip the sign to turn maximization into a minimization — the InstructGPT reward-model loss. Equivalently L = log(1 + e^{r_l − r_w}) (Anthropic form). Both are just binary cross-entropy.',
+        val: function(rw,rl){ return -logsigmoid(rw-rl); },
+        label: 'L(θ) = −log σ(Δr)'
+      }
+    ];
+    var idx=0;
+    var stepEl=document.getElementById('dv-step');
+    var dotsEl=document.getElementById('dv-dots');
+    var prevBtn=document.getElementById('dv-prev');
+    var nextBtn=document.getElementById('dv-next');
+    var rwSlider=document.getElementById('dv-rw');
+    var rlSlider=document.getElementById('dv-rl');
+    var rwVal=document.getElementById('dv-rw-val');
+    var rlVal=document.getElementById('dv-rl-val');
+    var formulaEl=document.getElementById('dv-formula');
+
+    function render(){
+      var s=steps[idx];
+      stepEl.innerHTML = '<div class="why"><b>Step '+(idx+1)+'/'+steps.length+'.</b> '+escapeHtml(s.why)+'</div>' +
+        '<div class="eq">'+escapeHtml(s.eq)+'</div>';
+      dotsEl.innerHTML = steps.map(function(_,i){ return '<span class="dot'+(i===idx?' on':'')+'"></span>'; }).join('');
+      prevBtn.disabled = idx===0;
+      nextBtn.disabled = idx===steps.length-1;
+      renderVal();
+    }
+    function renderVal(){
+      var rw=parseFloat(rwSlider.value), rl=parseFloat(rlSlider.value);
+      rwVal.textContent=rw.toFixed(2); rlVal.textContent=rl.toFixed(2);
+      var s=steps[idx];
+      var v=s.val(rw,rl);
+      var loss=-logsigmoid(rw-rl);
+      formulaEl.innerHTML = 'at r<sub>w</sub>='+rw.toFixed(2)+', r<sub>l</sub>='+rl.toFixed(2)+
+        ': &nbsp;'+escapeHtml(s.label)+' = <b>'+v.toFixed(4)+'</b><br>' +
+        '<span class="muted">final loss L = &minus;log &sigma;('+(rw-rl).toFixed(2)+') = '+loss.toFixed(4)+' nats</span>';
+    }
+    prevBtn.addEventListener('click', function(){ idx=Math.max(0,idx-1); render(); });
+    nextBtn.addEventListener('click', function(){ idx=Math.min(steps.length-1,idx+1); render(); });
+    rwSlider.addEventListener('input', renderVal);
+    rlSlider.addEventListener('input', renderVal);
+    render();
+  }
+
+  /* ---------------- 2C: Loss variants ---------------- */
+  function initVariants(){
+    var tabs=document.querySelectorAll('#var-tabs button');
+    var dSlider=document.getElementById('var-d');
+    var mSlider=document.getElementById('var-m');
+    var pSlider=document.getElementById('var-p');
+    var dVal=document.getElementById('var-d-val');
+    var mVal=document.getElementById('var-m-val');
+    var pVal=document.getElementById('var-p-val');
+    var labelTabs=document.querySelectorAll('#var-label button');
+    var btCtrl=document.getElementById('var-bt-ctrl');
+    var mCtrl=document.getElementById('var-m-ctrl');
+    var ormCtrl=document.getElementById('var-orm-ctrl');
+    var svg=document.getElementById('var-plot');
+    var formulaEl=document.getElementById('var-formula');
+    var hintEl=document.getElementById('var-hint');
+    var mode='bt';
+    var rLabel=1;
+
+    var PAD=28, W=340, H=210, plotW=W-PAD*2, plotH=H-PAD*2;
+
+    function plotLossCurve(fn, xmin, xmax, ymax, markX, xlabel){
+      var d='';
+      for(var i=0;i<=160;i++){
+        var x = xmin + (xmax-xmin)*(i/160);
+        var y = clamp(fn(x), 0, ymax);
+        var px = PAD + (x-xmin)/(xmax-xmin)*plotW;
+        var py = PAD + (1-y/ymax)*plotH;
+        d += (i===0?'M':'L')+px.toFixed(1)+','+py.toFixed(1)+' ';
+      }
+      var mx = clamp(markX, xmin, xmax);
+      var cx = PAD + (mx-xmin)/(xmax-xmin)*plotW;
+      var cy = PAD + (1-clamp(fn(mx),0,ymax)/ymax)*plotH;
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path class="plot-curve" d="'+d+'"></path>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-6)+'" fill="var(--text-dim)" font-size="10">loss</text>' +
+        '<text x="'+(W-PAD-70)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">'+xlabel+'</text>';
+    }
+
+    function render(){
+      btCtrl.style.display = mode==='bt' ? 'block':'none';
+      mCtrl.style.display = mode==='margin' ? 'block':'none';
+      ormCtrl.style.display = mode==='orm' ? 'block':'none';
+      mSlider && (mVal.textContent = parseFloat(mSlider.value).toFixed(2));
+      dVal.textContent = parseFloat(dSlider.value).toFixed(2);
+      pVal.textContent = parseFloat(pSlider.value).toFixed(2);
+
+      if(mode==='bt'){
+        var d=parseFloat(dSlider.value);
+        plotLossCurve(function(x){ return -logsigmoid(x); }, -5, 5, 6, d, 'Δr = r_w − r_l');
+        var L=-logsigmoid(d);
+        formulaEl.innerHTML='L = &minus;log &sigma;(&Delta;r) = &minus;log &sigma;('+d.toFixed(2)+') = <b>'+L.toFixed(4)+'</b> nats &nbsp;<span class="muted">P='+sigmoid(d).toFixed(3)+'</span>';
+        hintEl.textContent='Pure Bradley–Terry. Loss → 0 as Δr → +∞ (confidently correct), grows ~linearly as Δr → −∞ (confidently wrong).';
+      } else if(mode==='margin'){
+        var d2=parseFloat(dSlider.value);
+        var m=parseFloat(mSlider.value);
+        // L = -log sigma(d - m): margin shifts the curve right, demanding larger gap
+        plotLossCurve(function(x){ return -logsigmoid(x - m); }, -5, 5, 6, d2, 'Δr');
+        var L2=-logsigmoid(d2-m);
+        formulaEl.innerHTML='L = &minus;log &sigma;(&Delta;r &minus; m) = &minus;log &sigma;('+d2.toFixed(2)+' &minus; '+m.toFixed(2)+') = <b>'+L2.toFixed(4)+'</b><br>' +
+          '<span class="muted">vs. no-margin loss '+(-logsigmoid(d2)).toFixed(4)+' — margin penalizes until the gap exceeds m</span>';
+        hintEl.textContent='Llama 2 margin loss. The margin m (from Likert-rating gaps) shifts the whole curve right by '+m.toFixed(2)+': the model must open a gap larger than m before loss drops. Llama 3 later removed it.';
+      } else { // orm
+        var p=parseFloat(pSlider.value);
+        // per-token binary cross entropy: L = -[r log p + (1-r) log(1-p)]
+        // plot loss vs predicted p for the chosen true label
+        plotLossCurve(function(x){
+          var xx=clamp(x,0.001,0.999);
+          return -(rLabel*Math.log(xx) + (1-rLabel)*Math.log(1-xx));
+        }, 0.01, 0.99, 5, p, 'predicted p(correct)');
+        var L3=-(rLabel*Math.log(p)+(1-rLabel)*Math.log(1-p));
+        formulaEl.innerHTML='L<sub>CE</sub> = &minus;[r&middot;log p + (1&minus;r)&middot;log(1&minus;p)]<br>' +
+          '= &minus;[' + rLabel + '&middot;log '+p.toFixed(2)+' + '+(1-rLabel)+'&middot;log '+(1-p).toFixed(2)+'] = <b>'+L3.toFixed(4)+'</b> per token';
+        hintEl.textContent='Outcome RM: no pairs needed. The single correctness label r='+rLabel+' is broadcast to every completion token, trained with binary cross-entropy. Loss is minimized when p matches r.';
+      }
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode=btn.dataset.mode;
+        render();
+      });
+    });
+    labelTabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        labelTabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        rLabel=parseInt(btn.dataset.r,10);
+        render();
+      });
+    });
+    dSlider.addEventListener('input', render);
+    mSlider.addEventListener('input', render);
+    pSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 3A: Best-of-N ---------------- */
+  function initBestOfN(){
+    var nSlider=document.getElementById('bon-n');
+    var tSlider=document.getElementById('bon-t');
+    var nVal=document.getElementById('bon-n-val');
+    var tVal=document.getElementById('bon-t-val');
+    var resampleBtn=document.getElementById('bon-resample');
+    var gridEl=document.getElementById('bon-grid');
+    var svg=document.getElementById('bon-plot');
+    var formulaEl=document.getElementById('bon-formula');
+    var hintEl=document.getElementById('bon-hint');
+
+    var MAXN=30;
+    // base reward draws ~ N(mu, sigma); temperature scales spread (more diversity).
+    var baseDraws=[];
+    function resample(){
+      baseDraws=[];
+      for(var i=0;i<MAXN;i++) baseDraws.push(gauss());
+    }
+    resample();
+
+    // expected max of N iid N(mu,sigma) — Monte Carlo estimate (deterministic-ish, large M)
+    function expectedMax(N, mu, sigma){
+      if(N<1) return mu;
+      var M=4000, acc=0;
+      // use a fixed pseudo-random stream seeded by N for stability across renders
+      var seed = 1234.5 + N*7.13;
+      function rnd(){ seed = (seed*9301+49297)%233280; return seed/233280; }
+      for(var m=0;m<M;m++){
+        var best=-1e9;
+        for(var k=0;k<N;k++){
+          var u=rnd(); if(u===0)u=1e-6; var v=rnd(); if(v===0)v=1e-6;
+          var g=Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+          var r=mu+sigma*g;
+          if(r>best) best=r;
+        }
+        acc+=best;
+      }
+      return acc/M;
+    }
+
+    var PAD=28, W=380, H=200, plotW=W-PAD*2, plotH=H-PAD*2;
+
+    function render(){
+      var N=parseInt(nSlider.value,10);
+      var T=parseFloat(tSlider.value);
+      nVal.textContent=N; tVal.textContent=T.toFixed(2);
+      var mu=0, sigma=T; // temperature ~ spread/diversity of rewards
+
+      // current draw's first N candidates -> scores = mu + sigma*baseDraw
+      var scores=[];
+      for(var i=0;i<N;i++) scores.push(mu+sigma*baseDraws[i]);
+      var bestVal=Math.max.apply(null, scores);
+      var bestI=scores.indexOf(bestVal);
+
+      gridEl.innerHTML='';
+      scores.forEach(function(s,i){
+        var div=document.createElement('div');
+        div.className='rs-cand'+(i===bestI?' best':'');
+        div.innerHTML='y<sub>'+(i+1)+'</sub> <span class="score">r='+s.toFixed(2)+(i===bestI?' ★':'')+'</span>';
+        gridEl.appendChild(div);
+      });
+
+      // curve: expected max vs N (1..MAXN) at current temperature
+      var emaxVals=[];
+      for(var k=1;k<=MAXN;k++) emaxVals.push(expectedMax(k,mu,sigma));
+      var ymin=Math.min.apply(null, emaxVals), ymax=Math.max.apply(null, emaxVals);
+      var yr=(ymax-ymin)||1;
+      function xToPx(n){ return PAD + (n-1)/(MAXN-1)*plotW; }
+      function yToPx(v){ return PAD + (1-(v-ymin)/yr)*plotH; }
+      var d='';
+      emaxVals.forEach(function(v,i){ d+=(i===0?'M':'L')+xToPx(i+1).toFixed(1)+','+yToPx(v).toFixed(1)+' '; });
+      var cx=xToPx(N), cy=yToPx(emaxVals[N-1]);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path class="plot-curve" d="'+d+'"></path>' +
+        '<line x1="'+cx.toFixed(1)+'" y1="'+cy.toFixed(1)+'" x2="'+cx.toFixed(1)+'" y2="'+(H-PAD)+'" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-6)+'" fill="var(--text-dim)" font-size="10">E[best score]</text>' +
+        '<text x="'+(W-PAD-30)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">N</text>';
+
+      var gain1to2 = emaxVals[1]-emaxVals[0];
+      var gainLast = MAXN>1 ? emaxVals[MAXN-1]-emaxVals[MAXN-2] : 0;
+      formulaEl.innerHTML =
+        'S(R) = argmax<sub>j&isin;[1,'+N+']</sub> r<sub>j</sub> = r<sub>'+(bestI+1)+'</sub> = <b>'+bestVal.toFixed(3)+'</b> (this draw)<br>' +
+        '<span class="muted">E[best of '+N+'] &asymp; '+emaxVals[N-1].toFixed(3)+' &nbsp;|&nbsp; marginal gain N=1&rarr;2: '+gain1to2.toFixed(3)+', N='+(MAXN-1)+'&rarr;'+MAXN+': '+gainLast.toFixed(3)+'</span>';
+
+      hintEl.textContent='Higher N raises the expected best score, but the marginal gain shrinks (diminishing returns): going 1→2 buys '+gain1to2.toFixed(2)+', the last step only '+gainLast.toFixed(2)+'. Higher temperature widens the reward spread, so each extra sample can reach further.';
+    }
+    nSlider.addEventListener('input', render);
+    tSlider.addEventListener('input', render);
+    resampleBtn.addEventListener('click', function(){ resample(); render(); });
+    render();
+  }
+
+  /* ---------------- 3B: Selection methods ---------------- */
+  function initSelection(){
+    var tabs=document.querySelectorAll('#sel-tabs button');
+    var kCtrl=document.getElementById('sel-k-ctrl');
+    var kSlider=document.getElementById('sel-k');
+    var kVal=document.getElementById('sel-k-val');
+    var reshuffleBtn=document.getElementById('sel-reshuffle');
+    var tableEl=document.getElementById('sel-table');
+    var formulaEl=document.getElementById('sel-formula');
+    var hintEl=document.getElementById('sel-hint');
+    var mode='row';
+    var M=5, N=4;
+    var R=[];
+
+    function reshuffle(){
+      R=[];
+      for(var i=0;i<M;i++){
+        var row=[];
+        for(var j=0;j<N;j++) row.push(Math.round(Math.random()*100)/100);
+        R.push(row);
+      }
+    }
+    reshuffle();
+
+    function render(){
+      kCtrl.style.display = mode==='global' ? 'block':'none';
+      var K=parseInt(kSlider.value,10);
+      kVal.textContent=K;
+
+      // compute selected set of (i,j)
+      var selected={}; // key "i,j"
+      var perPromptCount=new Array(M).fill(0);
+      if(mode==='row'){
+        for(var i=0;i<M;i++){
+          var bj=0, bv=-1;
+          for(var j=0;j<N;j++){ if(R[i][j]>bv){ bv=R[i][j]; bj=j; } }
+          selected[i+','+bj]=true; perPromptCount[i]++;
+        }
+      } else {
+        var flat=[];
+        for(var a=0;a<M;a++) for(var b=0;b<N;b++) flat.push({i:a,j:b,v:R[a][b]});
+        flat.sort(function(x,y){ return y.v-x.v; });
+        for(var t=0;t<Math.min(K,flat.length);t++){
+          selected[flat[t].i+','+flat[t].j]=true; perPromptCount[flat[t].i]++;
+        }
+      }
+
+      // build table
+      var html='<thead><tr><th>prompt \\ compl.</th>';
+      for(var c=0;c<N;c++) html+='<th>y<sub>'+(c+1)+'</sub></th>';
+      html+='<th>#picked</th></tr></thead><tbody>';
+      for(var r=0;r<M;r++){
+        html+='<tr><th>x<sub>'+(r+1)+'</sub></th>';
+        for(var cc=0;cc<N;cc++){
+          var sel=selected[r+','+cc];
+          html+='<td class="num'+(sel?' sel':'')+'">'+R[r][cc].toFixed(2)+'</td>';
+        }
+        html+='<td class="num"'+(perPromptCount[r]===0?' style="color:var(--rose)"':'')+'>'+perPromptCount[r]+'</td></tr>';
+      }
+      html+='</tbody>';
+      tableEl.innerHTML=html;
+
+      var emptyPrompts=perPromptCount.filter(function(c){return c===0;}).length;
+      var totalSel=Object.keys(selected).length;
+      if(mode==='row'){
+        formulaEl.innerHTML='S(R) = [argmax<sub>j</sub> r<sub>i,j</sub>] for each prompt i &rarr; <b>'+totalSel+'</b> selected, every prompt represented';
+        hintEl.textContent='Top-per-prompt: exactly one completion per prompt, guaranteed coverage. The standard choice for balanced fine-tuning data.';
+      } else {
+        formulaEl.innerHTML='S<sub>K</sub>(R<sub>flat</sub>) = argsort(R<sub>flat</sub>)[&minus;'+K+':] &rarr; <b>'+totalSel+'</b> selected, <b>'+emptyPrompts+'</b> prompt(s) with none';
+        hintEl.textContent='Top-K overall: flatten and keep the global best K. Optimizes absolute quality but biases toward easy prompts — '+emptyPrompts+' prompt(s) currently get nothing while others may get several.';
+      }
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode=btn.dataset.mode;
+        render();
+      });
+    });
+    kSlider.addEventListener('input', render);
+    reshuffleBtn.addEventListener('click', function(){ reshuffle(); render(); });
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initChatTemplate();
+    initLossMask();
+    initDataScaling();
+    initBradleyTerry();
+    initDerivation();
+    initVariants();
+    initBestOfN();
+    initSelection();
+  });
+})();
+</script>
+
+</body>
+</html>

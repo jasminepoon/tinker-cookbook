@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RL Implementation & Practice — Interactive Lecture 4</title>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .token-chip:hover{ border-color:var(--accent); }
+  .token-chip.active{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  /* code blocks */
+  .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; white-space:pre; overflow-x:auto; line-height:1.5; }
+  .code-block .kw{ color:var(--orange); }
+  .code-block .cm{ color:var(--text-dim); }
+  .code-block .hl{ color:var(--accent-bright); }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; fill:none; }
+
+  /* ladder */
+  .ladder-steps{ display:flex; flex-direction:column; gap:8px; }
+  .ladder-step{
+    border:1px solid var(--border);
+    background:var(--panel-2);
+    border-radius:8px;
+    padding:10px 12px;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .ladder-step:hover{ border-color:var(--accent); }
+  .ladder-step.active{ border-color:var(--accent); background:rgba(132,169,140,0.12); }
+  .ladder-step .ls-name{ font-weight:600; font-family:var(--mono); color:var(--accent-bright); }
+  .ladder-step .ls-tag{ font-size:0.72em; color:var(--text-dim); }
+  .feature-grid{ display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+  .feature-chip{
+    font-size:0.72em; font-family:var(--mono);
+    border:1px solid var(--border); border-radius:5px;
+    padding:3px 7px; color:var(--text-dim);
+  }
+  .feature-chip.on{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+  .feature-chip.off{ opacity:0.4; text-decoration:line-through; }
+
+  /* models in memory */
+  .mem-grid{ display:flex; flex-direction:column; gap:8px; }
+  .mem-model{
+    display:flex; align-items:center; gap:12px;
+    border:1px solid var(--border); border-radius:8px;
+    background:var(--panel-2); padding:10px 12px;
+    transition:all 0.2s;
+  }
+  .mem-model.dropped{ opacity:0.28; }
+  .mem-model.dropped .mem-bar-fill{ background:var(--border); }
+  .mem-name{ width:130px; font-family:var(--mono); font-size:0.82em; }
+  .mem-bar{ flex:1; height:16px; background:var(--bg); border-radius:4px; overflow:hidden; border:1px solid var(--border); }
+  .mem-bar-fill{ height:100%; background:linear-gradient(to right, var(--accent), var(--accent-bright)); transition:width 0.3s; }
+  .mem-size{ width:54px; text-align:right; font-family:var(--mono); font-size:0.8em; color:var(--text-dim); }
+
+  table.cmp{ width:100%; border-collapse:collapse; font-size:0.86em; }
+  table.cmp th, table.cmp td{ border:1px solid var(--border); padding:8px 11px; text-align:left; }
+  table.cmp th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.cmp td.yes{ color:var(--orange); }
+  table.cmp td.no{ color:var(--accent); }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">rlhfbook.com/course · lecture 4</div>
+  <h1>RL Implementation & Practice</h1>
+  <p class="sub">From the policy-gradient math to running code: REINFORCE → RLOO → PPO → GRPO. The clipped surrogate, GAE, group-relative advantages, where the KL penalty goes, the four models in memory, and how you aggregate the loss — the implementation details that quietly decide whether training works.</p>
+  <p class="credit">Interactive companion to Nathan Lambert's RLHF course, Lecture 4 (RL Implementation & Practice, Chapter 6 Part 2), rlhfbook.com/course. Interactive build only — original content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#ladder">Algorithm Ladder</a>
+  <a href="#rloo">RLOO Baseline</a>
+  <a href="#ppo">PPO Clip</a>
+  <a href="#gae">GAE</a>
+  <a href="#grpo">GRPO Groups</a>
+  <a href="#kl">KL Placement</a>
+  <a href="#memory">Models in Memory</a>
+  <a href="#aggregation">Loss Aggregation</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION A: THE ALGORITHM FAMILY ============ -->
+  <section class="group" id="sec-family">
+    <div class="group-header"><span class="group-index">01</span><h2>The policy-gradient family</h2></div>
+    <p class="group-intro">Every method in this lecture minimizes the same loss skeleton — a sum of log-probs weighted by an advantage <code>&minus;&Sigma; log&pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>)&middot;&Psi;<sub>t</sub></code>. They differ only in <b>what &Psi;<sub>t</sub> is</b> (the baseline / advantage) and <b>how updates are bounded</b> (clipping). Climb the ladder and see exactly what each algorithm adds.</p>
+
+    <article class="concept" id="ladder">
+      <h3>Algorithm ladder: REINFORCE → RLOO → PPO → GRPO</h3>
+      <p class="concept-desc">Click an algorithm to see its loss expression and which ingredients it switches on: a variance-reducing <b>baseline</b>, a learned <b>value function</b> with <b>GAE</b> for per-token credit, ratio <b>clipping</b> for a trust region, and <b>group-relative</b> advantages. Each rung keeps the previous gradient skeleton and changes one or two pieces.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="ladder-steps" id="ladder-steps"></div>
+          <p class="hint">Notice: the only thing that ever changes is &Psi;<sub>t</sub> (the advantage) and whether the ratio is clipped. PPO is the only rung that needs a value network.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="formula-display" id="ladder-loss"></div>
+          <div class="feature-grid" id="ladder-features"></div>
+          <div class="formula-display" id="ladder-psi"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="rloo">
+      <h3>The RLOO leave-one-out baseline</h3>
+      <p class="concept-desc">REINFORCE subtracts the batch-mean reward as a baseline. <b>RLOO</b> samples <code>K</code> completions per prompt and, for each one, subtracts the mean of its <i>siblings</i>: <code>b<sub>i</sub> = (1/(K&minus;1))&Sigma;<sub>j&ne;i</sub> R<sub>j</sub></code>. A per-prompt baseline removes prompt-difficulty variance the batch mean leaves in. Drag the rewards and watch each advantage recompute.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div id="rloo-sliders"></div>
+          <button id="rloo-rand">Randomize rewards</button>
+          <p class="hint">Each advantage A<sub>i</sub> = R<sub>i</sub> &minus; (mean of the other K&minus;1). Unlike REINFORCE's single batch baseline, a hard prompt that scores low across the board still produces sensible centered advantages.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="rloo-bars"></div>
+          <div class="formula-display" id="rloo-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION B: PPO ============ -->
+  <section class="group" id="sec-ppo">
+    <div class="group-header"><span class="group-index">02</span><h2>Proximal Policy Optimization</h2></div>
+    <p class="group-intro">PPO buys lower variance and per-token credit assignment — at the cost of a learned value function, GAE, and more models in memory. Two pieces do the work: the <b>clipped surrogate</b> that keeps each update inside a trust region, and <b>GAE</b> that turns one terminal reward into per-token advantages.</p>
+
+    <article class="concept" id="ppo">
+      <h3>PPO clipped surrogate</h3>
+      <p class="concept-desc">The importance ratio is <code>&rho; = &pi;<sub>&theta;</sub>(a|s)/&pi;<sub>old</sub>(a|s)</code>. PPO minimizes <code>&minus;min(&rho;&middot;A, clip(&rho;,1&minus;&epsilon;,1+&epsilon;)&middot;A)</code>. In code that's <code>torch.max(&minus;A&middot;&rho;, &minus;A&middot;clamp(&rho;))</code> — picking the more pessimistic gradient. Drag the ratio and watch the objective flatten the moment you leave <code>[1&minus;&epsilon;, 1+&epsilon;]</code>.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Probability ratio &rho; = <span id="ppo-r-val">1.00</span></label>
+          <input type="range" id="ppo-r" min="0.1" max="2.5" step="0.01" value="1">
+          <label>Advantage A = <span id="ppo-a-val">1.00</span></label>
+          <input type="range" id="ppo-a" min="-2" max="2" step="0.1" value="1">
+          <label>Clip &epsilon; = <span id="ppo-eps-val">0.20</span></label>
+          <input type="range" id="ppo-eps" min="0.05" max="0.5" step="0.01" value="0.2">
+          <p class="hint" id="ppo-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 360 220" id="ppo-plot"></svg>
+          <div class="formula-display" id="ppo-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="gae">
+      <h3>Generalized Advantage Estimation (GAE)</h3>
+      <p class="concept-desc">GAE turns the terminal reward into per-token advantages by propagating TD errors <code>&delta;<sub>t</sub> = r<sub>t</sub> + &gamma;V(s<sub>t+1</sub>) &minus; V(s<sub>t</sub>)</code> backward with decay <code>(&gamma;&lambda;)</code>: <code>&Acirc;<sub>t</sub> = &Sigma;<sub>l</sub>(&gamma;&lambda;)<sup>l</sup>&delta;<sub>t+l</sub></code>. <code>&lambda;=0</code> is pure TD (low variance, high bias); <code>&lambda;=1</code> is Monte-Carlo (high variance, low bias). Drag &gamma; and &lambda; and watch per-token advantages reshape across the sequence.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Discount &gamma; = <span id="gae-g-val">1.00</span></label>
+          <input type="range" id="gae-g" min="0.8" max="1" step="0.01" value="1">
+          <label>GAE &lambda; = <span id="gae-l-val">0.95</span></label>
+          <input type="range" id="gae-l" min="0" max="1" step="0.01" value="0.95">
+          <label>Terminal reward R = <span id="gae-r-val">1.0</span></label>
+          <input type="range" id="gae-r" min="-2" max="2" step="0.1" value="1">
+          <button id="gae-resample">Resample value estimates</button>
+          <p class="hint" id="gae-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 360 200" id="gae-plot"></svg>
+          <div class="formula-display" id="gae-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION C: GRPO ============ -->
+  <section class="group" id="sec-grpo">
+    <div class="group-header"><span class="group-index">03</span><h2>GRPO & group-relative advantages</h2></div>
+    <p class="group-intro">GRPO throws away the value function and GAE entirely. For each prompt it samples a <b>group</b> of <code>G</code> completions and computes advantages purely by comparing siblings: <code>&Acirc;<sub>i</sub> = (R<sub>i</sub> &minus; &mu;<sub>G</sub>)/&sigma;<sub>G</sub></code>. Same clipped loss as PPO, one fewer model in memory.</p>
+
+    <article class="concept" id="grpo">
+      <h3>Group-relative advantages (the core GRPO idea)</h3>
+      <p class="concept-desc">Sample a group of <code>G</code> responses for <i>one</i> prompt, give them toy rewards, then <b>center within the group</b>: subtract the group mean and divide by the group std. The baseline is the group itself — better-than-average siblings get positive advantage, worse-than-average get negative. Watch the std-collapse warning when all rewards are equal (the NaN trap).</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div id="grpo-sliders"></div>
+          <button id="grpo-rand">Resample group</button>
+          <button id="grpo-collapse">Make all equal</button>
+          <p class="hint" id="grpo-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="grpo-bars"></div>
+          <div class="formula-display" id="grpo-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="kl">
+      <h3>KL penalty placement: in-reward vs in-loss</h3>
+      <p class="concept-desc">Same goal — constrain drift from the reference policy — two placements. <b>PPO</b> folds <code>&minus;&beta;&middot;KL<sub>t</sub></code> into the per-token <i>reward</i> before GAE, so KL flows through advantage estimation. <b>GRPO</b> adds <code>&beta;&middot;KL<sub>t</sub></code> as a separate <i>loss</i> term, leaving advantages untouched. Toggle and see what the per-token training signal becomes.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="kl-tabs">
+            <button data-mode="reward" class="active">KL in reward (PPO)</button>
+            <button data-mode="loss">KL in loss (GRPO)</button>
+          </div>
+          <label>KL coefficient &beta; = <span id="kl-beta-val">0.05</span></label>
+          <input type="range" id="kl-beta" min="0" max="0.3" step="0.01" value="0.05">
+          <label>Per-token KL magnitude = <span id="kl-mag-val">0.40</span></label>
+          <input type="range" id="kl-mag" min="0" max="2" step="0.05" value="0.4">
+          <p class="hint" id="kl-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="code-block" id="kl-code"></div>
+          <div class="formula-display" id="kl-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION D: SYSTEMS & PRACTICE ============ -->
+  <section class="group" id="sec-practice">
+    <div class="group-header"><span class="group-index">04</span><h2>Memory budget & loss aggregation</h2></div>
+    <p class="group-intro">Two practical realities. PPO juggles <b>four models in memory</b>; GRPO drops one. And the seemingly cosmetic choice of how you <b>reduce per-token losses to a scalar</b> changes training dynamics — biasing the model toward short or verbose answers.</p>
+
+    <article class="concept" id="memory">
+      <h3>The four models in memory (and how GRPO drops one)</h3>
+      <p class="concept-desc">PPO keeps the <b>policy</b> (trained), a learned <b>value/critic</b>, a frozen <b>reference</b> (KL anchor), and a frozen <b>reward model</b> resident at once. For a 7B model in fp16 that's ~14&nbsp;GB each. Toggle to GRPO and the value network vanishes — no critic, no GAE, no value loss, ~one fewer copy. Pick a model size and see the total weight footprint.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="mem-tabs">
+            <button data-algo="ppo" class="active">PPO</button>
+            <button data-algo="grpo">GRPO</button>
+          </div>
+          <label>Model size = <span id="mem-size-val">7</span>B params (fp16)</label>
+          <input type="range" id="mem-size" min="1" max="70" step="1" value="7">
+          <p class="hint" id="mem-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="mem-grid" id="mem-grid"></div>
+          <div class="formula-display" id="mem-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="aggregation">
+      <h3>Loss aggregation: per-sequence vs per-token vs fixed-length</h3>
+      <p class="concept-desc">Same gradient <code>&nabla;log&pi;&middot;A</code>, three ways to reduce it to a batch scalar. <b>Per-sequence</b> (GRPO) gives each sequence equal weight → short sequences get bigger per-token gradients. <b>Per-token</b> (DAPO) gives each token equal weight → long sequences contribute more total gradient. <b>Fixed-length</b> (Dr.&nbsp;GRPO) divides by a constant L<sub>max</sub>. Edit the two toy sequences and compare.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Sequence 1 token losses (comma-separated)</label>
+          <input type="text" id="agg-seq1" value="1,1,1,1,10">
+          <label>Sequence 2 token losses (comma-separated)</label>
+          <input type="text" id="agg-seq2" value="1,1,1,1,1,1,1,1,1,10">
+          <label>L<sub>max</sub> (fixed-length norm) = <span id="agg-lmax-val">10</span></label>
+          <input type="range" id="agg-lmax" min="5" max="20" step="1" value="10">
+          <p class="hint">Per-token gradient weight for a token in a sequence of length |a|: per-sequence = 1/(B|a|), per-token = 1/&Sigma;|a|, fixed = 1/(B&middot;L<sub>max</sub>). Equal columns mean equal per-token weighting.</p>
+        </div>
+        <div class="panel-viz">
+          <table class="cmp" id="agg-table"></table>
+          <div class="formula-display" id="agg-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, Lecture 4 (RL Implementation &amp; Practice, Chapter 6 Part 2) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  function mean(arr){ return arr.length ? sum(arr)/arr.length : 0; }
+  function std(arr){
+    var m = mean(arr);
+    var v = mean(arr.map(function(x){ return (x-m)*(x-m); }));
+    return Math.sqrt(v);
+  }
+
+  /* ---------------- A1: Algorithm ladder ---------------- */
+  function initLadder(){
+    var algos = [
+      {
+        name:'REINFORCE',
+        tag:'sequence reward + batch baseline',
+        loss:'L = &minus;(1/T) &Sigma;<sub>t</sub> log&pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>) &middot; (G<sub>t</sub> &minus; b)',
+        psi:'&Psi;<sub>t</sub> = G<sub>t</sub> &minus; b &nbsp; with &nbsp; b = mean reward over the batch',
+        feat:{ baseline:true, value:false, gae:false, clip:false, group:false }
+      },
+      {
+        name:'RLOO',
+        tag:'leave-one-out per-prompt baseline',
+        loss:'L = &minus;(1/K) &Sigma;<sub>i</sub> &Sigma;<sub>t</sub> log&pi;<sub>&theta;</sub>(a<sub>i,t</sub>|s<sub>i,t</sub>) &middot; (R<sub>i</sub> &minus; b<sub>i</sub>)',
+        psi:'&Psi;<sub>i</sub> = R<sub>i</sub> &minus; b<sub>i</sub>, &nbsp; b<sub>i</sub> = (1/(K&minus;1))&Sigma;<sub>j&ne;i</sub> R<sub>j</sub> &nbsp; (per-prompt, lower variance)',
+        feat:{ baseline:true, value:false, gae:false, clip:false, group:true }
+      },
+      {
+        name:'PPO',
+        tag:'clipped ratio + GAE per-token advantage',
+        loss:'L = &minus;(1/T) &Sigma;<sub>t</sub> min(&rho;<sub>t</sub>A<sub>t</sub>, clip(&rho;<sub>t</sub>,1&minus;&epsilon;,1+&epsilon;)A<sub>t</sub>)',
+        psi:'&Psi;<sub>t</sub> = A<sub>t</sub> via GAE (needs value net V<sub>&phi;</sub>); &nbsp; &rho;<sub>t</sub> = &pi;<sub>&theta;</sub>/&pi;<sub>old</sub> clipped to a trust region',
+        feat:{ baseline:true, value:true, gae:true, clip:true, group:false }
+      },
+      {
+        name:'GRPO',
+        tag:'group-relative advantage, no value net',
+        loss:'L = &minus;(1/G) &Sigma;<sub>i</sub> (1/|a<sub>i</sub>|) &Sigma;<sub>t</sub> min(&rho;<sub>i,t</sub>&Acirc;<sub>i</sub>, clip(&rho;<sub>i,t</sub>,1&minus;&epsilon;,1+&epsilon;)&Acirc;<sub>i</sub>) + &beta;&middot;KL',
+        psi:'&Acirc;<sub>i</sub> = (R<sub>i</sub> &minus; &mu;<sub>G</sub>)/&sigma;<sub>G</sub> &nbsp; sequence-level, group-normalized; &nbsp; per-token ratio &rho;<sub>i,t</sub>, no value net',
+        feat:{ baseline:true, value:false, gae:false, clip:true, group:true }
+      }
+    ];
+    var featLabels = {
+      baseline:'baseline (variance ↓)',
+      value:'value network Vϕ',
+      gae:'GAE per-token credit',
+      clip:'ratio clipping',
+      group:'group / per-prompt'
+    };
+    var stepsEl = document.getElementById('ladder-steps');
+    var lossEl = document.getElementById('ladder-loss');
+    var featEl = document.getElementById('ladder-features');
+    var psiEl = document.getElementById('ladder-psi');
+    var sel = 0;
+
+    function render(){
+      stepsEl.innerHTML = '';
+      algos.forEach(function(a, i){
+        var d = document.createElement('div');
+        d.className = 'ladder-step' + (i===sel ? ' active' : '');
+        d.innerHTML = '<div class="ls-name">' + (i+1) + '. ' + a.name + '</div>' +
+          '<div class="ls-tag">' + a.tag + '</div>';
+        d.addEventListener('click', function(){ sel = i; render(); });
+        stepsEl.appendChild(d);
+      });
+      var a = algos[sel];
+      lossEl.innerHTML = '<b>' + a.name + ' loss</b><br>' + a.loss;
+      featEl.innerHTML = Object.keys(featLabels).map(function(k){
+        var on = a.feat[k];
+        return '<span class="feature-chip ' + (on?'on':'off') + '">' + featLabels[k] + '</span>';
+      }).join('');
+      psiEl.innerHTML = a.psi;
+    }
+    render();
+  }
+
+  /* ---------------- A2: RLOO baseline ---------------- */
+  function initRLOO(){
+    var K = 4;
+    var rewards = [0.9, 0.2, 0.7, 0.4];
+    var slidersEl = document.getElementById('rloo-sliders');
+    var barsEl = document.getElementById('rloo-bars');
+    var formulaEl = document.getElementById('rloo-formula');
+
+    rewards.forEach(function(v, i){
+      var row = document.createElement('div');
+      row.className = 'slider-row';
+      row.innerHTML = '<label>R<sub>' + (i+1) + '</sub> = <span id="rloo-val-' + i + '">' + v.toFixed(2) + '</span></label>' +
+        '<input type="range" min="0" max="1" step="0.01" value="' + v + '" id="rloo-' + i + '">';
+      slidersEl.appendChild(row);
+    });
+
+    function render(){
+      var total = sum(rewards);
+      var adv = rewards.map(function(r){
+        var baseline = (total - r) / (K - 1);
+        return r - baseline;
+      });
+      var maxAbs = Math.max.apply(null, adv.map(Math.abs).concat([0.3]));
+      barsEl.innerHTML = '';
+      adv.forEach(function(a, i){
+        var h = (Math.abs(a)/maxAbs) * 50;
+        var pos = a >= 0;
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        col.innerHTML =
+          '<div style="display:flex;flex-direction:column;justify-content:center;height:100%;width:100%;">' +
+            '<div style="height:50%;display:flex;flex-direction:column-reverse;">' +
+              (pos ? '<div style="height:' + h.toFixed(1) + '%;background:linear-gradient(to top,var(--accent),var(--accent-bright));border-radius:4px 4px 0 0;min-height:2px;"></div>' : '') +
+            '</div>' +
+            '<div style="height:1px;background:var(--border);"></div>' +
+            '<div style="height:50%;">' +
+              (!pos ? '<div style="height:' + h.toFixed(1) + '%;background:linear-gradient(to bottom,var(--orange),#f0c98a);border-radius:0 0 4px 4px;min-height:2px;"></div>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="bar-label">y<sub>' + (i+1) + '</sub><br>' + (a>=0?'+':'') + a.toFixed(2) + '</div>';
+        barsEl.appendChild(col);
+      });
+      var i0 = 0;
+      var b0 = (total - rewards[i0]) / (K-1);
+      formulaEl.innerHTML =
+        'b<sub>1</sub> = (&Sigma;<sub>j&ne;1</sub>R<sub>j</sub>)/(K&minus;1) = ' + (total-rewards[i0]).toFixed(2) + '/' + (K-1) + ' = <b>' + b0.toFixed(3) + '</b><br>' +
+        'A<sub>1</sub> = R<sub>1</sub> &minus; b<sub>1</sub> = ' + rewards[i0].toFixed(2) + ' &minus; ' + b0.toFixed(3) + ' = <b>' + (rewards[i0]-b0).toFixed(3) + '</b><br>' +
+        '<span style="color:var(--text-dim)">&Sigma;A = ' + sum(adv).toFixed(3) + ' (need not be exactly 0 under leave-one-out)</span>';
+    }
+    rewards.forEach(function(_, i){
+      document.getElementById('rloo-' + i).addEventListener('input', function(e){
+        rewards[i] = parseFloat(e.target.value);
+        document.getElementById('rloo-val-' + i).textContent = rewards[i].toFixed(2);
+        render();
+      });
+    });
+    document.getElementById('rloo-rand').addEventListener('click', function(){
+      rewards = rewards.map(function(){ return Math.round(Math.random()*100)/100; });
+      rewards.forEach(function(r, i){
+        document.getElementById('rloo-' + i).value = r;
+        document.getElementById('rloo-val-' + i).textContent = r.toFixed(2);
+      });
+      render();
+    });
+    render();
+  }
+
+  /* ---------------- B1: PPO clipped surrogate ---------------- */
+  function initPPO(){
+    var rSlider = document.getElementById('ppo-r');
+    var aSlider = document.getElementById('ppo-a');
+    var epsSlider = document.getElementById('ppo-eps');
+    var rVal = document.getElementById('ppo-r-val');
+    var aVal = document.getElementById('ppo-a-val');
+    var epsVal = document.getElementById('ppo-eps-val');
+    var svg = document.getElementById('ppo-plot');
+    var formulaEl = document.getElementById('ppo-formula');
+    var hintEl = document.getElementById('ppo-hint');
+
+    var W = 360, H = 220, PAD = 26;
+    var rMin = 0.1, rMax = 2.5;
+
+    function clipR(r, eps){ return clamp(r, 1-eps, 1+eps); }
+    function unclipped(r, A){ return r*A; }
+    function ppoObj(r, A, eps){ return Math.min(r*A, clipR(r,eps)*A); }
+
+    function render(){
+      var r = parseFloat(rSlider.value);
+      var A = parseFloat(aSlider.value);
+      var eps = parseFloat(epsSlider.value);
+      rVal.textContent = r.toFixed(2);
+      aVal.textContent = A.toFixed(2);
+      epsVal.textContent = eps.toFixed(2);
+
+      var yMax = Math.max(0.6, (rMax)*Math.abs(A));
+      function xToPx(rr){ return PAD + (rr-rMin)/(rMax-rMin) * (W-2*PAD); }
+      function yToPx(v){ return PAD + (yMax - v)/(2*yMax) * (H-2*PAD); }
+
+      var unclipPts = [], ppoPts = [];
+      for(var rr = rMin; rr <= rMax + 1e-9; rr += 0.02){
+        unclipPts.push([xToPx(rr), yToPx(clamp(unclipped(rr,A), -yMax, yMax))]);
+        ppoPts.push([xToPx(rr), yToPx(clamp(ppoObj(rr, A, eps), -yMax, yMax))]);
+      }
+      function toPath(pts){ return pts.map(function(p,i){ return (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+
+      var bandX1 = xToPx(1-eps), bandX2 = xToPx(1+eps);
+      var zeroY = yToPx(0);
+      var cx = xToPx(r), cy = yToPx(clamp(ppoObj(r, A, eps), -yMax, yMax));
+
+      svg.innerHTML =
+        '<rect x="' + bandX1.toFixed(1) + '" y="' + PAD + '" width="' + (bandX2-bandX1).toFixed(1) + '" height="' + (H-2*PAD) + '" fill="rgba(132,169,140,0.12)"></rect>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + zeroY.toFixed(1) + '" x2="' + (W-PAD) + '" y2="' + zeroY.toFixed(1) + '"></line>' +
+        '<line class="plot-axis" x1="' + xToPx(1).toFixed(1) + '" y1="' + PAD + '" x2="' + xToPx(1).toFixed(1) + '" y2="' + (H-PAD) + '" stroke-dasharray="2,3"></line>' +
+        '<path class="plot-true" d="' + toPath(unclipPts) + '"></path>' +
+        '<path class="plot-curve" d="' + toPath(ppoPts) + '"></path>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (xToPx(1)-6).toFixed(1) + '" y="' + (H-PAD+14) + '" fill="var(--text-dim)" font-size="10">&rho;=1</text>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD+10) + '" fill="var(--text-dim)" font-size="10">surrogate</text>' +
+        '<text x="' + (bandX1+2).toFixed(1) + '" y="' + (PAD+22) + '" fill="var(--accent)" font-size="9">trust region</text>';
+
+      var lu = unclipped(r, A), lp = ppoObj(r, A, eps);
+      var clippedNow = Math.abs(lp - lu) > 1e-6;
+      var region;
+      if(A >= 0 && r > 1+eps){
+        region = 'Clipped: an already-favored token (A&gt;0) pushed above 1+&epsilon; earns <b>no extra objective</b> — the cap halts a runaway update.';
+      } else if(A < 0 && r < 1-eps){
+        region = 'Clipped: a bad token (A&lt;0) pushed below 1&minus;&epsilon; earns <b>no extra objective</b> — the floor halts the step.';
+      } else {
+        region = 'Inside the trust region — gradient equals the plain policy gradient &rho;&middot;A here.';
+      }
+      hintEl.innerHTML = 'Green = PPO surrogate (the min). Dashed grey = unclipped &rho;&middot;A. Band = [1&minus;&epsilon;,1+&epsilon;]. With K=1 epoch and no minibatching &rho;&equiv;1 and clipping never fires.';
+
+      formulaEl.innerHTML =
+        '&rho;&middot;A = ' + lu.toFixed(2) + ' &nbsp;|&nbsp; clip(&rho;)&middot;A = ' + (clipR(r,eps)*A).toFixed(2) +
+        ' &nbsp;|&nbsp; objective = min = <b>' + lp.toFixed(2) + '</b>' + (clippedNow ? ' &nbsp;<span style="color:var(--orange)">[clipped]</span>' : '') +
+        '<br><span style="color:var(--text-dim)">' + region + '</span>';
+    }
+    rSlider.addEventListener('input', render);
+    aSlider.addEventListener('input', render);
+    epsSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- B2: GAE ---------------- */
+  function initGAE(){
+    var T = 8;
+    var gSlider = document.getElementById('gae-g');
+    var lSlider = document.getElementById('gae-l');
+    var rSlider = document.getElementById('gae-r');
+    var gVal = document.getElementById('gae-g-val');
+    var lVal = document.getElementById('gae-l-val');
+    var rVal = document.getElementById('gae-r-val');
+    var svg = document.getElementById('gae-plot');
+    var formulaEl = document.getElementById('gae-formula');
+    var hintEl = document.getElementById('gae-hint');
+
+    // fixed-ish value estimates per token (the critic's predictions)
+    var values = [0.30, 0.42, 0.50, 0.55, 0.58, 0.60, 0.62, 0.63];
+
+    function resample(){
+      var v = 0.3 + Math.random()*0.2;
+      values = [];
+      for(var t=0;t<T;t++){ v = clamp(v + (Math.random()-0.4)*0.12, 0.05, 0.95); values.push(v); }
+    }
+
+    function computeGAE(gamma, lam, R){
+      // per-token reward: 0 everywhere except terminal token = R
+      var rewards = [];
+      for(var t=0;t<T;t++) rewards.push(t===T-1 ? R : 0);
+      var adv = new Array(T).fill(0);
+      var gae = 0, nextV = 0;
+      for(var t=T-1;t>=0;t--){
+        var notDone = (t===T-1) ? 0 : 1; // terminal token has no bootstrap
+        var delta = rewards[t] + gamma*notDone*nextV - values[t];
+        gae = delta + gamma*lam*notDone*gae;
+        adv[t] = gae;
+        nextV = values[t];
+      }
+      return adv;
+    }
+
+    var W = 360, H = 200, PAD = 28;
+
+    function render(){
+      var gamma = parseFloat(gSlider.value);
+      var lam = parseFloat(lSlider.value);
+      var R = parseFloat(rSlider.value);
+      gVal.textContent = gamma.toFixed(2);
+      lVal.textContent = lam.toFixed(2);
+      rVal.textContent = R.toFixed(1);
+
+      var adv = computeGAE(gamma, lam, R);
+      var aMax = Math.max.apply(null, adv.map(Math.abs).concat([0.5]));
+
+      function xToPx(i){ return PAD + (i/(T-1)) * (W-2*PAD); }
+      function yToPx(v){ return PAD + (aMax - v)/(2*aMax) * (H-2*PAD); }
+
+      var zeroY = yToPx(0);
+      var bars = '';
+      for(var t=0;t<T;t++){
+        var x = xToPx(t);
+        var y = yToPx(adv[t]);
+        var bw = 18;
+        var top = Math.min(y, zeroY), hgt = Math.abs(y - zeroY);
+        var col = adv[t] >= 0 ? 'var(--accent)' : 'var(--orange)';
+        bars += '<rect x="' + (x-bw/2).toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw + '" height="' + Math.max(hgt,1).toFixed(1) + '" fill="' + col + '" rx="2"></rect>';
+        bars += '<text x="' + x.toFixed(1) + '" y="' + (H-PAD+13) + '" fill="var(--text-dim)" font-size="9" text-anchor="middle">a' + (t+1) + '</text>';
+      }
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + zeroY.toFixed(1) + '" x2="' + (W-PAD) + '" y2="' + zeroY.toFixed(1) + '"></line>' +
+        bars +
+        '<text x="' + (PAD-2) + '" y="' + (PAD+4) + '" fill="var(--text-dim)" font-size="9">Âₜ</text>' +
+        '<text x="' + (W-PAD-46) + '" y="' + (PAD+4) + '" fill="var(--text-dim)" font-size="9">terminal →</text>';
+
+      var spread = (Math.max.apply(null,adv) - Math.min.apply(null,adv)).toFixed(3);
+      formulaEl.innerHTML =
+        '&delta;<sub>t</sub> = r<sub>t</sub> + &gamma;V(s<sub>t+1</sub>) &minus; V(s<sub>t</sub>), &nbsp; &Acirc;<sub>t</sub> = &Sigma;<sub>l</sub>(&gamma;&lambda;)<sup>l</sup>&delta;<sub>t+l</sub><br>' +
+        '&Acirc; (last token) = <b>' + adv[T-1].toFixed(3) + '</b> &nbsp;|&nbsp; &Acirc; (first token) = <b>' + adv[0].toFixed(3) + '</b> &nbsp;|&nbsp; spread = ' + spread;
+
+      var biasNote;
+      if(lam < 0.15) biasNote = '&lambda;&asymp;0 (TD): advantages collapse to single-step &delta;<sub>t</sub> &mdash; low variance, high bias. Credit barely propagates back.';
+      else if(lam > 0.9) biasNote = '&lambda;&asymp;1 (Monte-Carlo): the terminal reward propagates far back &mdash; high variance, low bias.';
+      else biasNote = 'Intermediate &lambda; (~0.95 is typical): a tuned bias&ndash;variance trade-off for the advantage estimate.';
+      hintEl.innerHTML = biasNote;
+    }
+    gSlider.addEventListener('input', render);
+    lSlider.addEventListener('input', render);
+    rSlider.addEventListener('input', render);
+    document.getElementById('gae-resample').addEventListener('click', function(){ resample(); render(); });
+    render();
+  }
+
+  /* ---------------- C1: GRPO group-relative advantages ---------------- */
+  function initGRPO(){
+    var G = 6;
+    var rewards = [1, 0, 1, 1, 0, 1];
+    var slidersEl = document.getElementById('grpo-sliders');
+    var barsEl = document.getElementById('grpo-bars');
+    var formulaEl = document.getElementById('grpo-formula');
+    var hintEl = document.getElementById('grpo-hint');
+    var eps = 1e-4;
+
+    rewards.forEach(function(v, i){
+      var row = document.createElement('div');
+      row.className = 'slider-row';
+      row.innerHTML = '<label>R<sub>' + (i+1) + '</sub> = <span id="grpo-val-' + i + '">' + v.toFixed(2) + '</span></label>' +
+        '<input type="range" min="0" max="1" step="0.05" value="' + v + '" id="grpo-' + i + '">';
+      slidersEl.appendChild(row);
+    });
+
+    function render(){
+      var mu = mean(rewards);
+      var sigma = std(rewards);
+      var adv = rewards.map(function(r){ return (r - mu)/(sigma + eps); });
+      var maxAbs = Math.max.apply(null, adv.map(Math.abs).concat([0.5]));
+
+      barsEl.innerHTML = '';
+      adv.forEach(function(a, i){
+        var h = (Math.abs(a)/maxAbs) * 50;
+        var pos = a >= 0;
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        col.innerHTML =
+          '<div style="display:flex;flex-direction:column;justify-content:center;height:100%;width:100%;">' +
+            '<div style="height:50%;display:flex;flex-direction:column-reverse;">' +
+              (pos ? '<div style="height:' + h.toFixed(1) + '%;background:linear-gradient(to top,var(--accent),var(--accent-bright));border-radius:4px 4px 0 0;min-height:2px;"></div>' : '') +
+            '</div>' +
+            '<div style="height:1px;background:var(--border);"></div>' +
+            '<div style="height:50%;">' +
+              (!pos ? '<div style="height:' + h.toFixed(1) + '%;background:linear-gradient(to bottom,var(--orange),#f0c98a);border-radius:0 0 4px 4px;min-height:2px;"></div>' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="bar-label">y<sub>' + (i+1) + '</sub><br>' + (a>=0?'+':'') + a.toFixed(2) + '</div>';
+        barsEl.appendChild(col);
+      });
+
+      formulaEl.innerHTML =
+        '&mu;<sub>G</sub> = ' + mu.toFixed(3) + ' &nbsp;|&nbsp; &sigma;<sub>G</sub> = ' + sigma.toFixed(3) + '<br>' +
+        '&Acirc;<sub>i</sub> = (R<sub>i</sub> &minus; &mu;<sub>G</sub>)/(&sigma;<sub>G</sub> + 1e-4) &nbsp;|&nbsp; &Sigma;&Acirc; = <b>' + sum(adv).toFixed(3) + '</b> (centered)';
+
+      if(sigma < 1e-6){
+        hintEl.innerHTML = '<span style="color:var(--orange)">&sigma;<sub>G</sub> &asymp; 0 &mdash; all completions scored identically. Without the +1e-4 guard this divides by zero → NaN advantages. A real silent bug: a zero-std group gives no learning signal.</span>';
+      } else {
+        hintEl.innerHTML = 'Better-than-group siblings get positive advantage, worse-than-group get negative. The baseline is the group itself — no value network needed.';
+      }
+    }
+    rewards.forEach(function(_, i){
+      document.getElementById('grpo-' + i).addEventListener('input', function(e){
+        rewards[i] = parseFloat(e.target.value);
+        document.getElementById('grpo-val-' + i).textContent = rewards[i].toFixed(2);
+        render();
+      });
+    });
+    function setAll(vals){
+      vals.forEach(function(r,i){
+        rewards[i] = r;
+        document.getElementById('grpo-' + i).value = r;
+        document.getElementById('grpo-val-' + i).textContent = r.toFixed(2);
+      });
+      render();
+    }
+    document.getElementById('grpo-rand').addEventListener('click', function(){
+      setAll(rewards.map(function(){ return Math.round(Math.random()*20)/20; }));
+    });
+    document.getElementById('grpo-collapse').addEventListener('click', function(){
+      setAll(rewards.map(function(){ return 1; }));
+    });
+    render();
+  }
+
+  /* ---------------- C2: KL placement ---------------- */
+  function initKLPlacement(){
+    var tabs = document.querySelectorAll('#kl-tabs button');
+    var betaSlider = document.getElementById('kl-beta');
+    var magSlider = document.getElementById('kl-mag');
+    var betaVal = document.getElementById('kl-beta-val');
+    var magVal = document.getElementById('kl-mag-val');
+    var codeEl = document.getElementById('kl-code');
+    var formulaEl = document.getElementById('kl-formula');
+    var hintEl = document.getElementById('kl-hint');
+    var mode = 'reward';
+
+    var codeReward =
+      '<span class="cm"># PPO: KL folded into per-token reward</span>\n' +
+      'rewards.scatter_(1, last_idx, rm_score)\n' +
+      '<span class="hl">rewards = rewards - beta * per_token_kl</span>\n' +
+      'advantages = gae(rewards, values, ...)\n' +
+      '<span class="cm"># KL flows THROUGH advantage estimation</span>';
+    var codeLoss =
+      '<span class="cm"># GRPO: KL as a separate loss term</span>\n' +
+      'advantages = z_score(rewards)\n' +
+      'pg_loss = clipped_surrogate(ratio, advantages)\n' +
+      '<span class="hl">loss = pg_loss + beta * per_token_kl</span>\n' +
+      '<span class="cm"># advantages untouched by KL</span>';
+
+    function render(){
+      var beta = parseFloat(betaSlider.value);
+      var mag = parseFloat(magSlider.value);
+      betaVal.textContent = beta.toFixed(2);
+      magVal.textContent = mag.toFixed(2);
+      var rmScore = 1.0; // toy terminal reward
+
+      codeEl.innerHTML = mode === 'reward' ? codeReward : codeLoss;
+
+      if(mode === 'reward'){
+        var shapedTerminal = rmScore - beta*mag;
+        var shapedMid = -beta*mag;
+        formulaEl.innerHTML =
+          '<b>Per-token reward fed to GAE:</b><br>' +
+          'mid token: r<sub>t</sub> = &minus;&beta;&middot;KL<sub>t</sub> = &minus;' + beta.toFixed(2) + '&middot;' + mag.toFixed(2) + ' = <b>' + shapedMid.toFixed(3) + '</b><br>' +
+          'final token: r<sub>T</sub> = R &minus; &beta;&middot;KL<sub>T</sub> = 1 &minus; ' + (beta*mag).toFixed(3) + ' = <b>' + shapedTerminal.toFixed(3) + '</b><br>' +
+          '<span style="color:var(--text-dim)">Every token carries a small negative KL reward; advantages inherit it.</span>';
+      } else {
+        var penalty = beta*mag;
+        formulaEl.innerHTML =
+          '<b>Per-token loss (advantage kept clean):</b><br>' +
+          '&Acirc;<sub>i</sub> = z_score(R) &nbsp;(no KL inside)<br>' +
+          'loss<sub>t</sub> = pg_loss<sub>t</sub> + &beta;&middot;KL<sub>t</sub> &nbsp;&rarr;&nbsp; +' + beta.toFixed(2) + '&middot;' + mag.toFixed(2) + ' = <b>+' + penalty.toFixed(3) + '</b> added<br>' +
+          '<span style="color:var(--text-dim)">KL pushes loss up directly; it never touches advantage estimation.</span>';
+      }
+      hintEl.innerHTML = mode === 'reward'
+        ? 'PPO mixes KL into reward, so KL interacts with GAE / value targets. Beware: scatter the RM score to the last <i>generated</i> token, not [:, &minus;1].'
+        : 'GRPO keeps KL out of the advantage entirely — avoids interaction between KL and advantage estimation. Many reasoning runs drop &beta; to 0 here.';
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        render();
+      });
+    });
+    betaSlider.addEventListener('input', render);
+    magSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- D1: Four models in memory ---------------- */
+  function initMemory(){
+    var tabs = document.querySelectorAll('#mem-tabs button');
+    var sizeSlider = document.getElementById('mem-size');
+    var sizeVal = document.getElementById('mem-size-val');
+    var gridEl = document.getElementById('mem-grid');
+    var formulaEl = document.getElementById('mem-formula');
+    var hintEl = document.getElementById('mem-hint');
+    var algo = 'ppo';
+
+    var models = [
+      { key:'policy', name:'Policy πθ', purpose:'being trained' },
+      { key:'value', name:'Value Vϕ', purpose:'learned critic' },
+      { key:'ref', name:'Reference π_ref', purpose:'KL anchor (frozen)' },
+      { key:'reward', name:'Reward rψ', purpose:'scoring (frozen)' }
+    ];
+
+    function render(){
+      var size = parseInt(sizeSlider.value, 10);
+      sizeVal.textContent = size;
+      var gbEach = size * 2; // fp16 = 2 bytes/param
+      var active = models.filter(function(m){ return !(algo==='grpo' && m.key==='value'); });
+      var maxGb = gbEach; // all same per-model size
+
+      gridEl.innerHTML = '';
+      models.forEach(function(m){
+        var dropped = (algo==='grpo' && m.key==='value');
+        var row = document.createElement('div');
+        row.className = 'mem-model' + (dropped ? ' dropped' : '');
+        var w = dropped ? 0 : 100;
+        row.innerHTML =
+          '<div class="mem-name">' + m.name + '<br><span style="color:var(--text-dim);font-size:0.82em;">' + m.purpose + '</span></div>' +
+          '<div class="mem-bar"><div class="mem-bar-fill" style="width:' + w + '%"></div></div>' +
+          '<div class="mem-size">' + (dropped ? 'dropped' : gbEach.toFixed(0)+' GB') + '</div>';
+        gridEl.appendChild(row);
+      });
+
+      var total = active.length * gbEach;
+      formulaEl.innerHTML =
+        '<b>' + algo.toUpperCase() + '</b>: ' + active.length + ' resident models &times; ' + gbEach.toFixed(0) + ' GB = <b>' + total.toFixed(0) + ' GB</b> of weights<br>' +
+        '<span style="color:var(--text-dim)">' + size + 'B params &times; 2 bytes (fp16) = ' + gbEach.toFixed(0) + ' GB each; before optimizer states, gradients, activations.</span>';
+
+      hintEl.innerHTML = algo === 'ppo'
+        ? 'PPO keeps all four. This is why PPO often needs model parallelism or offloading; some setups share a backbone (value head on the policy).'
+        : 'GRPO drops the value network — advantages come from group comparison, so no critic, no GAE, no value loss, ~one fewer model copy.';
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        algo = btn.dataset.algo;
+        render();
+      });
+    });
+    sizeSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- D2: Loss aggregation ---------------- */
+  function initAggregation(){
+    var seq1El = document.getElementById('agg-seq1');
+    var seq2El = document.getElementById('agg-seq2');
+    var lmaxSlider = document.getElementById('agg-lmax');
+    var lmaxVal = document.getElementById('agg-lmax-val');
+    var tableEl = document.getElementById('agg-table');
+    var formulaEl = document.getElementById('agg-formula');
+
+    function parseSeq(s){
+      return s.split(',').map(function(x){ return parseFloat(x.trim()); }).filter(function(x){ return !isNaN(x); });
+    }
+
+    function render(){
+      var s1 = parseSeq(seq1El.value);
+      var s2 = parseSeq(seq2El.value);
+      var Lmax = parseInt(lmaxSlider.value, 10);
+      lmaxVal.textContent = Lmax;
+      if(s1.length === 0) s1 = [0];
+      if(s2.length === 0) s2 = [0];
+      var seqs = [s1, s2];
+      var B = seqs.length;
+
+      // per-sequence: mean per seq, then mean over batch
+      var perSeq = mean(seqs.map(function(s){ return mean(s); }));
+      // per-token: total / total tokens
+      var totalLoss = sum(seqs.map(sum));
+      var totalTok = sum(seqs.map(function(s){ return s.length; }));
+      var perTok = totalLoss / totalTok;
+      // fixed-length: (sum per seq / Lmax) then mean over batch
+      var fixed = mean(seqs.map(function(s){ return sum(s)/Lmax; }));
+
+      // per-token gradient weight for a token in each sequence
+      function wPerSeq(len){ return 1/(B*len); }
+      function wPerTok(){ return 1/totalTok; }
+      function wFixed(){ return 1/(B*Lmax); }
+
+      var rows = [
+        ['Strategy','Batch loss','Short-seq grad/token','Long-seq grad/token'],
+        ['Per-sequence (GRPO)', perSeq.toFixed(3), wPerSeq(s1.length).toFixed(3), wPerSeq(s2.length).toFixed(3)],
+        ['Per-token (DAPO)', perTok.toFixed(3), wPerTok().toFixed(3), wPerTok().toFixed(3)],
+        ['Fixed-length (Dr.GRPO)', fixed.toFixed(3), wFixed().toFixed(3), wFixed().toFixed(3)]
+      ];
+      tableEl.innerHTML =
+        '<thead><tr>' + rows[0].map(function(h){ return '<th>' + escapeHtml(h) + '</th>'; }).join('') + '</tr></thead>' +
+        '<tbody>' + rows.slice(1).map(function(r){
+          return '<tr><td>' + escapeHtml(r[0]) + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td></tr>';
+        }).join('') + '</tbody>';
+
+      var biasMsg;
+      if(wPerSeq(s1.length) > wPerSeq(s2.length) + 1e-9){
+        biasMsg = 'Per-sequence gives the <b>short</b> sequence a bigger per-token gradient (' + wPerSeq(s1.length).toFixed(3) + ' vs ' + wPerSeq(s2.length).toFixed(3) + ') — can bias the model away from long responses.';
+      } else {
+        biasMsg = 'These sequences are equal length, so all three strategies weight tokens identically.';
+      }
+      formulaEl.innerHTML =
+        'Per-token & fixed-length give equal per-token weight; per-sequence does not.<br>' +
+        '<span style="color:var(--text-dim)">' + biasMsg + '</span>';
+    }
+    seq1El.addEventListener('input', render);
+    seq2El.addEventListener('input', render);
+    lmaxSlider.addEventListener('input', render);
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initLadder();
+    initRLOO();
+    initPPO();
+    initGAE();
+    initGRPO();
+    initKLPlacement();
+    initMemory();
+    initAggregation();
+  });
+})();
+</script>
+
+</body>
+</html>
