@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Data & Modern Post-training — Interactive Lecture 7</title>
+<link rel="icon" href="data:,">
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+  .marquee-tag{
+    font-family:var(--mono);
+    font-size:0.62em;
+    background:rgba(224,164,88,0.16);
+    border:1px solid var(--orange);
+    color:var(--orange);
+    border-radius:5px;
+    padding:2px 7px;
+    letter-spacing:0.05em;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .token-chip:hover{ border-color:var(--accent); }
+  .token-chip.active{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.teacher{ border-color:var(--accent-bright); color:var(--accent-bright); }
+  .token-chip.student-ok{ border-color:var(--accent); color:var(--accent-bright); }
+  .token-chip.student-err{ background:rgba(224,164,88,0.18); border-color:var(--orange); color:var(--orange); }
+  .token-chip.drift{ background:rgba(224,90,90,0.18); border-color:#e05a5a; color:#f0a0a0; }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; white-space:pre-wrap; }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+  .legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:0.74em; color:var(--text-dim); }
+  .legend span::before{ content:""; display:inline-block; width:11px; height:11px; border-radius:2px; margin-right:5px; vertical-align:middle; }
+  .legend .lg-p::before{ background:linear-gradient(to top,var(--accent),var(--accent-bright)); }
+  .legend .lg-q::before{ background:var(--orange); }
+  .legend .lg-teacher::before{ background:var(--accent-bright); }
+  .legend .lg-on::before{ background:var(--accent); }
+  .legend .lg-off::before{ background:#e05a5a; }
+
+  /* CAI loop cards */
+  .cai-card{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:11px 13px;
+    font-size:0.85em;
+  }
+  .cai-card .cai-role{ font-family:var(--mono); font-size:0.72em; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent); margin-bottom:4px; }
+  .cai-card.crit .cai-role{ color:var(--orange); }
+  .cai-card .cai-body{ color:var(--text); line-height:1.45; }
+  .cai-card.faded{ opacity:0.4; }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">rlhfbook.com/course · lecture 7</div>
+  <h1>Synthetic Data &amp; Modern Post-training</h1>
+  <p class="sub">Distillation, on-policy KD, RLAIF and Constitutional AI — the synthetic-data machinery that now feeds nearly every box of the post-training pipeline. Play with the forward/reverse KL split, compounding exposure bias, and the critique→revise loop.</p>
+  <p class="credit">Interactive companion to Nathan Lambert's "Synthetic Data and Modern Post-training Methods" (rlhfbook.com/course, Lecture 7 / Chapter 12). Interactive build only — original content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#distill">Distillation</a>
+  <a href="#word-seq">Word vs Sequence KD</a>
+  <a href="#fwd-rev">Forward vs Reverse KL</a>
+  <a href="#opd">On-policy Distillation</a>
+  <a href="#exposure">Exposure Bias / DAgger</a>
+  <a href="#advantage">KD as RL Advantage</a>
+  <a href="#cai">RLAIF &amp; Constitutional AI</a>
+  <a href="#biasvar">Human vs AI Feedback</a>
+  <a href="#rubric">Rubrics</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 1: DISTILLATION ============ -->
+  <section class="group" id="distill">
+    <div class="group-header"><span class="group-index">01</span><h2>Distillation with synthetic data</h2></div>
+    <p class="group-intro">Distillation transfers capability from a stronger <b>teacher</b> to a <b>student</b>. Classic knowledge distillation matches the teacher's <i>soft</i> next-token distribution rather than one-hot targets. Two flavours: match every token's full distribution (word-level), or train on whole teacher-generated sequences (sequence-level, which reduces to SFT).</p>
+
+    <article class="concept" id="word-seq">
+      <h3>Word-level vs sequence-level distillation</h3>
+      <p class="concept-desc">Word-KD matches the teacher's <i>full</i> vocabulary distribution <code>q(·|s,u&lt;ⱼ)</code> at every position — soft labels, cost <code>O(J·|V|)</code>. Sequence-KD approximates the intractable sum over all sequences by the teacher's single high-probability output <code>û</code>, then trains the student with plain NLL — which is exactly SFT on teacher text. Toggle the mode and watch the loss target switch from a full soft distribution to a one-hot beam-search target.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="ws-tabs">
+            <button data-mode="word" class="active">Word-KD (soft)</button>
+            <button data-mode="seq">Sequence-KD (SFT)</button>
+          </div>
+          <label>Token position j = <span id="ws-pos-val">2</span></label>
+          <input type="range" id="ws-pos" min="0" max="4" step="1" value="2">
+          <label>Teacher temperature &tau; = <span id="ws-temp-val">1.5</span></label>
+          <input type="range" id="ws-temp" min="0.3" max="3" step="0.1" value="1.5">
+          <p class="hint" id="ws-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="ws-tokens"></div>
+          <div class="legend"><span class="lg-q">teacher q (soft target)</span><span class="lg-p">student p</span></div>
+          <div class="bar-chart" id="ws-bars"></div>
+          <div class="formula-display" id="ws-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="fwd-rev">
+      <h3>Forward vs reverse KL <span class="marquee-tag">MARQUEE</span></h3>
+      <p class="concept-desc">The whole point of "on-policy". Offline KD / SFT minimizes <b>forward</b> KL <code>D<sub>KL</sub>(π_T‖π_θ)</code> — the expectation is over the <i>teacher</i>, so it is <b>mass-covering</b>: the student must cover everything the teacher might say. On-policy distillation samples from the <i>student</i>, flipping to <b>reverse</b> KL <code>D<sub>KL</sub>(π_θ‖π_T)</code> — <b>mode-seeking</b>: it collapses onto the teacher's modes. Here <code>p</code> = a fixed bimodal teacher; drag the single-mode approximation <code>q</code> and snap it to each KL's optimum to see the contrast.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>q mean &mu; = <span id="kl-mu-val">0.00</span></label>
+          <input type="range" id="kl-mu" min="-4" max="4" step="0.05" value="0">
+          <label>q std &sigma; = <span id="kl-sig-val">1.50</span></label>
+          <input type="range" id="kl-sig" min="0.3" max="4.2" step="0.05" value="1.5">
+          <button id="kl-snap-fwd">Snap to forward-KL optimum</button>
+          <button id="kl-snap-rev">Snap to reverse-KL optimum</button>
+          <p class="hint" id="kl-hint">Drag q. <b>Forward KL(p‖q)</b> wants q wide enough to cover <i>both</i> teacher modes (mean-seeking). <b>Reverse KL(q‖p)</b> wants q narrow and parked on a <i>single</i> mode (mode-seeking).</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 400 220" id="kl-plot"></svg>
+          <div class="formula-display" id="kl-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 2: ON-POLICY DISTILLATION ============ -->
+  <section class="group" id="opd">
+    <div class="group-header"><span class="group-index">02</span><h2>The path to on-policy distillation</h2></div>
+    <p class="group-intro">Offline KD trains on <i>teacher</i> trajectories, but at test time the student rolls out under its <i>own</i> policy — a train/test state mismatch called <b>exposure bias</b>. On-policy distillation (the DAgger move) samples from the student and lets the teacher score its own visited states, dropping compounding error from O(εL²) to O(εL). The per-token teacher log-ratio then becomes a dense RL advantage.</p>
+
+    <article class="concept" id="exposure">
+      <h3>Exposure bias &amp; the DAgger analogy: compounding error</h3>
+      <p class="concept-desc">Off-policy: the student is trained only on teacher prefixes, so its <i>first</i> mistake pushes it out-of-distribution, where it has never been supervised — errors compound, scaling like <code>O(εL²)</code>. On-policy: the student is supervised at <i>its own</i> visited states, so a slip is corrected next step — error stays bounded, <code>O(εL)</code>. Drag the trajectory length and per-step error and step through a rollout to watch the off-policy student drift after its first error.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Trajectory length L = <span id="ex-len-val">12</span></label>
+          <input type="range" id="ex-len" min="3" max="20" step="1" value="12">
+          <label>Per-step error &epsilon; = <span id="ex-eps-val">0.12</span></label>
+          <input type="range" id="ex-eps" min="0.02" max="0.4" step="0.01" value="0.12">
+          <button id="ex-step">Roll one step ▶</button>
+          <button id="ex-reset">Reset rollout</button>
+          <p class="hint" id="ex-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div>
+            <div style="font-size:0.74em;color:var(--text-dim);margin-bottom:4px;">Off-policy student (trained on teacher trajectories)</div>
+            <div class="token-row" id="ex-off-tokens"></div>
+          </div>
+          <div>
+            <div style="font-size:0.74em;color:var(--text-dim);margin:8px 0 4px;">On-policy student (supervised at its own states)</div>
+            <div class="token-row" id="ex-on-tokens"></div>
+          </div>
+          <div class="legend"><span class="lg-on">on-track</span><span class="lg-q">teacher-corrected</span><span class="lg-off">drifted / OOD</span></div>
+          <svg class="plot" viewBox="0 0 400 160" id="ex-plot"></svg>
+          <div class="formula-display" id="ex-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="advantage">
+      <h3>KD as an RL advantage</h3>
+      <p class="concept-desc">On-policy distillation lives in the policy-gradient framework: take the per-token reverse-KL contribution directly as the advantage. For a student-sampled token <code>aₜ</code> at state <code>sₜ</code>, <code>A<sub>t</sub><sup>OPD</sup> = log π_T(aₜ|sₜ) − log π_θ(aₜ|sₜ)</code>. Tokens the teacher likes more than the student get positive advantage; tokens it likes less get negative. This is dense, token-level feedback — richer than one sparse scalar reward. Drag the two log-probs and watch the advantage and its sign flip.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Teacher log π_T(aₜ|sₜ) = <span id="adv-t-val">-0.50</span></label>
+          <input type="range" id="adv-t" min="-5" max="-0.05" step="0.05" value="-0.5">
+          <label>Student log π_θ(aₜ|sₜ) = <span id="adv-s-val">-1.50</span></label>
+          <input type="range" id="adv-s" min="-5" max="-0.05" step="0.05" value="-1.5">
+          <p class="hint" id="adv-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 360 180" id="adv-plot"></svg>
+          <div class="formula-display" id="adv-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 3: AI FEEDBACK & CAI ============ -->
+  <section class="group" id="cai">
+    <div class="group-header"><span class="group-index">03</span><h2>AI feedback &amp; Constitutional AI</h2></div>
+    <p class="group-intro">RLAIF replaces the human-data step with AI: AI preference labels cost &lt;$0.01/prompt vs $1–$10+ for humans. Constitutional AI (CAI ⊂ RLAIF) was the earliest large-scale synthetic-RLHF method: a model critiques and revises its own answers against a written constitution (Stage 1 → SFT), then AI preference labels drive RL (Stage 2). Rubrics extend this to prompt-specific, near-verifiable criteria.</p>
+
+    <article class="concept" id="cai-loop">
+      <h3>Constitutional AI: the critique → revise loop</h3>
+      <p class="concept-desc">Stage 1 of CAI. The model drafts a response, samples a principle <code>cᵢ</code> from the constitution, critiques its latest draft against that principle, and revises. Repeating <code>{c₀,…,c<sub>n−1</sub>} → {y⁰,…,yⁿ}</code> yields one SFT point <code>(x, yⁿ)</code> — the refined final answer. Pick a principle and step the loop; watch the draft get progressively safer/more aligned.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Constitutional principle cᵢ</label>
+          <div class="tabs" id="cai-principles"></div>
+          <button id="cai-step">Critique &amp; revise ▶</button>
+          <button id="cai-reset">Reset to red-teamed draft</button>
+          <p class="hint" id="cai-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div id="cai-cards" style="display:flex;flex-direction:column;gap:10px;"></div>
+          <div class="formula-display" id="cai-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="biasvar">
+      <h3>The bias–variance tradeoff: human vs AI feedback</h3>
+      <p class="concept-desc">A colloquial rule of thumb from the early RLHF-vs-RLAIF debates. <b>Human</b> preference data is <i>high-noise, low-bias</i>: each label is wobbly, but the signal is unbiased and reliable once aggregated. <b>AI</b> feedback is <i>low-noise, high-bias</i>: cheap and consistent, but with systematic errors baked in (e.g. self-preference bias). Mix them: route hard points to humans, most to AI. Drag the mix and watch the expected squared error decompose into bias² + variance.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Fraction routed to AI feedback = <span id="bv-frac-val">0.70</span></label>
+          <input type="range" id="bv-frac" min="0" max="1" step="0.01" value="0.7">
+          <label>Number of labels per point N = <span id="bv-n-val">8</span></label>
+          <input type="range" id="bv-n" min="1" max="40" step="1" value="8">
+          <button id="bv-opt">Snap to error-minimizing mix</button>
+          <p class="hint" id="bv-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="bv-plot"></svg>
+          <div class="formula-display" id="bv-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="rubric">
+      <h3>Rubrics: prompt-specific AI feedback</h3>
+      <p class="concept-desc">For prompts with no single right answer, score completions against tagged criteria. <code>[Hard Rule]</code> items are atomic must-pass checks; <code>[Principle]</code> items are softer quality criteria. The total rubric score sums the satisfied items' weights — RL then updates toward the best-scoring answers. Toggle which criteria a candidate answer satisfies and watch the score and pass/fail verdict update.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div id="rub-items"></div>
+          <button id="rub-best">Best answer</button>
+          <button id="rub-worst">Worst answer</button>
+          <p class="hint">Click a criterion to toggle whether this candidate answer satisfies it. Hard rules must <i>all</i> pass for a valid answer; principles add graded quality on top.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="rub-bars" style="height:150px;"></div>
+          <div class="formula-display" id="rub-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Built as an interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, Lecture 7 (Synthetic Data &amp; Modern Post-training Methods) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function softmax(arr, T){
+    T = T===undefined?1:T;
+    var scaled = arr.map(function(x){ return x/T; });
+    var m = Math.max.apply(null, scaled);
+    var exps = scaled.map(function(x){ return Math.exp(x-m); });
+    var s = exps.reduce(function(a,b){ return a+b; }, 0);
+    return exps.map(function(e){ return e/s; });
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  function normalize(arr){ var s = sum(arr); return arr.map(function(x){ return x/s; }); }
+
+  /* ---------------- 1A: Word-level vs sequence-level KD ---------------- */
+  function initWordSeq(){
+    // teacher logits for next-token distribution at each of 5 positions, over a small vocab
+    var vocab = ['the','a','cat','dog','sat'];
+    var prefix = ['The','cat','sat','on','the'];
+    // per-position teacher logits (so distributions differ down the sequence)
+    var teacherLogits = [
+      [2.4, 1.1, 0.2, 0.0, 0.5],
+      [0.3, 0.4, 2.8, 1.9, 0.2],
+      [0.4, 0.2, 0.3, 0.6, 3.0],
+      [2.0, 1.6, 0.1, 0.1, 0.3],
+      [3.1, 1.0, 0.3, 0.2, 0.4]
+    ];
+    var studentLogits = [
+      [1.2, 1.0, 0.6, 0.4, 0.7],
+      [0.6, 0.7, 1.9, 1.4, 0.5],
+      [0.6, 0.5, 0.5, 0.8, 2.0],
+      [1.3, 1.2, 0.4, 0.3, 0.6],
+      [2.0, 1.1, 0.6, 0.5, 0.7]
+    ];
+    var mode = 'word';
+    var tabs = document.querySelectorAll('#ws-tabs button');
+    var posSlider = document.getElementById('ws-pos');
+    var posVal = document.getElementById('ws-pos-val');
+    var tempSlider = document.getElementById('ws-temp');
+    var tempVal = document.getElementById('ws-temp-val');
+    var tokensEl = document.getElementById('ws-tokens');
+    var barsEl = document.getElementById('ws-bars');
+    var formulaEl = document.getElementById('ws-formula');
+    var hintEl = document.getElementById('ws-hint');
+
+    function render(){
+      var pos = parseInt(posSlider.value, 10);
+      var tau = parseFloat(tempSlider.value);
+      posVal.textContent = pos;
+      tempVal.textContent = tau.toFixed(1);
+
+      tokensEl.innerHTML = '';
+      prefix.forEach(function(tok, i){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        chip.textContent = tok;
+        if(i < pos) chip.classList.add('teacher');
+        else if(i === pos) chip.classList.add('active');
+        chip.addEventListener('click', function(){ posSlider.value = i; render(); });
+        tokensEl.appendChild(chip);
+      });
+
+      var q = softmax(teacherLogits[pos], tau);   // teacher soft (temperature-scaled)
+      var p = softmax(studentLogits[pos], 1);     // student current
+      var qHard = teacherLogits[pos].indexOf(Math.max.apply(null, teacherLogits[pos]));
+
+      barsEl.innerHTML = '';
+      for(var i=0;i<vocab.length;i++){
+        var qh, qColor;
+        if(mode === 'word'){
+          qh = q[i]; qColor = 'linear-gradient(to top, var(--orange), #f0c98a)';
+        } else {
+          qh = (i === qHard) ? 1 : 0; qColor = 'linear-gradient(to top, var(--orange), #f0c98a)';
+        }
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        col.innerHTML =
+          '<div style="display:flex;gap:3px;height:100%;width:100%;justify-content:center;">' +
+            '<div class="bar-track" style="width:42%;height:100%;"><div class="bar-fill" style="height:' + (qh*100).toFixed(1) + '%;background:' + qColor + '"></div></div>' +
+            '<div class="bar-track" style="width:42%;height:100%;"><div class="bar-fill" style="height:' + (p[i]*100).toFixed(1) + '%"></div></div>' +
+          '</div>' +
+          '<div class="bar-label">' + vocab[i] + '</div>';
+        barsEl.appendChild(col);
+      }
+
+      if(mode === 'word'){
+        // word-KD loss at this position: cross-entropy H(q,p) = -sum q log p
+        var wkd = -sum(q.map(function(qi,i){ return qi*Math.log(p[i]); }));
+        formulaEl.innerHTML =
+          'L<sub>WORD-KD</sub>(j=' + pos + ') = &minus;&Sigma;<sub>k</sub> q(u<sub>j</sub>=k) log p(u<sub>j</sub>=k) = <b>' + wkd.toFixed(3) + '</b> nats<br>' +
+          '<span style="color:var(--text-dim)">matches the full soft distribution over |V|=' + vocab.length + ' tokens · cost O(J&middot;|V|)</span>';
+        hintEl.innerHTML = 'Word-KD matches the teacher’s <b>full</b> soft distribution at every position. Lower &tau; sharpens the teacher target; higher &tau; exposes relationships between low-probability tokens (Hinton soft labels).';
+      } else {
+        var seqLoss = -Math.log(p[qHard]); // NLL on beam-search token
+        formulaEl.innerHTML =
+          'L<sub>SEQ-KD</sub> &asymp; &minus;log p(û<sub>j</sub>=&quot;' + vocab[qHard] + '&quot;) = <b>' + seqLoss.toFixed(3) + '</b> nats<br>' +
+          '<span style="color:var(--text-dim)">teacher ≈ point mass on its beam-search token û → plain NLL = SFT on teacher text</span>';
+        hintEl.innerHTML = 'Sequence-KD replaces the soft target with the teacher’s single high-probability output û = BeamSearch<sub>q</sub>(s). The student then just does ordinary NLL on it — i.e. SFT — which minimizes the <b>forward</b> KL D<sub>KL</sub>(q‖p).';
+      }
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        render();
+      });
+    });
+    posSlider.addEventListener('input', render);
+    tempSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 1B: Forward vs reverse KL (marquee) ---------------- */
+  function initForwardReverseKL(){
+    var muSlider = document.getElementById('kl-mu');
+    var sigSlider = document.getElementById('kl-sig');
+    var muVal = document.getElementById('kl-mu-val');
+    var sigVal = document.getElementById('kl-sig-val');
+    var svg = document.getElementById('kl-plot');
+    var formulaEl = document.getElementById('kl-formula');
+    var hintEl = document.getElementById('kl-hint');
+
+    // fixed bimodal teacher p on a grid
+    var xmin = -6, xmax = 6, M = 240;
+    var xs = [], dx = (xmax - xmin)/(M-1);
+    for(var i=0;i<M;i++) xs.push(xmin + i*dx);
+    function gauss(x, mu, s){ return Math.exp(-0.5*Math.pow((x-mu)/s,2)) / (s*Math.sqrt(2*Math.PI)); }
+    // bimodal teacher: well-separated modes at -3 and +3 (deep valley between)
+    // so a single Gaussian cannot span both — forces the mode-seeking contrast.
+    var pRaw = xs.map(function(x){ return 0.45*gauss(x,-3,0.55) + 0.55*gauss(x,3,0.65); });
+    var pZ = sum(pRaw)*dx;
+    var p = pRaw.map(function(v){ return v/pZ; });
+
+    function qDist(mu, s){
+      var raw = xs.map(function(x){ return gauss(x, mu, s); });
+      var z = sum(raw)*dx;
+      return raw.map(function(v){ return v/z; });
+    }
+    function forwardKL(q){ // KL(p || q) = sum p log(p/q)
+      var s=0;
+      for(var i=0;i<M;i++){ if(p[i]>1e-12){ s += p[i]*Math.log(p[i]/Math.max(q[i],1e-12)); } }
+      return s*dx;
+    }
+    function reverseKL(q){ // KL(q || p)
+      var s=0;
+      for(var i=0;i<M;i++){ if(q[i]>1e-12){ s += q[i]*Math.log(q[i]/Math.max(p[i],1e-12)); } }
+      return s*dx;
+    }
+
+    // precompute optima by scan
+    function findOpt(which){
+      var best=null, bMu=0, bS=1;
+      for(var mu=-4; mu<=4.0001; mu+=0.1){
+        for(var s=0.3; s<=4.2001; s+=0.1){
+          var q = qDist(mu,s);
+          var val = which==='fwd' ? forwardKL(q) : reverseKL(q);
+          if(best===null || val<best){ best=val; bMu=mu; bS=s; }
+        }
+      }
+      return {mu:bMu, sig:bS};
+    }
+    var optFwd = findOpt('fwd');
+    var optRev = findOpt('rev');
+
+    var W=400, H=220, PAD=26;
+    var pmax = Math.max.apply(null, p);
+    function xToPx(x){ return PAD + (x-xmin)/(xmax-xmin)*(W-2*PAD); }
+    function yToPx(v){ return (H-PAD) - (v/(pmax*1.15))*(H-2*PAD); }
+    function pathOf(arr){
+      return arr.map(function(v,i){ return (i===0?'M':'L') + xToPx(xs[i]).toFixed(1) + ',' + yToPx(v).toFixed(1); }).join(' ');
+    }
+    var pPath = pathOf(p);
+
+    function render(){
+      var mu = parseFloat(muSlider.value);
+      var s = parseFloat(sigSlider.value);
+      muVal.textContent = mu.toFixed(2);
+      sigVal.textContent = s.toFixed(2);
+      var q = qDist(mu, s);
+      var fkl = forwardKL(q);
+      var rkl = reverseKL(q);
+
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + (H-PAD) + '" x2="' + (W-PAD) + '" y2="' + (H-PAD) + '"></line>' +
+        '<path d="' + pPath + '" fill="rgba(132,169,140,0.18)" stroke="var(--accent-bright)" stroke-width="2"></path>' +
+        '<path d="' + pathOf(q) + '" fill="none" stroke="var(--orange)" stroke-width="2"></path>' +
+        '<text x="' + xToPx(0).toFixed(1) + '" y="' + (PAD+2) + '" fill="var(--accent-bright)" font-size="10" text-anchor="middle">p (teacher, bimodal)</text>' +
+        '<text x="' + xToPx(mu).toFixed(1) + '" y="' + (yToPx(Math.max.apply(null,q))-4).toFixed(1) + '" fill="var(--orange)" font-size="10" text-anchor="middle">q</text>';
+
+      formulaEl.innerHTML =
+        'Forward <b>D<sub>KL</sub>(p&Vert;q)</b> = <b>' + fkl.toFixed(3) + '</b> <span style="color:var(--text-dim)">(mass-covering / mean-seeking)</span><br>' +
+        'Reverse <b>D<sub>KL</sub>(q&Vert;p)</b> = <b>' + rkl.toFixed(3) + '</b> <span style="color:var(--text-dim)">(mode-seeking)</span>';
+
+      var near = function(o){ return Math.abs(mu-o.mu)<0.25 && Math.abs(s-o.sig)<0.25; };
+      if(near(optFwd)){
+        hintEl.innerHTML = 'At the <b>forward-KL optimum</b>: q is wide and centered <i>between</i> the modes — it pays a huge penalty wherever the teacher has mass but q≈0, so it stretches to <b>cover both modes</b> (mass-covering). This is the offline-KD / SFT direction.';
+      } else if(near(optRev)){
+        hintEl.innerHTML = 'At the <b>reverse-KL optimum</b>: q is narrow and parked on a <i>single</i> teacher mode — it is only penalized where <i>it</i> puts mass the teacher dislikes, so it <b>collapses onto one mode</b> (mode-seeking). This is the on-policy distillation direction.';
+      } else {
+        hintEl.innerHTML = 'Drag q. <b>Forward KL(p&Vert;q)</b> punishes leaving teacher mass uncovered → wants q wide over <i>both</i> modes. <b>Reverse KL(q&Vert;p)</b> punishes q putting mass off-mode → wants q narrow on <i>one</i> mode. Use the snap buttons.';
+      }
+    }
+    muSlider.addEventListener('input', render);
+    sigSlider.addEventListener('input', render);
+    document.getElementById('kl-snap-fwd').addEventListener('click', function(){
+      muSlider.value = optFwd.mu; sigSlider.value = optFwd.sig; render();
+    });
+    document.getElementById('kl-snap-rev').addEventListener('click', function(){
+      muSlider.value = optRev.mu; sigSlider.value = optRev.sig; render();
+    });
+    render();
+  }
+
+  /* ---------------- 2A: Exposure bias / DAgger compounding error ---------------- */
+  function initExposure(){
+    var lenSlider = document.getElementById('ex-len');
+    var epsSlider = document.getElementById('ex-eps');
+    var lenVal = document.getElementById('ex-len-val');
+    var epsVal = document.getElementById('ex-eps-val');
+    var offEl = document.getElementById('ex-off-tokens');
+    var onEl = document.getElementById('ex-on-tokens');
+    var plot = document.getElementById('ex-plot');
+    var formulaEl = document.getElementById('ex-formula');
+    var hintEl = document.getElementById('ex-hint');
+
+    var step = 0;          // how many tokens rolled out so far
+    var offFirstErr = -1;  // index of off-policy's first mistake
+    var rng;
+    // deterministic pseudo-random so a rollout is reproducible until reset
+    function makeRng(seed){ var s=seed; return function(){ s=(s*9301+49297)%233280; return s/233280; }; }
+    rng = makeRng(12345);
+
+    function L(){ return parseInt(lenSlider.value,10); }
+    function eps(){ return parseFloat(epsSlider.value); }
+
+    function reset(){
+      step = 0; offFirstErr = -1; rng = makeRng(Math.floor(Math.random()*200000)+1);
+      render();
+    }
+
+    function rollStep(){
+      var n = L();
+      if(step >= n) return;
+      var e = eps();
+      // off-policy: once it errs, it stays OOD (drift). Before first error, chance e of erring this step.
+      if(offFirstErr < 0){
+        if(rng() < e) offFirstErr = step;
+      }
+      step++;
+      render();
+    }
+
+    function render(){
+      var n = L(), e = eps();
+      lenVal.textContent = n; epsVal.textContent = e.toFixed(2);
+      lenSlider.max = 20;
+      // OFF-POLICY tokens
+      offEl.innerHTML = '';
+      onEl.innerHTML = '';
+      for(var i=0;i<n;i++){
+        var off = document.createElement('span');
+        off.className = 'token-chip';
+        off.style.cursor = 'default';
+        var on = document.createElement('span');
+        on.className = 'token-chip';
+        on.style.cursor = 'default';
+        if(i >= step){
+          off.textContent = '·'; on.textContent = '·';
+          off.style.opacity = '0.35'; on.style.opacity = '0.35';
+        } else {
+          // off-policy
+          if(offFirstErr >= 0 && i > offFirstErr){ off.classList.add('drift'); off.textContent = 'x'; }
+          else if(offFirstErr === i){ off.classList.add('student-err'); off.textContent = '!'; }
+          else { off.classList.add('student-ok'); off.textContent = '✓'; }
+          // on-policy: teacher corrects each step, so at most a momentary slip, never drift
+          var slip = (rng===null);
+          // recompute on-policy slips deterministically using same eps but corrected
+          on.textContent = '✓'; on.classList.add('student-ok');
+        }
+        offEl.appendChild(off);
+        onEl.appendChild(on);
+      }
+      // mark on-policy occasional teacher-corrected slips (cosmetic, bounded)
+      var onChips = onEl.querySelectorAll('.token-chip');
+      var rng2 = (function(){ var s=777; return function(){ s=(s*9301+49297)%233280; return s/233280; }; })();
+      for(var k=0;k<step;k++){
+        if(rng2() < e){ onChips[k].classList.remove('student-ok'); onChips[k].classList.add('teacher'); onChips[k].textContent='~'; }
+      }
+
+      // error curves: off ~ eps * t^2 (capped at 1), on ~ eps * t (capped at 1)
+      var W=400, H=160, PAD=26;
+      function xToPx(t){ return PAD + (t/n)*(W-2*PAD); }
+      function yToPx(v){ return (H-PAD) - clamp(v,0,1)*(H-2*PAD); }
+      var offPts=[], onPts=[];
+      for(var t=0;t<=n;t++){
+        var offE = clamp(e*t*t/n, 0, 1);     // O(eps L^2) shape, normalized so it spans
+        var onE = clamp(e*t, 0, 1);          // O(eps L)
+        offPts.push([xToPx(t), yToPx(offE)]);
+        onPts.push([xToPx(t), yToPx(onE)]);
+      }
+      function toPath(pts){ return pts.map(function(p,i){ return (i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' '); }
+      var curX = xToPx(step);
+      plot.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path d="'+toPath(offPts)+'" fill="none" stroke="#e05a5a" stroke-width="2"></path>' +
+        '<path d="'+toPath(onPts)+'" fill="none" stroke="var(--accent)" stroke-width="2"></path>' +
+        '<line x1="'+curX.toFixed(1)+'" y1="'+PAD+'" x2="'+curX.toFixed(1)+'" y2="'+(H-PAD)+'" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<text x="'+(W-PAD-92)+'" y="'+(PAD+12)+'" fill="#e05a5a" font-size="10">off-policy O(εL²)</text>' +
+        '<text x="'+(W-PAD-92)+'" y="'+(PAD+26)+'" fill="var(--accent)" font-size="10">on-policy O(εL)</text>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-6>8?PAD-6:10)+'" fill="var(--text-dim)" font-size="10">accumulated loss</text>' +
+        '<text x="'+(W-PAD-30)+'" y="'+(H-PAD+14)+'" fill="var(--text-dim)" font-size="10">step t</text>';
+
+      var offErr = clamp(e*n*n/n,0,1), onErr = clamp(e*n,0,1);
+      formulaEl.innerHTML =
+        'E<sub>a~π_θ</sub>[&Sigma; ℓ] ≤ <b>O(εL²)</b> off-policy &nbsp; vs &nbsp; <b>O(εL)</b> on-policy &nbsp;|&nbsp; L=' + n + ', ε=' + e.toFixed(2) + '<br>' +
+        '<span style="color:var(--text-dim)">accumulated loss ≈ off ' + offErr.toFixed(2) + ' &middot; on ' + onErr.toFixed(2) + ' (normalized)</span>';
+
+      if(offFirstErr >= 0 && step > offFirstErr){
+        hintEl.innerHTML = 'The off-policy student made its <b>first mistake at step ' + (offFirstErr+1) + '</b> — a token it never saw in teacher-only training. From there it is out-of-distribution and <b>drifts</b> (red). The on-policy student is supervised at <i>its own</i> states, so each slip is teacher-corrected next step.';
+      } else if(step >= n){
+        hintEl.innerHTML = 'This lucky rollout finished with no off-policy error. Raise ε or reset to see compounding kick in. On-policy stays bounded regardless.';
+      } else {
+        hintEl.innerHTML = 'Click “Roll one step” to advance both students. Off-policy errs with probability ε each step until its first mistake; after that it drifts. On-policy keeps getting corrected by the teacher at every visited state.';
+      }
+    }
+    lenSlider.addEventListener('input', function(){ step=Math.min(step,L()); render(); });
+    epsSlider.addEventListener('input', render);
+    document.getElementById('ex-step').addEventListener('click', rollStep);
+    document.getElementById('ex-reset').addEventListener('click', reset);
+    render();
+  }
+
+  /* ---------------- 2B: KD as RL advantage ---------------- */
+  function initAdvantage(){
+    var tSlider = document.getElementById('adv-t');
+    var sSlider = document.getElementById('adv-s');
+    var tVal = document.getElementById('adv-t-val');
+    var sVal = document.getElementById('adv-s-val');
+    var plot = document.getElementById('adv-plot');
+    var formulaEl = document.getElementById('adv-formula');
+    var hintEl = document.getElementById('adv-hint');
+
+    function render(){
+      var lt = parseFloat(tSlider.value);   // log pi_T
+      var ls = parseFloat(sSlider.value);   // log pi_theta
+      tVal.textContent = lt.toFixed(2);
+      sVal.textContent = ls.toFixed(2);
+      var A = lt - ls;                       // advantage = log piT - log pitheta
+
+      // draw a number-line / bar showing advantage, plus the two logprob ticks
+      var W=360, H=180, PAD=30;
+      var range = 5; // advantage in [-range, range]
+      function xToPx(a){ return W/2 + (a/range)*(W/2 - PAD); }
+      var zeroX = xToPx(0), aX = xToPx(clamp(A,-range,range));
+      var midY = H/2;
+      var barColor = A>=0 ? 'var(--accent)' : '#e05a5a';
+      plot.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+midY+'" x2="'+(W-PAD)+'" y2="'+midY+'"></line>' +
+        '<line x1="'+zeroX+'" y1="'+(PAD)+'" x2="'+zeroX+'" y2="'+(H-PAD)+'" stroke="var(--border)" stroke-dasharray="2,3"></line>' +
+        '<rect x="'+Math.min(zeroX,aX).toFixed(1)+'" y="'+(midY-16)+'" width="'+Math.abs(aX-zeroX).toFixed(1)+'" height="32" fill="'+barColor+'" opacity="0.45"></rect>' +
+        '<circle class="plot-marker" cx="'+aX.toFixed(1)+'" cy="'+midY+'" r="6"></circle>' +
+        '<text x="'+zeroX+'" y="'+(H-PAD+14)+'" fill="var(--text-dim)" font-size="10" text-anchor="middle">A=0</text>' +
+        '<text x="'+(PAD)+'" y="'+(H-PAD+14)+'" fill="#e05a5a" font-size="10">A&lt;0 (teacher dislikes)</text>' +
+        '<text x="'+(W-PAD)+'" y="'+(H-PAD+14)+'" fill="var(--accent)" font-size="10" text-anchor="end">A&gt;0 (teacher prefers)</text>' +
+        '<text x="'+aX.toFixed(1)+'" y="'+(midY-22)+'" fill="var(--orange)" font-size="11" text-anchor="middle">A = '+A.toFixed(2)+'</text>';
+
+      formulaEl.innerHTML =
+        'A<sub>t</sub><sup>OPD</sup> = log π_T(a<sub>t</sub>) − log π_θ(a<sub>t</sub>) = (' + lt.toFixed(2) + ') − (' + ls.toFixed(2) + ') = <b>' + A.toFixed(2) + '</b><br>' +
+        '<span style="color:var(--text-dim)">= −D<sub>KL</sub> contribution of this token · ∇J ≈ A<sub>t</sub><sup>OPD</sup>&middot;∇log π_θ(a<sub>t</sub>) (policy gradient)</span>';
+
+      if(A > 0.05){
+        hintEl.innerHTML = 'The <b>teacher</b> assigns this token higher probability than the student → <b>positive advantage</b>: the policy gradient pushes π_θ to <i>increase</i> it. Dense, per-token signal — every token gets a reward, unlike a single sparse scalar.';
+      } else if(A < -0.05){
+        hintEl.innerHTML = 'The student over-weights this token relative to the teacher → <b>negative advantage</b>: the gradient pushes π_θ to <i>decrease</i> it. This is the reverse-KL, mode-seeking pull in policy-gradient form.';
+      } else {
+        hintEl.innerHTML = 'Student and teacher agree on this token (A≈0) — no update. The advantage is exactly the negative per-token reverse-KL contribution, layerable into GRPO-style normalization.';
+      }
+    }
+    tSlider.addEventListener('input', render);
+    sSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 3A: Constitutional AI critique->revise loop ---------------- */
+  function initCAI(){
+    var principles = [
+      { id:'harm', label:'Non-harmful', q:'Is the answer encouraging or enabling harm?',
+        drafts:[
+          'Sure, here is a step-by-step guide to do that dangerous thing…',
+          'I can’t help with steps that could cause harm, but here is the safety context…',
+          'I won’t provide harmful instructions. If you’re in danger, here are support resources…'
+        ]},
+      { id:'truth', label:'Truthful', q:'Is the answer truthful and well-calibrated?',
+        drafts:[
+          'Absolutely, that myth is 100% true and scientifically proven.',
+          'That’s a common claim, but the evidence is mixed — let me separate fact from myth.',
+          'The reliable evidence says X; the popular claim Y is not supported. Here are sources.'
+        ]},
+      { id:'help', label:'Helpful', q:'Is the answer actually responsive and useful?',
+        drafts:[
+          'I’d rather not say.',
+          'Here is a partial answer, though I’m skipping the key step you asked about.',
+          'Here is a complete, direct answer to exactly what you asked, with the key step included.'
+        ]}
+    ];
+    var principlesEl = document.getElementById('cai-principles');
+    var cardsEl = document.getElementById('cai-cards');
+    var formulaEl = document.getElementById('cai-formula');
+    var hintEl = document.getElementById('cai-hint');
+    var current = principles[0];
+    var revisionStep = 0; // 0 = red-teamed draft, up to drafts.length-1
+
+    principles.forEach(function(pr, i){
+      var btn = document.createElement('button');
+      btn.textContent = pr.label;
+      if(i===0) btn.classList.add('active');
+      btn.addEventListener('click', function(){
+        principlesEl.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        current = pr; revisionStep = 0; render();
+      });
+      principlesEl.appendChild(btn);
+    });
+
+    function render(){
+      var maxStep = current.drafts.length - 1;
+      cardsEl.innerHTML = '';
+      // draft card
+      var draft = document.createElement('div');
+      draft.className = 'cai-card';
+      draft.innerHTML = '<div class="cai-role">Draft y<sup>' + revisionStep + '</sup></div><div class="cai-body">“' + escapeHtml(current.drafts[revisionStep]) + '”</div>';
+      cardsEl.appendChild(draft);
+      // critique card
+      var crit = document.createElement('div');
+      crit.className = 'cai-card crit';
+      var critiqued = revisionStep < maxStep;
+      crit.innerHTML = '<div class="cai-role">Critique against principle c<sub>i</sub></div>' +
+        '<div class="cai-body">“' + escapeHtml(current.q) + '” — ' +
+        (critiqued ? 'the draft <b>violates</b> this principle; it should be revised to comply.' : 'the draft now <b>satisfies</b> this principle. No further revision needed.') + '</div>';
+      if(!critiqued) crit.classList.add('faded');
+      cardsEl.appendChild(crit);
+
+      formulaEl.innerHTML =
+        '{c<sub>0</sub>,…,c<sub>n−1</sub>} → {y<sup>0</sup>,…,y<sup>n</sup>} &rArr; SFT point (x, y<sup>n</sup>)<br>' +
+        '<span style="color:var(--text-dim)">principle: ' + escapeHtml(current.label) + ' · revision ' + revisionStep + ' / ' + maxStep + ' · ' +
+        (revisionStep>=maxStep ? '<b>final yⁿ → added to SFT set</b>' : 'keep revising') + '</span>';
+
+      if(revisionStep >= maxStep){
+        hintEl.innerHTML = 'The draft now complies with <b>' + escapeHtml(current.label) + '</b>. The final revision yⁿ becomes the SFT target (x, yⁿ). In full CAI the model loops over <i>many</i> sampled principles before settling. Stage 2 then builds AI preference labels for RLAIF.';
+      } else {
+        hintEl.innerHTML = 'Click “Critique &amp; revise”: the model checks its draft against the principle and rewrites it to comply. Each pass yields a safer/more-aligned y. The constitution C is just human-written principles like this.';
+      }
+    }
+    document.getElementById('cai-step').addEventListener('click', function(){
+      revisionStep = Math.min(current.drafts.length-1, revisionStep+1); render();
+    });
+    document.getElementById('cai-reset').addEventListener('click', function(){ revisionStep = 0; render(); });
+    render();
+  }
+
+  /* ---------------- 3B: bias-variance human vs AI feedback ---------------- */
+  function initBiasVar(){
+    var fracSlider = document.getElementById('bv-frac');
+    var nSlider = document.getElementById('bv-n');
+    var fracVal = document.getElementById('bv-frac-val');
+    var nVal = document.getElementById('bv-n-val');
+    var plot = document.getElementById('bv-plot');
+    var formulaEl = document.getElementById('bv-formula');
+    var hintEl = document.getElementById('bv-hint');
+
+    // human: high variance per-label, ~zero bias. AI: low variance, fixed bias.
+    var humanVar = 1.0;   // per-label noise variance
+    var humanBias = 0.0;
+    var aiVar = 0.15;
+    var aiBias = 0.45;    // systematic bias of AI feedback
+
+    function errorFor(frac, N){
+      // a fraction 'frac' of labels come from AI, rest from human; averaged over N labels.
+      // bias of the mixed estimator = frac*aiBias + (1-frac)*humanBias
+      // variance of mean of N iid-ish labels = (frac*aiVar + (1-frac)*humanVar)/N
+      var bias = frac*aiBias + (1-frac)*humanBias;
+      var variance = (frac*aiVar + (1-frac)*humanVar)/N;
+      return { bias2: bias*bias, variance: variance, total: bias*bias + variance };
+    }
+    function optFrac(N){
+      var best=null, bf=0;
+      for(var f=0; f<=1.0001; f+=0.005){
+        var e = errorFor(f,N).total;
+        if(best===null || e<best){ best=e; bf=f; }
+      }
+      return bf;
+    }
+
+    function render(){
+      var frac = parseFloat(fracSlider.value);
+      var N = parseInt(nSlider.value,10);
+      fracVal.textContent = frac.toFixed(2);
+      nVal.textContent = N;
+      var e = errorFor(frac, N);
+
+      // plot total error vs frac, mark current + optimum
+      var W=380, H=220, PAD=34;
+      var fs=[], totals=[], bias2s=[], vars=[];
+      var ymax=0;
+      for(var f=0; f<=1.0001; f+=0.02){
+        var ee = errorFor(f,N);
+        fs.push(f); totals.push(ee.total); bias2s.push(ee.bias2); vars.push(ee.variance);
+        if(ee.total>ymax) ymax=ee.total;
+      }
+      ymax *= 1.1;
+      function xToPx(f){ return PAD + f*(W-2*PAD); }
+      function yToPx(v){ return (H-PAD) - (v/ymax)*(H-2*PAD); }
+      function toPath(arr){ return arr.map(function(v,i){ return (i===0?'M':'L')+xToPx(fs[i]).toFixed(1)+','+yToPx(v).toFixed(1); }).join(' '); }
+      var bf = optFrac(N);
+      var cx = xToPx(frac), cy = yToPx(e.total);
+      var ox = xToPx(bf), oy = yToPx(errorFor(bf,N).total);
+
+      plot.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path d="'+toPath(bias2s)+'" fill="none" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="4,3"></path>' +
+        '<path d="'+toPath(vars)+'" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3"></path>' +
+        '<path d="'+toPath(totals)+'" fill="none" stroke="var(--accent-bright)" stroke-width="2.4"></path>' +
+        '<circle cx="'+ox.toFixed(1)+'" cy="'+oy.toFixed(1)+'" r="3.5" fill="var(--text-dim)"></circle>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(ox+4).toFixed(1)+'" y="'+(oy-6).toFixed(1)+'" fill="var(--text-dim)" font-size="9">optimal mix</text>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-8>6?PAD-8:8)+'" fill="var(--text-dim)" font-size="10">expected error</text>' +
+        '<text x="'+(PAD)+'" y="'+(H-PAD+15)+'" fill="var(--text-dim)" font-size="10">all human</text>' +
+        '<text x="'+(W-PAD)+'" y="'+(H-PAD+15)+'" fill="var(--text-dim)" font-size="10" text-anchor="end">all AI</text>' +
+        '<text x="'+(W-PAD-78)+'" y="'+(PAD+10)+'" fill="var(--orange)" font-size="9">bias² (AI)</text>' +
+        '<text x="'+(W-PAD-78)+'" y="'+(PAD+22)+'" fill="var(--accent)" font-size="9">variance/N (human)</text>';
+
+      formulaEl.innerHTML =
+        'E[(ŷ−y)²] = bias² + variance = <b>' + e.bias2.toFixed(3) + '</b> + <b>' + e.variance.toFixed(3) + '</b> = <b>' + e.total.toFixed(3) + '</b><br>' +
+        '<span style="color:var(--text-dim)">AI: low var (' + aiVar + ') / high bias (' + aiBias + ') &middot; Human: high var (' + humanVar + ') / ~0 bias &middot; N=' + N + '</span>';
+
+      if(Math.abs(frac-bf)<0.03){
+        hintEl.innerHTML = 'Near the <b>error-minimizing mix</b> for N=' + N + ': roughly ' + Math.round(bf*100) + '% AF. As you collect <b>more</b> labels (raise N), variance shrinks and the optimum shifts toward <b>more human</b> data — because the bias of AI feedback no longer averages away.';
+      } else if(frac > bf){
+        hintEl.innerHTML = 'Too much AI feedback: cheap and low-variance, but its <b>systematic bias</b> (e.g. self-preference) dominates the error and can’t be averaged out. Route some hard points to humans.';
+      } else {
+        hintEl.innerHTML = 'Too much human data here: unbiased but <b>noisy</b>, so with only N=' + N + ' labels the variance is large. Some AI feedback lowers total error — unless N is big.';
+      }
+    }
+    fracSlider.addEventListener('input', render);
+    nSlider.addEventListener('input', render);
+    document.getElementById('bv-opt').addEventListener('click', function(){
+      fracSlider.value = optFrac(parseInt(nSlider.value,10)); render();
+    });
+    render();
+  }
+
+  /* ---------------- 3C: Rubric scoring ---------------- */
+  function initRubric(){
+    var items = [
+      { t:'Exactly five artifacts', w:1, hard:true, sat:true },
+      { t:'Each from a different culture/era', w:1, hard:true, sat:true },
+      { t:'Significance described for each', w:1, hard:true, sat:false },
+      { t:'Clear, well-organized', w:2, hard:false, sat:true },
+      { t:'Engaging, curiosity-stirring language', w:3, hard:false, sat:false }
+    ];
+    var itemsEl = document.getElementById('rub-items');
+    var barsEl = document.getElementById('rub-bars');
+    var formulaEl = document.getElementById('rub-formula');
+
+    function buildControls(){
+      itemsEl.innerHTML = '';
+      items.forEach(function(it, i){
+        var row = document.createElement('div');
+        row.className = 'slider-row';
+        row.style.cursor = 'pointer';
+        row.style.padding = '6px 8px';
+        row.style.margin = '3px 0';
+        row.style.border = '1px solid var(--border)';
+        row.style.borderRadius = '6px';
+        row.style.fontSize = '0.8em';
+        row.id = 'rub-row-' + i;
+        row.addEventListener('click', function(){ it.sat = !it.sat; render(); });
+        itemsEl.appendChild(row);
+      });
+    }
+
+    function render(){
+      items.forEach(function(it, i){
+        var row = document.getElementById('rub-row-' + i);
+        var tag = it.hard ? '[Hard Rule]' : '[Principle]';
+        var mark = it.sat ? '✓' : '✗';
+        row.style.borderColor = it.sat ? 'var(--accent)' : 'var(--border)';
+        row.style.background = it.sat ? 'rgba(132,169,140,0.12)' : 'transparent';
+        row.style.color = it.sat ? 'var(--accent-bright)' : 'var(--text-dim)';
+        row.innerHTML = '<span style="font-family:var(--mono)">' + mark + '</span> ' + escapeHtml(it.t) +
+          ' <span style="color:'+(it.hard?'var(--orange)':'var(--accent)')+';font-size:0.85em">' + tag + ' w=' + it.w + '</span>';
+      });
+
+      var maxScore = sum(items.map(function(it){ return it.w; }));
+      var score = sum(items.filter(function(it){ return it.sat; }).map(function(it){ return it.w; }));
+      var hardAllPass = items.filter(function(it){ return it.hard; }).every(function(it){ return it.sat; });
+
+      // bars: one per item, height proportional to weight, filled if satisfied
+      barsEl.innerHTML = '';
+      items.forEach(function(it, i){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        var h = (it.w/3)*100; // weight up to 3 -> full height
+        var col2 = it.hard ? 'linear-gradient(to top, var(--orange), #f0c98a)' : 'linear-gradient(to top, var(--accent), var(--accent-bright))';
+        col.innerHTML =
+          '<div class="bar-track" style="height:100%"><div class="bar-fill" style="height:' + h.toFixed(0) + '%;background:' + (it.sat?col2:'var(--border)') + ';opacity:' + (it.sat?1:0.5) + '"></div></div>' +
+          '<div class="bar-label">' + (it.hard?'H':'P') + (i+1) + '</div>';
+        barsEl.appendChild(col);
+      });
+
+      formulaEl.innerHTML =
+        'Rubric score = &Sigma; w<sub>i</sub>·[satisfied] = <b>' + score + '</b> / ' + maxScore + '<br>' +
+        '<span style="color:' + (hardAllPass?'var(--accent-bright)':'var(--orange)') + '">' +
+        (hardAllPass ? 'All [Hard Rule]s pass — valid answer; principles add ' + (score - sum(items.filter(function(x){return x.hard;}).map(function(x){return x.w;}))) + ' quality points.'
+                     : 'A [Hard Rule] failed — invalid answer (RL should down-weight it regardless of principle score).') + '</span>';
+    }
+    document.getElementById('rub-best').addEventListener('click', function(){ items.forEach(function(it){ it.sat=true; }); render(); });
+    document.getElementById('rub-worst').addEventListener('click', function(){ items.forEach(function(it){ it.sat=false; }); render(); });
+    buildControls();
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initWordSeq();
+    initForwardReverseKL();
+    initExposure();
+    initAdvantage();
+    initCAI();
+    initBiasVar();
+    initRubric();
+  });
+})();
+</script>
+
+</body>
+</html>

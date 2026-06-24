@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 3: Reinforcement Learning (the math) — Policy Gradients</title>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --red:#e07a7a;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+  .formula-display .pos{ color:var(--accent-bright); }
+  .formula-display .neg{ color:var(--red); }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .token-chip:hover{ border-color:var(--accent); }
+  .token-chip.active{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.cond{ border-color:var(--accent-bright); color:var(--accent-bright); }
+  .token-chip.hidden-tok{ opacity:0.3; }
+  .token-chip.future{ opacity:0.32; }
+  .token-chip.state{ border-color:var(--accent-bright); color:var(--accent-bright); }
+  .token-chip.actionnow{ background:var(--orange); color:#0b0f0e; border-color:var(--orange); font-weight:600; }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:10px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-tangent{ stroke:var(--orange); stroke-width:1.5; stroke-dasharray:3,3; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; }
+
+  table.mdp{ width:100%; border-collapse:collapse; font-size:0.88em; }
+  table.mdp th, table.mdp td{ border:1px solid var(--border); padding:9px 12px; text-align:left; }
+  table.mdp th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.mdp tr.row{ cursor:pointer; }
+  table.mdp tr.row:hover td{ background:rgba(132,169,140,0.08); }
+  table.mdp tr.row.sel td{ background:rgba(224,164,88,0.12); }
+  table.mdp tr.detail td{ color:var(--text-dim); font-size:0.92em; background:var(--panel-2); display:none; }
+  table.mdp tr.detail.show td{ display:table-cell; }
+  table.mdp td.num{ text-align:center; font-family:var(--mono); }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+
+  .dots{ display:flex; gap:6px; margin-top:8px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--border); }
+  .dot.on{ background:var(--accent); }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">rlhfbook.com/course · lecture 3</div>
+  <h1>Reinforcement Learning (the math)</h1>
+  <p class="sub">Policy gradients from first principles: language models as MDPs, the log-derivative trick, baselines and variance reduction, the choices of the learning signal Ψ<sub>t</sub>, and the KL regularizer that keeps the policy honest.</p>
+  <p class="credit">Adapted from Nathan Lambert's "Lecture 3: Reinforcement Learning — Motivation &amp; Math" (Chapter 6, rlhfbook.com/course). Interactive build only — original content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#mdp">LM as MDP</a>
+  <a href="#pg">Policy Gradient</a>
+  <a href="#logderiv">Log-derivative Trick</a>
+  <a href="#baseline">Baselines &amp; Variance</a>
+  <a href="#psi">Choices of Ψ</a>
+  <a href="#rloo">RLOO</a>
+  <a href="#kl">KL Regularization</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 1: LM AS MDP ============ -->
+  <section class="group" id="mdp">
+    <div class="group-header"><span class="group-index">01</span><h2>Language models as an episodic MDP</h2></div>
+    <p class="group-intro">An RLHF rollout is a Markov decision process in disguise. The state <code>s_t = (x, y_&lt;t)</code> is the prompt plus tokens generated so far, the action <code>a_t</code> is the next token, the transition is deterministic (just append), and a single terminal reward scores the whole completion. Step through an episode and watch the state grow.</p>
+
+    <article class="concept" id="mdp-timeline">
+      <h3>Step through an episode</h3>
+      <p class="concept-desc">One prompt → one completion is one <b>episode</b>. At each step the policy <code>π_θ(a_t | s_t)</code> samples the next token, the state appends it (deterministic transition), and only at the very end does the reward model / verifier emit a single scalar <code>R(τ)</code>. Discount <code>γ = 1</code> — no per-step rewards.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="mdp-step">Step ▶</button>
+          <button id="mdp-reset">Reset</button>
+          <div class="dots" id="mdp-dots"></div>
+          <p class="hint" id="mdp-note"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="mdp-tokens"></div>
+          <div class="formula-display" id="mdp-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="mdp-map">
+      <h3>The MDP ↔ language-model dictionary</h3>
+      <p class="concept-desc">Click a row to expand the intuition. Two views of the same MDP: <b>token-level</b> (each token is a separate action, used by PPO + GAE) vs. <b>sequence-level</b> (the whole completion is one action, used by REINFORCE / GRPO).</p>
+      <div class="panel" style="grid-template-columns:1fr;">
+        <div class="panel-viz">
+          <table class="mdp" id="mdp-table">
+            <thead><tr><th>MDP concept</th><th>Language model</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 2: THE POLICY GRADIENT ============ -->
+  <section class="group" id="pg">
+    <div class="group-header"><span class="group-index">02</span><h2>The policy gradient equation</h2></div>
+    <p class="group-intro">Every algorithm in this lecture is the same update with a different learning signal:
+      <code>∇_θ J(θ) = E[ Σ_t ∇_θ log π_θ(a_t|s_t) · Ψ_t ]</code>.
+      The log-prob gradient answers <i>which action?</i>; the scalar Ψ<sub>t</sub> answers <i>how good was it?</i> Multiply them per token and sum.</p>
+
+    <article class="concept" id="pg-pertoken">
+      <h3>Per-token: ∇log π scaled by Ψ<sub>t</sub></h3>
+      <p class="concept-desc">Each completion token contributes one term <code>∇_θ log π_θ(a_t|s_t) · Ψ_t</code>. Set a uniform learning signal Ψ for the whole sequence, or click a token to inspect its term. Positive Ψ pushes that token's probability <span style="color:var(--accent-bright)">up</span>; negative pushes it <span style="color:var(--red)">down</span>; the magnitude of <code>∇log π</code> is larger for tokens the policy was <i>uncertain</i> about.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Learning signal Ψ = <span id="pg-psi-val">+1.0</span></label>
+          <input type="range" id="pg-psi" min="-2" max="2" step="0.1" value="1">
+          <button id="pg-resample">Resample log-probs</button>
+          <p class="hint">Bar height = |∇log π| ≈ how much room the token has to move (small for near-1 probabilities, large for uncertain ones). Bar color = sign of the update Ψ·∇log π. Click a token for its exact term.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="pg-tokens" style="align-items:flex-end;"></div>
+          <div class="formula-display" id="pg-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 3: LOG-DERIVATIVE TRICK ============ -->
+  <section class="group" id="logderiv">
+    <div class="group-header"><span class="group-index">03</span><h2>The log-derivative (REINFORCE) trick</h2></div>
+    <p class="group-intro">We want <code>∇_θ E_{τ~π_θ}[R(τ)]</code>, but the sampling distribution itself depends on θ, and <code>∇_θ p_θ(τ)</code> is not a distribution we can sample from. The identity <code>∇_θ log p_θ = ∇_θ p_θ / p_θ</code> rewrites the troublesome gradient as an expectation we <i>can</i> Monte-Carlo estimate.</p>
+
+    <article class="concept" id="ld-identity">
+      <h3>Why ∇log π = ∇π / π lets us sample</h3>
+      <p class="concept-desc">Pick a token probability <code>π</code> and a parameter sensitivity <code>∇_θ π</code> (how much π changes per unit θ). The identity says <code>∇_θ log π = ∇_θ π / π</code>. Multiplying the integrand by <code>p/p</code> turns <code>∫ ∇p · R dτ</code> (not samplable) into <code>∫ p · (∇log p · R) dτ = E[∇log p · R]</code> (samplable). Watch both sides match.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>π_θ(a|s) = <span id="ld-pi-val">0.40</span></label>
+          <input type="range" id="ld-pi" min="0.02" max="0.98" step="0.01" value="0.4">
+          <label>∇_θ π_θ(a|s) = <span id="ld-grad-val">0.20</span></label>
+          <input type="range" id="ld-grad" min="-0.5" max="0.5" step="0.01" value="0.2">
+          <p class="hint">The same gradient, two ways. Small π (rare action) magnifies the log-prob gradient — the <code>1/π</code> factor is why low-probability sampled actions get amplified credit.</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 340 200" id="ld-plot"></svg>
+          <div class="formula-display" id="ld-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="ld-deriv">
+      <h3>The derivation, line by line</h3>
+      <p class="concept-desc">Step through the four moves that take us from the objective to a sampleable estimator. The middle line is the only non-obvious step — the log-derivative identity.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="ld-prev">◀ Prev</button>
+          <button id="ld-next">Next ▶</button>
+          <div class="dots" id="ld-dots"></div>
+          <p class="hint" id="ld-step-note"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="formula-display" id="ld-deriv-display" style="font-size:1.0em; line-height:2.0;"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 4: BASELINES & VARIANCE ============ -->
+  <section class="group" id="baseline">
+    <div class="group-header"><span class="group-index">04</span><h2>Baselines reduce variance (the payoff)</h2></div>
+    <p class="group-intro">Raw returns are noisy: the same action shows up in trajectories with wildly different totals. A baseline <code>b(s_t)</code> centers the signal — "was the return higher or lower than expected?" — and because <code>b</code> doesn't depend on the sampled action, <code>E[∇log π · b] = b · ∇Σ_a π = b · ∇1 = 0</code>: the expected gradient is <b>unchanged</b>, only the variance drops.</p>
+
+    <article class="concept" id="bl-mc">
+      <h3>Monte-Carlo estimator: with vs. without a baseline</h3>
+      <p class="concept-desc">A toy single-state policy over 4 actions. The true gradient is fixed; we estimate it by sampling actions and weighting <code>g(a)·Ψ</code>, where Ψ is either the raw return <code>G</code> or the centered return <code>G − b</code> (with <code>b</code> = mean return). Draw batches and watch the cloud of estimates: both center on the same true value (unbiased), but the baselined cloud is far <b>tighter</b> (lower variance).</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="bl-draw">Draw 1 batch</button>
+          <button id="bl-draw20">Draw 20 batches</button>
+          <button id="bl-reset">Reset</button>
+          <label>Batch size N = <span id="bl-n-val">8</span></label>
+          <input type="range" id="bl-n" min="2" max="32" step="1" value="8">
+          <p class="hint" id="bl-readout"></p>
+        </div>
+        <div class="panel-viz">
+          <canvas id="bl-canvas" width="600" height="240" style="width:100%;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;"></canvas>
+          <div class="formula-display" id="bl-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 5: CHOICES OF PSI ============ -->
+  <section class="group" id="psi">
+    <div class="group-header"><span class="group-index">05</span><h2>Choices of the learning signal Ψ<sub>t</sub></h2></div>
+    <p class="group-intro">The same gradient, six different Ψ<sub>t</sub>. Each later choice trims variance by removing signal the action couldn't have caused (past rewards) or by centering against a learned expectation (the value function). Toggle between them on a worked rollout.</p>
+
+    <article class="concept" id="psi-toggle">
+      <h3>Full return → reward-to-go → advantage</h3>
+      <p class="concept-desc">A 5-step rollout with per-step rewards <code>r_t</code> and a (toy) value function <code>V(s_t)</code>. Pick a Ψ<sub>t</sub> definition and a timestep <code>t</code>; the panel shows exactly which rewards feed Ψ<sub>t</sub> and how the choice shrinks variance. <code>γ = 1</code> throughout (no discounting), as is typical for LMs.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="psi-tabs">
+            <button data-mode="ret" class="active">R(τ)</button>
+            <button data-mode="rtg">G_t</button>
+            <button data-mode="base">G_t − b</button>
+            <button data-mode="q">Q(s,a)</button>
+            <button data-mode="adv">A = Q − V</button>
+            <button data-mode="td">TD residual</button>
+          </div>
+          <label>Timestep t = <span id="psi-t-val">2</span></label>
+          <input type="range" id="psi-t" min="0" max="4" step="1" value="2">
+          <button id="psi-reroll">New rewards</button>
+          <p class="hint" id="psi-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="psi-steps"></div>
+          <div class="formula-display" id="psi-formula"></div>
+          <div class="formula-display" id="psi-variance"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="rloo">
+      <h3>RLOO: the leave-one-out baseline</h3>
+      <p class="concept-desc">Generate <code>K</code> completions for one prompt; for completion <code>k</code> use the mean of the <i>other</i> <code>K−1</code> rewards as its baseline: <code>b_k = (1/(K−1)) Σ_{i≠k} R_i</code>, so <code>Â_k = R_k − b_k</code>. This per-prompt baseline captures prompt difficulty for free and is the bridge to GRPO. Drag the rewards.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div id="rloo-sliders"></div>
+          <button id="rloo-reset">Reset to deck example</button>
+          <p class="hint">The deck's worked example uses K=4 rewards [0.8, 0.3, 0.6, 0.5]. Best completion gets reinforced (Â&gt;0), worst suppressed (Â&lt;0). The advantages always sum to ~0 across the group.</p>
+        </div>
+        <div class="panel-viz">
+          <table class="mdp" id="rloo-table">
+            <thead><tr><th>k</th><th>R_k</th><th>baseline b_k</th><th>Â_k = R_k − b_k</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="formula-display" id="rloo-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 6: KL REGULARIZATION ============ -->
+  <section class="group" id="kl">
+    <div class="group-header"><span class="group-index">06</span><h2>KL as regularization</h2></div>
+    <p class="group-intro">The reference policy <code>π_ref</code> is a frozen copy of the SFT checkpoint. The KL penalty <code>−β·KL_t</code> pulls the trained policy <code>π_θ</code> back toward it, so the policy can't drift into reward-hacking territory.
+      <b>Don't confuse the two "old" policies:</b> <code>π_old</code> is the <i>sampling</i> policy (last rollout, used for the importance ratio); <code>π_ref</code> is the <i>frozen</i> SFT anchor (used for KL). They serve different jobs.</p>
+
+    <article class="concept" id="kl-penalty">
+      <h3>The β slider: KL penalty and the shaped objective</h3>
+      <p class="concept-desc">Per token, <code>KL_t = log π_θ(a_t|s_t) − log π_ref(a_t|s_t)</code>. The shaped reward is <code>r̃_t = −β·KL_t</code> for intermediate tokens, and <code>r̃_T = R(τ) − β·KL_T</code> at the end. Drag <code>β</code> and the policy's drift, and watch the penalty eat into the reward.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>KL coefficient β = <span id="kl-beta-val">0.10</span></label>
+          <input type="range" id="kl-beta" min="0" max="1" step="0.01" value="0.1">
+          <label>Policy drift from π_ref = <span id="kl-drift-val">1.00</span></label>
+          <input type="range" id="kl-drift" min="0" max="3" step="0.05" value="1">
+          <label>Raw reward R(τ) = <span id="kl-r-val">1.00</span></label>
+          <input type="range" id="kl-r" min="-2" max="2" step="0.1" value="1">
+          <p class="hint" id="kl-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="kl-bars"></div>
+          <div class="formula-display" id="kl-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="kl-twoold">
+      <h3>Two "old" policies — π_old vs π_ref</h3>
+      <p class="concept-desc">Click a row to see what each frozen-or-stale copy of the policy is for. Mixing them up is one of the most common RLHF implementation bugs.</p>
+      <div class="panel" style="grid-template-columns:1fr;">
+        <div class="panel-viz">
+          <table class="mdp" id="twoold-table">
+            <thead><tr><th></th><th>π_old (sampling policy)</th><th>π_ref (reference)</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, Lecture 3 (Reinforcement Learning — Motivation &amp; Math) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  function mean(arr){ return arr.length ? sum(arr)/arr.length : 0; }
+  function variance(arr){
+    if(arr.length < 2) return 0;
+    var m = mean(arr);
+    return sum(arr.map(function(x){ return (x-m)*(x-m); })) / arr.length;
+  }
+  function std(arr){ return Math.sqrt(variance(arr)); }
+  function signClass(v){ return v >= 0 ? 'pos' : 'neg'; }
+
+  /* ---------------- 1A: LM as MDP — step through episode ---------------- */
+  function initMdpTimeline(){
+    var prompt = ['Q:', '2+2', '=', '?'];
+    var completion = ['The', 'answer', 'is', '4', '.'];
+    var stepBtn = document.getElementById('mdp-step');
+    var resetBtn = document.getElementById('mdp-reset');
+    var tokensEl = document.getElementById('mdp-tokens');
+    var formulaEl = document.getElementById('mdp-formula');
+    var dotsEl = document.getElementById('mdp-dots');
+    // t goes 0..completion.length ; t = number of tokens generated so far
+    var t = 0;
+
+    function render(){
+      tokensEl.innerHTML = '';
+      prompt.forEach(function(tok){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip state';
+        chip.textContent = tok;
+        tokensEl.appendChild(chip);
+      });
+      completion.forEach(function(tok, i){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        chip.textContent = tok;
+        if(i < t) chip.classList.add('state');          // already in state s_t
+        else if(i === t) chip.classList.add('actionnow'); // the action a_t about to be taken
+        else chip.classList.add('future');
+        tokensEl.appendChild(chip);
+      });
+
+      dotsEl.innerHTML = '';
+      for(var k=0;k<=completion.length;k++){
+        var d = document.createElement('span');
+        d.className = 'dot' + (k === t ? ' on' : '');
+        dotsEl.appendChild(d);
+      }
+
+      var stateStr = prompt.join(' ') + (t>0 ? ' ' + completion.slice(0,t).join(' ') : '');
+      if(t < completion.length){
+        var act = completion[t];
+        formulaEl.innerHTML =
+          '<b>s<sub>' + t + '</sub></b> = (x, y<sub>&lt;' + t + '</sub>) = "' + escapeHtml(stateStr) + '"<br>' +
+          'action a<sub>' + t + '</sub> ~ &pi;<sub>&theta;</sub>(&middot; | s<sub>' + t + '</sub>) &rarr; <b>"' + escapeHtml(act) + '"</b><br>' +
+          'transition: append &rarr; s<sub>' + (t+1) + '</sub> (deterministic) &nbsp;|&nbsp; reward so far r<sub>' + t + '</sub> = 0';
+        stepBtn.disabled = false;
+        stepBtn.textContent = 'Step ▶';
+      } else {
+        formulaEl.innerHTML =
+          '<b>Terminal.</b> Full episode &tau; = "' + escapeHtml(stateStr) + '"<br>' +
+          'single terminal reward <b>R(&tau;)</b> = RM score / verifier output (e.g. correct &rarr; +1)<br>' +
+          '&gamma; = 1: no discounting, the unit of optimization is the whole completion.';
+        stepBtn.disabled = true;
+        stepBtn.textContent = 'Episode done';
+      }
+    }
+    stepBtn.addEventListener('click', function(){
+      if(t < completion.length){ t++; render(); }
+    });
+    resetBtn.addEventListener('click', function(){ t = 0; render(); });
+    render();
+  }
+
+  /* ---------------- 1B: MDP dictionary table ---------------- */
+  function initMdpTable(){
+    var rows = [
+      ['State s_t', 'Prompt + tokens so far: (x, y_<t)', 'The full left context the model conditions on. It grows by exactly one token each step.'],
+      ['Action a_t', 'The next token y_t', 'Sampled from the LM next-token distribution. Vocabulary size = action space (tens of thousands).'],
+      ['Transition', 'Deterministic: append the token', 'No environment randomness — unlike classical RL, the "dynamics" are just string concatenation, so ∇log p(s_{t+1}|s_t,a_t) = 0.'],
+      ['Policy π_θ(a_t|s_t)', 'LM next-token distribution', 'This is exactly the softmax over logits you train with cross-entropy in SFT — now optimized for reward instead of likelihood.'],
+      ['Episode', 'One prompt → one completion', 'Bounded length (until EOS or max tokens). Every episode starts fresh from a sampled prompt.'],
+      ['Terminal reward', 'RM score or verifier output', 'Usually a single scalar at the end (sparse, delayed). KL shaping can add small per-token rewards.'],
+      ['γ (discount)', 'Typically 1.0', 'No discounting because the unit of optimization is the full completion, not a long-horizon control problem.']
+    ];
+    var tbody = document.querySelector('#mdp-table tbody');
+    rows.forEach(function(r){
+      var tr = document.createElement('tr');
+      tr.className = 'row';
+      tr.innerHTML = '<td><b>' + escapeHtml(r[0]) + '</b></td><td>' + escapeHtml(r[1]) + '</td>';
+      var det = document.createElement('tr');
+      det.className = 'detail';
+      det.innerHTML = '<td colspan="2">' + escapeHtml(r[2]) + '</td>';
+      tr.addEventListener('click', function(){
+        var open = det.classList.contains('show');
+        tr.classList.toggle('sel', !open);
+        det.classList.toggle('show', !open);
+      });
+      tbody.appendChild(tr);
+      tbody.appendChild(det);
+    });
+  }
+
+  /* ---------------- 2: Per-token policy gradient ---------------- */
+  function initPolicyGradient(){
+    var tokens = ['The', 'answer', 'is', 'four', '.'];
+    var probs = [0.62, 0.31, 0.85, 0.18, 0.94]; // π_θ(a_t|s_t)
+    var selected = -1;
+    var psiSlider = document.getElementById('pg-psi');
+    var psiVal = document.getElementById('pg-psi-val');
+    var tokensEl = document.getElementById('pg-tokens');
+    var formulaEl = document.getElementById('pg-formula');
+
+    // surrogate magnitude of ∇log π: larger when probability is low (more room to move).
+    function gradMag(p){ return (1 - p); }
+
+    function render(){
+      var psi = parseFloat(psiSlider.value);
+      psiVal.textContent = (psi>=0?'+':'') + psi.toFixed(1);
+      tokensEl.innerHTML = '';
+      var maxMag = Math.max.apply(null, probs.map(gradMag)) || 1;
+      probs.forEach(function(p, i){
+        var mag = gradMag(p);
+        var update = psi * mag; // sign of the parameter nudge for this token
+        var col = document.createElement('div');
+        col.style.display = 'flex';
+        col.style.flexDirection = 'column';
+        col.style.alignItems = 'center';
+        col.style.cursor = 'pointer';
+        var h = (mag/maxMag) * 70 + 4;
+        var color = update >= 0 ? 'var(--accent)' : 'var(--red)';
+        var border = (i === selected) ? '2px solid var(--orange)' : '1px solid var(--border)';
+        col.innerHTML =
+          '<div style="width:30px;height:80px;display:flex;flex-direction:column-reverse;background:var(--panel-2);border-radius:3px;border:' + border + ';">' +
+            '<div style="width:100%;height:' + h.toFixed(1) + 'px;background:' + color + ';border-radius:3px;"></div>' +
+          '</div>' +
+          '<div class="bar-label">' + escapeHtml(tokens[i]) + '</div>';
+        col.addEventListener('click', function(){ selected = (selected===i?-1:i); render(); });
+        tokensEl.appendChild(col);
+      });
+
+      if(selected < 0){
+        var terms = probs.map(function(p, i){
+          var u = psi * gradMag(p);
+          return '<span class="' + signClass(u) + '">' + (u>=0?'+':'') + u.toFixed(2) + '</span>';
+        });
+        var total = sum(probs.map(function(p){ return psi*gradMag(p); }));
+        formulaEl.innerHTML =
+          'Per-token Ψ&middot;|&nabla;log&pi;|: ' + terms.join(' &nbsp; ') + '<br>' +
+          'sequence sum &Sigma;<sub>t</sub> &nabla;<sub>&theta;</sub> log &pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>)&middot;&Psi; &asymp; <b>' + (total>=0?'+':'') + total.toFixed(2) + '</b>' +
+          ' &nbsp;<span style="color:var(--text-dim)">(' + (psi>=0?'reinforce whole completion':'suppress whole completion') + ')</span>';
+      } else {
+        var p = probs[selected], mag = gradMag(p), u = psi*mag;
+        formulaEl.innerHTML =
+          'Token <b>"' + escapeHtml(tokens[selected]) + '"</b> at t=' + selected + ': &pi;<sub>&theta;</sub>(a|s) = ' + p.toFixed(2) +
+          ' &nbsp;|&nbsp; |&nabla;<sub>&theta;</sub> log &pi;| &asymp; ' + mag.toFixed(2) + '<br>' +
+          'update &prop; &Psi;&middot;&nabla;log&pi; = ' + psi.toFixed(1) + ' &times; ' + mag.toFixed(2) +
+          ' = <b class="' + signClass(u) + '">' + (u>=0?'+':'') + u.toFixed(2) + '</b> &rarr; ' +
+          (u>=0 ? 'push P(this token) <b>up</b>' : 'push P(this token) <b>down</b>');
+      }
+    }
+    psiSlider.addEventListener('input', render);
+    document.getElementById('pg-resample').addEventListener('click', function(){
+      probs = probs.map(function(){ return 0.1 + Math.random()*0.85; });
+      selected = -1;
+      render();
+    });
+    render();
+  }
+
+  /* ---------------- 3A: Log-derivative identity ---------------- */
+  function initLogDeriv(){
+    var piSlider = document.getElementById('ld-pi');
+    var gradSlider = document.getElementById('ld-grad');
+    var piVal = document.getElementById('ld-pi-val');
+    var gradVal = document.getElementById('ld-grad-val');
+    var svg = document.getElementById('ld-plot');
+    var formulaEl = document.getElementById('ld-formula');
+
+    function render(){
+      var pi = parseFloat(piSlider.value);
+      var gp = parseFloat(gradSlider.value);
+      piVal.textContent = pi.toFixed(2);
+      gradVal.textContent = (gp>=0?'+':'') + gp.toFixed(2);
+      var dlog = gp / pi; // ∇log π = ∇π / π
+
+      // plot log(x) curve with tangent slope 1/pi at x = pi (slope of log)
+      var W=340,H=200,PAD=24;
+      function xToPx(x){ return PAD + x*(W-2*PAD); }            // x in [0,1]
+      function yToPx(y){ return H-PAD - (y+5)/5 * (H-2*PAD); }  // y in [-5,0]
+      var pts = [];
+      for(var x=0.02;x<=1.0001;x+=0.01){
+        pts.push(xToPx(x).toFixed(1) + ',' + yToPx(Math.log(x)).toFixed(1));
+      }
+      var pathD = 'M' + pts.join(' L');
+      var mx = xToPx(pi), my = yToPx(Math.log(pi));
+      var slope = 1/pi; // d/dx log x
+      // tangent in data coords; convert to px
+      var dxData = 0.12;
+      var x1 = pi - dxData, x2 = pi + dxData;
+      var y1 = Math.log(pi) - slope*dxData, y2 = Math.log(pi) + slope*dxData;
+
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + (H-PAD) + '" x2="' + (W-PAD) + '" y2="' + (H-PAD) + '"></line>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + PAD + '" x2="' + PAD + '" y2="' + (H-PAD) + '"></line>' +
+        '<path class="plot-curve" d="' + pathD + '"></path>' +
+        '<line class="plot-tangent" x1="' + xToPx(x1).toFixed(1) + '" y1="' + yToPx(y1).toFixed(1) +
+          '" x2="' + xToPx(x2).toFixed(1) + '" y2="' + yToPx(y2).toFixed(1) + '"></line>' +
+        '<circle class="plot-marker" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD+10) + '" fill="var(--text-dim)" font-size="10">log &pi;</text>' +
+        '<text x="' + (W-PAD-18) + '" y="' + (H-PAD+14) + '" fill="var(--text-dim)" font-size="10">&pi;</text>' +
+        '<text x="' + (mx+6).toFixed(1) + '" y="' + (my-6).toFixed(1) + '" fill="var(--orange)" font-size="10">slope = 1/&pi;</text>';
+
+      formulaEl.innerHTML =
+        '&nabla;<sub>&theta;</sub> log &pi; = &nabla;<sub>&theta;</sub>&pi; / &pi; = ' + gp.toFixed(2) + ' / ' + pi.toFixed(2) +
+          ' = <b>' + dlog.toFixed(3) + '</b><br>' +
+        '<span style="color:var(--text-dim)">turns &nabla;&pi; (not samplable) into &pi;&middot;&nabla;log&pi;, so</span> ' +
+        '&int;&nabla;p&middot;R d&tau; = E<sub>&tau;~p</sub>[ &nabla;log p &middot; R ]';
+    }
+    piSlider.addEventListener('input', render);
+    gradSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 3B: Derivation step-through ---------------- */
+  function initLogDerivSteps(){
+    var steps = [
+      { tex:'J(&theta;) = E<sub>&tau;~&pi;<sub>&theta;</sub></sub>[R(&tau;)] = &int;<sub>&tau;</sub> p<sub>&theta;</sub>(&tau;) R(&tau;) d&tau;',
+        note:'The objective: expected return, written as an integral over trajectories.' },
+      { tex:'&nabla;<sub>&theta;</sub> J(&theta;) = &int;<sub>&tau;</sub> <b>&nabla;<sub>&theta;</sub> p<sub>&theta;</sub>(&tau;)</b> R(&tau;) d&tau;',
+        note:'Differentiate. Problem: ∇p_θ(τ) is NOT a distribution — we cannot sample from it.' },
+      { tex:'= &int;<sub>&tau;</sub> p<sub>&theta;</sub>(&tau;) <b>&nabla;<sub>&theta;</sub> log p<sub>&theta;</sub>(&tau;)</b> R(&tau;) d&tau;',
+        note:'Log-derivative identity: ∇p = p·∇log p. Now p_θ(τ) is back as a sampling weight.' },
+      { tex:'= E<sub>&tau;~&pi;<sub>&theta;</sub></sub>[ &Sigma;<sub>t</sub> &nabla;<sub>&theta;</sub> log &pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>) &middot; &Psi;<sub>t</sub> ]',
+        note:'Expectation form + expand log p_θ(τ): only the policy terms survive (∇log p(s₀)=0, ∇log p(s_{t+1}|s_t,a_t)=0). Monte-Carlo estimate it by sampling rollouts.' }
+    ];
+    var idx = 0;
+    var display = document.getElementById('ld-deriv-display');
+    var note = document.getElementById('ld-step-note');
+    var dots = document.getElementById('ld-dots');
+    var prev = document.getElementById('ld-prev');
+    var next = document.getElementById('ld-next');
+
+    function render(){
+      var html = steps.map(function(s, i){
+        var op = i <= idx ? 1 : 0.25;
+        var color = i === idx ? 'var(--accent-bright)' : 'var(--text-dim)';
+        return '<div style="opacity:' + op + ';color:' + color + ';">' + s.tex + '</div>';
+      }).join('');
+      display.innerHTML = html;
+      note.textContent = steps[idx].note;
+      dots.innerHTML = steps.map(function(_, i){
+        return '<span class="dot' + (i===idx?' on':'') + '"></span>';
+      }).join('');
+      prev.disabled = idx === 0;
+      next.disabled = idx === steps.length - 1;
+    }
+    prev.addEventListener('click', function(){ idx = Math.max(0, idx-1); render(); });
+    next.addEventListener('click', function(){ idx = Math.min(steps.length-1, idx+1); render(); });
+    render();
+  }
+
+  /* ---------------- 4: Baselines reduce variance (Monte Carlo) ---------------- */
+  function initBaseline(){
+    // toy single state, 4 actions. policy probs, "gradient direction" g(a) per action,
+    // and a return G(a). The true gradient = Σ_a π(a) g(a) G(a) (baseline-invariant since Σ π g = 0).
+    var probs = [0.4, 0.3, 0.2, 0.1];
+    var g = [1.0, 0.3, -0.6, -1.4];   // chosen so Σ π·g ≈ 0 (mean-zero score)
+    // renormalize g so that Σ π g = 0 exactly
+    (function(){
+      var m = 0; for(var i=0;i<4;i++) m += probs[i]*g[i];
+      for(var i=0;i<4;i++) g[i] -= m;
+    })();
+    var returns = [2.0, 1.4, 0.8, 0.2]; // return for each action (deterministic per action here)
+    var bMean = sum(probs.map(function(p,i){ return p*returns[i]; })); // E[G] baseline
+    // true gradient (baseline-invariant)
+    var trueGrad = sum(probs.map(function(p,i){ return p*g[i]*returns[i]; }));
+
+    var estNo = [];   // estimates without baseline
+    var estYes = [];  // estimates with baseline
+    var canvas = document.getElementById('bl-canvas');
+    var ctx = canvas.getContext('2d');
+    var nSlider = document.getElementById('bl-n');
+    var nVal = document.getElementById('bl-n-val');
+    var readout = document.getElementById('bl-readout');
+    var formulaEl = document.getElementById('bl-formula');
+
+    function sampleAction(){
+      var u = Math.random(), c = 0;
+      for(var i=0;i<4;i++){ c += probs[i]; if(u <= c) return i; }
+      return 3;
+    }
+    function drawBatch(){
+      var N = parseInt(nSlider.value,10);
+      var accNo = 0, accYes = 0;
+      for(var s=0;s<N;s++){
+        var a = sampleAction();
+        accNo  += g[a]*returns[a];
+        accYes += g[a]*(returns[a] - bMean);
+      }
+      estNo.push(accNo/N);
+      estYes.push(accYes/N);
+    }
+
+    function render(){
+      var N = parseInt(nSlider.value,10);
+      nVal.textContent = N;
+      var W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      // axis: estimator value horizontal. Determine range.
+      var all = estNo.concat(estYes);
+      var lo = -1.0, hi = 1.6;
+      if(all.length){
+        lo = Math.min(lo, Math.min.apply(null, all)-0.1);
+        hi = Math.max(hi, Math.max.apply(null, all)+0.1);
+      }
+      function xToPx(v){ return 40 + (v-lo)/(hi-lo) * (W-70); }
+
+      // true gradient line
+      var tx = xToPx(trueGrad);
+      ctx.strokeStyle = '#9fb0a8'; ctx.setLineDash([5,4]); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(tx, 10); ctx.lineTo(tx, H-22); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#9fb0a8'; ctx.font = '11px monospace';
+      ctx.fillText('true ∇ = ' + trueGrad.toFixed(2), tx+4, 18);
+
+      // two horizontal bands: top = no baseline, bottom = with baseline
+      var yNo = H*0.32, yYes = H*0.70;
+      ctx.fillStyle = '#9fb0a8'; ctx.font = '11px sans-serif';
+      ctx.fillText('Ψ = G   (no baseline)', 40, yNo-26);
+      ctx.fillText('Ψ = G − b   (baselined)', 40, yYes-26);
+
+      function plotCloud(arr, y, color){
+        arr.forEach(function(v){
+          ctx.fillStyle = color;
+          ctx.globalAlpha = 0.5;
+          ctx.beginPath();
+          ctx.arc(xToPx(v), y + (Math.random()-0.5)*22, 3, 0, Math.PI*2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        if(arr.length){
+          var m = mean(arr), sd = std(arr);
+          // mean marker
+          ctx.strokeStyle = color; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(xToPx(m), y-14); ctx.lineTo(xToPx(m), y+14); ctx.stroke();
+          // std span
+          ctx.strokeStyle = color; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(xToPx(m-sd), y); ctx.lineTo(xToPx(m+sd), y); ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      plotCloud(estNo, yNo, '#e0a458');
+      plotCloud(estYes, yYes, '#84A98C');
+
+      // axis line
+      ctx.strokeStyle = '#243029'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(40, H-20); ctx.lineTo(W-30, H-20); ctx.stroke();
+
+      var vNo = estNo.length>1 ? variance(estNo) : 0;
+      var vYes = estYes.length>1 ? variance(estYes) : 0;
+      var reduce = vNo>1e-9 ? (vNo/Math.max(vYes,1e-9)) : 0;
+      readout.innerHTML = 'Batches drawn: <b>' + estNo.length + '</b>. Each dot is one batch estimate of the gradient.';
+      formulaEl.innerHTML =
+        'baseline b = E[G] = <b>' + bMean.toFixed(3) + '</b> &nbsp;|&nbsp; true &nabla; = ' + trueGrad.toFixed(3) + '<br>' +
+        'mean(no baseline) = ' + (estNo.length?mean(estNo).toFixed(3):'—') + ' &nbsp; var = <span class="neg">' + (estNo.length>1?vNo.toFixed(4):'—') + '</span><br>' +
+        'mean(baselined) = ' + (estYes.length?mean(estYes).toFixed(3):'—') + ' &nbsp; var = <span class="pos">' + (estYes.length>1?vYes.toFixed(4):'—') + '</span>' +
+        (reduce>1 ? ' &nbsp;<b>(&times;' + reduce.toFixed(1) + ' less variance)</b>' : '') + '<br>' +
+        '<span style="color:var(--text-dim)">both clouds center on the same true gradient &rarr; baseline is unbiased.</span>';
+    }
+
+    document.getElementById('bl-draw').addEventListener('click', function(){ drawBatch(); render(); });
+    document.getElementById('bl-draw20').addEventListener('click', function(){
+      for(var k=0;k<20;k++) drawBatch();
+      render();
+    });
+    document.getElementById('bl-reset').addEventListener('click', function(){ estNo=[]; estYes=[]; render(); });
+    nSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 5A: Choices of Psi ---------------- */
+  function initPsi(){
+    var rewards = [0.2, -0.1, 0.5, 0.3, 1.0];   // per-step rewards r_t
+    var values  = [1.5, 1.3, 1.1, 0.9, 0.7];    // toy V(s_t)
+    var tabs = document.querySelectorAll('#psi-tabs button');
+    var tSlider = document.getElementById('psi-t');
+    var tVal = document.getElementById('psi-t-val');
+    var stepsEl = document.getElementById('psi-steps');
+    var formulaEl = document.getElementById('psi-formula');
+    var varEl = document.getElementById('psi-variance');
+    var hintEl = document.getElementById('psi-hint');
+    var mode = 'ret';
+
+    var modeInfo = {
+      ret:  { label:'R(τ) = Σ r_t', vrank:'Highest', bias:'None', hint:'Total trajectory reward. Every token weighted by the SAME number — even rewards from before t, which this action could not have influenced. Maximum noise.' },
+      rtg:  { label:'G_t = Σ_{t\'≥t} r_t\'', vrank:'High', bias:'None', hint:'Reward-to-go: drop rewards before t (an action can\'t affect the past). Same expected gradient, less noise.' },
+      base: { label:'G_t − b(s_t)', vrank:'Lower', bias:'None', hint:'Subtract a state-only baseline (here b = mean return). Centers the signal without changing the expected gradient.' },
+      q:    { label:'Q(s_t,a_t)', vrank:'Med', bias:'Depends', hint:'State-action value: expected return after taking a_t in s_t. Here approximated by G_t. Needs a model/estimate of Q.' },
+      adv:  { label:'A(s_t,a_t) = Q − V', vrank:'Lowest', bias:'None', hint:'Advantage: how much better than average from this state. With a good V this is the lowest-variance unbiased choice — the workhorse of PPO/GRPO.' },
+      td:   { label:'δ_t = r_t + γV(s_{t+1}) − V(s_t)', vrank:'Low', bias:'Some', hint:'TD residual: one-step advantage. Low variance (uses learned V) but biased if V is inaccurate. γ = 1 here.' }
+    };
+
+    function G(t){ // reward-to-go from t
+      var s = 0; for(var k=t;k<rewards.length;k++) s += rewards[k]; return s;
+    }
+    function Rtau(){ return sum(rewards); }
+    function baseline(){ // mean of all reward-to-go values across t (a state-only baseline)
+      var arr = []; for(var t=0;t<rewards.length;t++) arr.push(G(t)); return mean(arr);
+    }
+    function psiAt(t){
+      switch(mode){
+        case 'ret':  return Rtau();
+        case 'rtg':  return G(t);
+        case 'base': return G(t) - baseline();
+        case 'q':    return G(t); // Q ≈ realized return-to-go
+        case 'adv':  return G(t) - values[t];
+        case 'td':   return rewards[t] + (t+1<values.length?values[t+1]:0) - values[t];
+      }
+      return 0;
+    }
+    // variance of Ψ across timesteps (illustrative spread of the learning signal)
+    function psiSpread(){
+      var arr = []; for(var t=0;t<rewards.length;t++) arr.push(psiAt(t)); return std(arr);
+    }
+
+    function render(){
+      var t = parseInt(tSlider.value,10);
+      tVal.textContent = t;
+      var info = modeInfo[mode];
+      hintEl.textContent = info.hint;
+
+      // which reward steps feed Ψ_t in this mode
+      stepsEl.innerHTML = '';
+      rewards.forEach(function(r, i){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        var used = false;
+        if(mode==='ret') used = true;
+        else if(mode==='rtg' || mode==='base' || mode==='q' || mode==='adv') used = (i>=t);
+        else if(mode==='td') used = (i===t);
+        if(i===t) chip.classList.add('actionnow');
+        else if(used) chip.classList.add('state');
+        else chip.classList.add('future');
+        chip.textContent = 'r' + i + '=' + r.toFixed(1);
+        stepsEl.appendChild(chip);
+      });
+
+      var val = psiAt(t);
+      var detail;
+      switch(mode){
+        case 'ret':  detail = 'R(&tau;) = &Sigma; r = ' + Rtau().toFixed(2); break;
+        case 'rtg':  detail = 'G<sub>' + t + '</sub> = &Sigma;<sub>k&ge;' + t + '</sub> r<sub>k</sub> = ' + G(t).toFixed(2); break;
+        case 'base': detail = 'G<sub>' + t + '</sub> &minus; b = ' + G(t).toFixed(2) + ' &minus; ' + baseline().toFixed(2) + ' = ' + (G(t)-baseline()).toFixed(2); break;
+        case 'q':    detail = 'Q(s<sub>' + t + '</sub>,a<sub>' + t + '</sub>) &asymp; G<sub>' + t + '</sub> = ' + G(t).toFixed(2); break;
+        case 'adv':  detail = 'A = Q &minus; V = ' + G(t).toFixed(2) + ' &minus; ' + values[t].toFixed(2) + ' = ' + (G(t)-values[t]).toFixed(2); break;
+        case 'td':   detail = '&delta;<sub>' + t + '</sub> = r<sub>' + t + '</sub> + V(s<sub>' + (t+1) + '</sub>) &minus; V(s<sub>' + t + '</sub>) = ' +
+                       rewards[t].toFixed(1) + ' + ' + (t+1<values.length?values[t+1].toFixed(1):'0.0') + ' &minus; ' + values[t].toFixed(1) +
+                       ' = ' + val.toFixed(2); break;
+      }
+      formulaEl.innerHTML = '&Psi;<sub>t</sub> = ' + info.label + '<br><b>&Psi;<sub>' + t + '</sub> = ' + detail + '</b>';
+      varEl.innerHTML =
+        'variance rank: <b>' + info.vrank + '</b> &nbsp;|&nbsp; bias: <b>' + info.bias + '</b><br>' +
+        '<span style="color:var(--text-dim)">spread of &Psi; across timesteps (this rollout): </span>' + psiSpread().toFixed(3);
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        render();
+      });
+    });
+    tSlider.addEventListener('input', render);
+    document.getElementById('psi-reroll').addEventListener('click', function(){
+      rewards = rewards.map(function(){ return Math.round((Math.random()*1.4-0.4)*10)/10; });
+      // recompute a plausible decreasing V
+      var g = sum(rewards);
+      values = rewards.map(function(_, i){ return Math.max(0, G_from(i)); });
+      function G_from(i){ var s=0; for(var k=i;k<rewards.length;k++) s+=rewards[k]; return s; }
+      render();
+    });
+    render();
+  }
+
+  /* ---------------- 5B: RLOO leave-one-out ---------------- */
+  function initRLOO(){
+    var defaults = [0.8, 0.3, 0.6, 0.5];
+    var rewards = defaults.slice();
+    var slidersEl = document.getElementById('rloo-sliders');
+    var tbody = document.querySelector('#rloo-table tbody');
+    var formulaEl = document.getElementById('rloo-formula');
+
+    rewards.forEach(function(v, i){
+      var row = document.createElement('div');
+      row.className = 'slider-row';
+      row.innerHTML = '<label>R<sub>' + (i+1) + '</sub> = <span id="rloo-val-' + i + '">' + v.toFixed(2) + '</span></label>' +
+        '<input type="range" min="0" max="1" step="0.05" value="' + v + '" id="rloo-' + i + '">';
+      slidersEl.appendChild(row);
+    });
+
+    function render(){
+      var K = rewards.length;
+      tbody.innerHTML = '';
+      var advs = [];
+      rewards.forEach(function(R, k){
+        var others = rewards.filter(function(_, j){ return j !== k; });
+        var b = mean(others);
+        var adv = R - b;
+        advs.push(adv);
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="num">' + (k+1) + '</td>' +
+          '<td class="num">' + R.toFixed(2) + '</td>' +
+          '<td class="num">' + b.toFixed(3) + '</td>' +
+          '<td class="num" style="color:' + (adv>=0?'var(--accent-bright)':'var(--red)') + '">' + (adv>=0?'+':'') + adv.toFixed(3) + '</td>';
+        tbody.appendChild(tr);
+      });
+      formulaEl.innerHTML =
+        'b<sub>k</sub> = (1/(K&minus;1)) &Sigma;<sub>i&ne;k</sub> R<sub>i</sub> &nbsp;|&nbsp; &Acirc;<sub>k</sub> = R<sub>k</sub> &minus; b<sub>k</sub><br>' +
+        '&Sigma;<sub>k</sub> &Acirc;<sub>k</sub> = <b>' + sum(advs).toFixed(3) + '</b> ' +
+        '<span style="color:var(--text-dim)">(advantages sum to ~0 across the group)</span>';
+    }
+    rewards.forEach(function(_, i){
+      document.getElementById('rloo-' + i).addEventListener('input', function(e){
+        rewards[i] = parseFloat(e.target.value);
+        document.getElementById('rloo-val-' + i).textContent = rewards[i].toFixed(2);
+        render();
+      });
+    });
+    document.getElementById('rloo-reset').addEventListener('click', function(){
+      rewards = defaults.slice();
+      rewards.forEach(function(v, i){
+        document.getElementById('rloo-' + i).value = v;
+        document.getElementById('rloo-val-' + i).textContent = v.toFixed(2);
+      });
+      render();
+    });
+    render();
+  }
+
+  /* ---------------- 6A: KL penalty ---------------- */
+  function initKL(){
+    var betaSlider = document.getElementById('kl-beta');
+    var driftSlider = document.getElementById('kl-drift');
+    var rSlider = document.getElementById('kl-r');
+    var betaVal = document.getElementById('kl-beta-val');
+    var driftVal = document.getElementById('kl-drift-val');
+    var rVal = document.getElementById('kl-r-val');
+    var barsEl = document.getElementById('kl-bars');
+    var formulaEl = document.getElementById('kl-formula');
+    var hintEl = document.getElementById('kl-hint');
+
+    function render(){
+      var beta = parseFloat(betaSlider.value);
+      var drift = parseFloat(driftSlider.value);
+      var R = parseFloat(rSlider.value);
+      betaVal.textContent = beta.toFixed(2);
+      driftVal.textContent = drift.toFixed(2);
+      rVal.textContent = (R>=0?'+':'') + R.toFixed(1);
+
+      // KL per token grows with drift (toy: KL = drift^2 / 2, a standard small-step approx scale)
+      var klPerTok = drift*drift/2;
+      var penalty = beta * klPerTok;
+      // shaped final-token reward
+      var shaped = R - penalty;
+
+      // bars: raw reward, KL penalty, shaped objective
+      var vals = [
+        { label:'R(τ)', v:R, color:'var(--accent)' },
+        { label:'β·KL', v:-penalty, color:'var(--red)' },
+        { label:'r̃ = R−β·KL', v:shaped, color:'var(--orange)' }
+      ];
+      var maxAbs = Math.max(1, Math.max.apply(null, vals.map(function(x){ return Math.abs(x.v); })));
+      barsEl.innerHTML = '';
+      vals.forEach(function(item){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        var h = Math.abs(item.v)/maxAbs * 80; // px from center
+        var up = item.v >= 0;
+        col.innerHTML =
+          '<div style="flex:1;width:100%;position:relative;display:flex;align-items:center;justify-content:center;">' +
+            '<div style="position:absolute;top:50%;left:50%;transform:translateX(-50%)' + (up?' translateY(-100%)':'') + ';' +
+              'width:60%;height:' + h.toFixed(1) + 'px;background:' + item.color + ';border-radius:3px;"></div>' +
+            '<div style="position:absolute;top:50%;left:0;width:100%;border-top:1px dashed var(--border);"></div>' +
+          '</div>' +
+          '<div class="bar-label">' + item.label + '<br>' + (item.v>=0?'+':'') + item.v.toFixed(2) + '</div>';
+        barsEl.appendChild(col);
+      });
+
+      formulaEl.innerHTML =
+        'KL<sub>t</sub> = log &pi;<sub>&theta;</sub> &minus; log &pi;<sub>ref</sub> &asymp; <b>' + klPerTok.toFixed(3) + '</b> (grows with drift)<br>' +
+        'penalty &beta;&middot;KL = ' + beta.toFixed(2) + ' &times; ' + klPerTok.toFixed(3) + ' = <span class="neg">' + penalty.toFixed(3) + '</span><br>' +
+        'shaped final reward r&#771;<sub>T</sub> = R(&tau;) &minus; &beta;&middot;KL<sub>T</sub> = ' + R.toFixed(1) + ' &minus; ' + penalty.toFixed(3) +
+          ' = <b>' + shaped.toFixed(3) + '</b>';
+
+      var msg;
+      if(beta === 0) msg = 'β = 0: no anchor. The policy is free to drift arbitrarily far from π_ref — wide open to reward hacking (RLVR sometimes does this when rewards are ground truth).';
+      else if(penalty > Math.abs(R) && R>0) msg = 'The KL penalty now exceeds the raw reward — the optimizer is pulled back toward π_ref harder than the reward pushes it out. Drift will shrink.';
+      else msg = 'The penalty −β·KL pulls π_θ back toward the frozen π_ref. Bigger β or bigger drift ⇒ stronger pull. Intermediate tokens get r̃_t = −β·KL_t; only the last token also carries R(τ).';
+      hintEl.textContent = msg;
+    }
+    betaSlider.addEventListener('input', render);
+    driftSlider.addEventListener('input', render);
+    rSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 6B: Two old policies ---------------- */
+  function initTwoOld(){
+    var rows = [
+      ['What', 'Policy at the last rollout (or generation-time logprobs)', 'Policy at the start of RL training (the frozen SFT checkpoint)'],
+      ['Updates', 'Every batch (or every K steps)', 'Never — frozen for all of training'],
+      ['Used for', 'Importance-sampling ratio ρ_t = π_θ/π_old', 'KL penalty: pulls π_θ back toward the anchor'],
+      ['If dropped', 'Must take exactly 1 gradient step per batch (pure on-policy)', 'Risk of reward hacking — policy exploits RM imperfections']
+    ];
+    var details = [
+      'In many implementations "old logprobs" just means the logprobs computed at generation time — the model has been updated since, not a separate copy.',
+      'π_old must be re-synced to π_θ after each batch of updates; π_ref is loaded once and never touched.',
+      'ρ_t reweights old-policy samples so you can take multiple gradient steps on one batch; π_ref never enters the ratio.',
+      'PPO/GRPO use clipping on ρ_t (trust region) AND a KL term to π_ref — two different regularizers that are not redundant.'
+    ];
+    var tbody = document.querySelector('#twoold-table tbody');
+    rows.forEach(function(r, i){
+      var tr = document.createElement('tr');
+      tr.className = 'row';
+      tr.innerHTML = '<td><b>' + escapeHtml(r[0]) + '</b></td><td>' + escapeHtml(r[1]) + '</td><td>' + escapeHtml(r[2]) + '</td>';
+      var det = document.createElement('tr');
+      det.className = 'detail';
+      det.innerHTML = '<td colspan="3">' + escapeHtml(details[i]) + '</td>';
+      tr.addEventListener('click', function(){
+        var open = det.classList.contains('show');
+        tr.classList.toggle('sel', !open);
+        det.classList.toggle('show', !open);
+      });
+      tbody.appendChild(tr);
+      tbody.appendChild(det);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initMdpTimeline();
+    initMdpTable();
+    initPolicyGradient();
+    initLogDeriv();
+    initLogDerivSteps();
+    initBaseline();
+    initPsi();
+    initRLOO();
+    initKL();
+    initTwoOld();
+  });
+})();
+</script>
+
+</body>
+</html>
