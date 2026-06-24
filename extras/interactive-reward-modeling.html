@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reward Modeling — Interactive RLHF Course</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -203,6 +205,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -336,20 +362,27 @@
     <p class="group-intro">The canonical RLHF reward model attaches a small linear head to a language model so it outputs one scalar score per prompt–completion pair. It is trained on pairs of <i>chosen</i> and <i>rejected</i> completions, and the loss depends only on the <b>difference</b> of their scores. This is the foundation; a basics page covers it in depth, so we keep it tight here.</p>
 
     <article class="concept" id="bt-loss">
-      <h3>Pairwise loss: −log σ(r<sub>c</sub> − r<sub>r</sub>)</h3>
-      <p class="concept-desc">Bradley–Terry models the probability the judge prefers the chosen completion as <code>P(y_c ≻ y_r) = σ(r_c − r_r)</code>. Training minimizes <code>−log σ(r_c − r_r)</code>. Only the gap matters — add a constant to both scores and nothing changes. Drag the two reward-head outputs and watch the preference probability and loss respond.</p>
+      <h3>Pairwise loss: <span class="m" data-tex="-\log\sigma(r_c - r_r)"></span></h3>
+      <p class="concept-desc">Bradley–Terry turns a pair of scalar scores into the probability that the judge prefers the chosen completion. Training <b>minimizes the negative log-likelihood</b> of the preferences you collected — and only the <em>gap</em> between the two scores matters, so adding a constant to both changes nothing. Drag the two reward-head outputs and watch the preference probability and loss respond.</p>
+      <div class="eq" data-tex="P(y_c \succ y_r) = \sigma\!\left(r_c - r_r\right) \qquad\qquad \mathcal{L} = -\log\sigma\!\left(r_c - r_r\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_c,\ r_r"></span><span class="def">the scalar reward the model assigns the <b>c</b>hosen and <b>r</b>ejected answers, i.e. <span class="m" data-tex="r_\theta(y\mid x)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic sigmoid <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span>, squashing the score gap into a probability in <span class="m" data-tex="(0,1)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the loss being minimized — near 0 when the pair is ordered correctly, large when it is flipped</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Score of chosen, r<sub>c</sub> = r<sub>θ</sub>(y<sub>c</sub>|x) = <span id="bt-rc-val">1.50</span></label>
+          <label>Score of chosen, <span class="m" data-tex="r_c = r_\theta(y_c\mid x)"></span> = <span id="bt-rc-val">1.50</span></label>
           <input type="range" id="bt-rc" min="-4" max="4" step="0.05" value="1.5">
-          <label>Score of rejected, r<sub>r</sub> = r<sub>θ</sub>(y<sub>r</sub>|x) = <span id="bt-rr-val">-0.50</span></label>
+          <label>Score of rejected, <span class="m" data-tex="r_r = r_\theta(y_r\mid x)"></span> = <span id="bt-rr-val">-0.50</span></label>
           <input type="range" id="bt-rr" min="-4" max="4" step="0.05" value="-0.5">
-          <p class="hint">When r<sub>c</sub> &gt; r<sub>r</sub> the model orders the pair correctly and loss is small. Flip them and loss shoots up — the gradient pushes the chosen score up and the rejected score down.</p>
-          <div class="in-practice"><b>In practice</b> · the entire skill of preference data is producing pairs whose ordering you actually trust — when there is no clean label, your (y_c, y_r) choice <i>is</i> the reward spec.</div>
+          <p class="hint">When <span class="m" data-tex="r_c > r_r"></span> the model orders the pair correctly and loss is small. Flip them and loss shoots up — the gradient pushes the chosen score up and the rejected score down.</p>
+          <div class="in-practice"><b>In practice</b> · the entire skill of preference data is producing pairs whose ordering you actually trust — when there is no clean label, your <span class="m" data-tex="(y_c, y_r)"></span> choice <i>is</i> the reward spec.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 200" id="bt-plot"></svg>
-          <div class="formula-display" id="bt-formula"></div>
+          <div class="eq" id="bt-formula"></div>
+          <div class="eq-readout" id="bt-status"></div>
         </div>
       </div>
     </article>
@@ -541,6 +574,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -558,6 +605,7 @@
     var rrV = document.getElementById('bt-rr-val');
     var svg = document.getElementById('bt-plot');
     var formulaEl = document.getElementById('bt-formula');
+    var statusEl = document.getElementById('bt-status');
 
     // plot: loss as a function of delta = rc - rr, with marker
     var dom = [-6, 6], maxY = 6;
@@ -590,10 +638,14 @@
         '<text x="120" y="186" fill="var(--text-dim)" font-size="10">&Delta;=0</text>' +
         '<text x="280" y="186" fill="var(--text-dim)" font-size="10">&Delta;&gt;0</text>';
       var ordered = d > 0;
-      formulaEl.innerHTML =
-        '&Delta; = r<sub>c</sub> &minus; r<sub>r</sub> = ' + rc.toFixed(2) + ' &minus; (' + rr.toFixed(2) + ') = <b>' + d.toFixed(2) + '</b><br>' +
-        'P(y<sub>c</sub> &#8827; y<sub>r</sub>) = &sigma;(&Delta;) = <b>' + P.toFixed(3) + '</b> &nbsp;|&nbsp; ' +
-        '&#8466; = &minus;log &sigma;(&Delta;) = <b>' + loss.toFixed(3) + '</b><br>' +
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\Delta &= r_c - r_r = ' + rc.toFixed(2) + ' - (' + rr.toFixed(2) + ') = ' + d.toFixed(2) + ' \\\\ ' +
+        'P(y_c \\succ y_r) &= \\sigma(\\Delta) = ' + P.toFixed(3) +
+        ' \\qquad \\mathcal{L} = -\\log\\sigma(\\Delta) = ' + loss.toFixed(3) +
+        '\\end{aligned}',
+        true);
+      statusEl.innerHTML =
         '<span style="color:' + (ordered?'var(--accent-bright)':'var(--red)') + '">' +
         (ordered ? 'pair ordered correctly — low loss' : 'pair MIS-ordered — high loss, big gradient') + '</span>';
     }
@@ -1046,6 +1098,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initBT();
     initRubric();
     initJudgeBias();
