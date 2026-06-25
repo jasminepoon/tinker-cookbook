@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Synthetic Data & Modern Post-training — Interactive Lecture 7</title>
 <link rel="icon" href="data:,">
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -213,6 +215,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -334,16 +360,16 @@
 
     <article class="concept" id="word-seq">
       <h3>Word-level vs sequence-level distillation</h3>
-      <p class="concept-desc">Word-KD matches the teacher's <i>full</i> vocabulary distribution <code>q(·|s,u&lt;ⱼ)</code> at every position — soft labels, cost <code>O(J·|V|)</code>. Sequence-KD approximates the intractable sum over all sequences by the teacher's single high-probability output <code>û</code>, then trains the student with plain NLL — which is exactly SFT on teacher text. Toggle the mode and watch the loss target switch from a full soft distribution to a one-hot beam-search target.</p>
+      <p class="concept-desc">Word-KD matches the teacher's <i>full</i> vocabulary distribution <span class="m" data-tex="q(\cdot\mid s,u_{<j})"></span> at every position — soft labels, cost <span class="m" data-tex="O(J\cdot|V|)"></span>. Sequence-KD approximates the intractable sum over all sequences by the teacher's single high-probability output <span class="m" data-tex="\hat u"></span>, then trains the student with plain NLL — which is exactly SFT on teacher text. Toggle the mode and watch the loss target switch from a full soft distribution to a one-hot beam-search target.</p>
       <div class="panel">
         <div class="panel-controls">
           <div class="tabs" id="ws-tabs">
             <button data-mode="word" class="active">Word-KD (soft)</button>
             <button data-mode="seq">Sequence-KD (SFT)</button>
           </div>
-          <label>Token position j = <span id="ws-pos-val">2</span></label>
+          <label>Token position <span class="m" data-tex="j"></span> = <span id="ws-pos-val">2</span></label>
           <input type="range" id="ws-pos" min="0" max="4" step="1" value="2">
-          <label>Teacher temperature &tau; = <span id="ws-temp-val">1.5</span></label>
+          <label>Teacher temperature <span class="m" data-tex="\tau"></span> = <span id="ws-temp-val">1.5</span></label>
           <input type="range" id="ws-temp" min="0.3" max="3" step="0.1" value="1.5">
           <p class="hint" id="ws-hint"></p>
         </div>
@@ -351,19 +377,28 @@
           <div class="token-row" id="ws-tokens"></div>
           <div class="legend"><span class="lg-q">teacher q (soft target)</span><span class="lg-p">student p</span></div>
           <div class="bar-chart" id="ws-bars"></div>
-          <div class="formula-display" id="ws-formula"></div>
+          <div class="eq" id="ws-formula"></div>
+          <div class="eq-readout" id="ws-readout"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="fwd-rev">
       <h3>Forward vs reverse KL <span class="marquee-tag">MARQUEE</span></h3>
-      <p class="concept-desc">The whole point of "on-policy". Offline KD / SFT minimizes <b>forward</b> KL <code>D<sub>KL</sub>(π_T‖π_θ)</code> — the expectation is over the <i>teacher</i>, so it is <b>mass-covering</b>: the student must cover everything the teacher might say. On-policy distillation samples from the <i>student</i>, flipping to <b>reverse</b> KL <code>D<sub>KL</sub>(π_θ‖π_T)</code> — <b>mode-seeking</b>: it collapses onto the teacher's modes. Here <code>p</code> = a fixed bimodal teacher; drag the single-mode approximation <code>q</code> and snap it to each KL's optimum to see the contrast.</p>
+      <p class="concept-desc">The whole point of "on-policy". Offline KD / SFT minimizes <b>forward</b> KL <span class="m" data-tex="\mathrm{KL}(\pi_T\,\Vert\,\pi_\theta)"></span> — the expectation is over the <i>teacher</i>, so it is <b>mass-covering</b>: the student must cover everything the teacher might say. On-policy distillation samples from the <i>student</i>, flipping to <b>reverse</b> KL <span class="m" data-tex="\mathrm{KL}(\pi_\theta\,\Vert\,\pi_T)"></span> — <b>mode-seeking</b>: it collapses onto the teacher's modes. Here <span class="m" data-tex="p"></span> = a fixed bimodal teacher; drag the single-mode approximation <span class="m" data-tex="q"></span> and snap it to each KL's optimum to see the contrast.</p>
+      <div class="eq" data-tex="\underbrace{\mathrm{KL}(p\,\Vert\,q) = \mathbb{E}_{x\sim p}\!\left[\log\frac{p(x)}{q(x)}\right]}_{\text{forward · mass-covering}} \qquad\qquad \underbrace{\mathrm{KL}(q\,\Vert\,p) = \mathbb{E}_{x\sim q}\!\left[\log\frac{q(x)}{p(x)}\right]}_{\text{reverse · mode-seeking}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\mathrm{KL}"></span><span class="def">the Kullback–Leibler divergence — a non-negative, asymmetric measure of how one distribution differs from another; zero only when the two are equal</span></div>
+        <div class="row"><span class="sym" data-tex="p"></span><span class="def">the teacher distribution <span class="m" data-tex="\pi_T"></span> (here a fixed bimodal target)</span></div>
+        <div class="row"><span class="sym" data-tex="q"></span><span class="def">the student / approximating distribution <span class="m" data-tex="\pi_\theta"></span> being fit</span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}_{x\sim p}"></span><span class="def">expectation over samples from <span class="m" data-tex="p"></span>: forward KL averages under the teacher (penalizes leaving teacher mass uncovered)</span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}_{x\sim q}"></span><span class="def">expectation over samples from <span class="m" data-tex="q"></span>: reverse KL averages under the student (penalizes putting mass where the teacher has none)</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>q mean &mu; = <span id="kl-mu-val">0.00</span></label>
+          <label><span class="m" data-tex="q"></span> mean <span class="m" data-tex="\mu"></span> = <span id="kl-mu-val">0.00</span></label>
           <input type="range" id="kl-mu" min="-4" max="4" step="0.05" value="0">
-          <label>q std &sigma; = <span id="kl-sig-val">1.50</span></label>
+          <label><span class="m" data-tex="q"></span> std <span class="m" data-tex="\sigma"></span> = <span id="kl-sig-val">1.50</span></label>
           <input type="range" id="kl-sig" min="0.3" max="4.2" step="0.05" value="1.5">
           <button id="kl-snap-fwd">Snap to forward-KL optimum</button>
           <button id="kl-snap-rev">Snap to reverse-KL optimum</button>
@@ -371,7 +406,8 @@
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 400 220" id="kl-plot"></svg>
-          <div class="formula-display" id="kl-formula"></div>
+          <div class="eq" id="kl-formula"></div>
+          <div class="eq-readout" id="kl-readout"></div>
         </div>
       </div>
     </article>
@@ -380,16 +416,23 @@
   <!-- ============ SECTION 2: ON-POLICY DISTILLATION ============ -->
   <section class="group" id="opd">
     <div class="group-header"><span class="group-index">02</span><h2>The path to on-policy distillation</h2></div>
-    <p class="group-intro">Offline KD trains on <i>teacher</i> trajectories, but at test time the student rolls out under its <i>own</i> policy — a train/test state mismatch called <b>exposure bias</b>. On-policy distillation (the DAgger move) samples from the student and lets the teacher score its own visited states, dropping compounding error from O(εL²) to O(εL). The per-token teacher log-ratio then becomes a dense RL advantage.</p>
+    <p class="group-intro">Offline KD trains on <i>teacher</i> trajectories, but at test time the student rolls out under its <i>own</i> policy — a train/test state mismatch called <b>exposure bias</b>. On-policy distillation (the DAgger move) samples from the student and lets the teacher score its own visited states, dropping compounding error from <span class="m" data-tex="O(\varepsilon L^2)"></span> to <span class="m" data-tex="O(\varepsilon L)"></span>. The per-token teacher log-ratio then becomes a dense RL advantage.</p>
+    <div class="eq" data-tex="\mathcal{L}_{\mathrm{OPD}}(\theta) = \mathbb{E}_{x\sim\mathcal{D}}\,\mathbb{E}_{y\sim\pi_\theta(\cdot\mid x)}\!\left[\sum_{t}\log\frac{\pi_\theta(a_t\mid s_t)}{\pi_T(a_t\mid s_t)}\right] = \mathbb{E}_{x\sim\mathcal{D}}\big[\mathrm{KL}\big(\pi_\theta\,\Vert\,\pi_T\big)\big]"></div>
+    <div class="symbol-key">
+      <div class="row"><span class="sym" data-tex="\pi_\theta,\ \pi_T"></span><span class="def">the trainable student policy and the frozen teacher policy</span></div>
+      <div class="row"><span class="sym" data-tex="y\sim\pi_\theta"></span><span class="def">responses sampled <em>on-policy</em> from the student — this is what makes the objective a reverse KL</span></div>
+      <div class="row"><span class="sym" data-tex="s_t,\ a_t"></span><span class="def">the state (prefix) and action (token) at step <span class="m" data-tex="t"></span> along the student's own rollout</span></div>
+      <div class="row"><span class="sym" data-tex="\mathrm{KL}(\pi_\theta\,\Vert\,\pi_T)"></span><span class="def">the per-prompt reverse KL the student minimizes — mode-seeking, evaluated at the student's visited states</span></div>
+    </div>
 
     <article class="concept" id="exposure">
       <h3>Exposure bias &amp; the DAgger analogy: compounding error</h3>
-      <p class="concept-desc">Off-policy: the student is trained only on teacher prefixes, so its <i>first</i> mistake pushes it out-of-distribution, where it has never been supervised — errors compound, scaling like <code>O(εL²)</code>. On-policy: the student is supervised at <i>its own</i> visited states, so a slip is corrected next step — error stays bounded, <code>O(εL)</code>. Drag the trajectory length and per-step error and step through a rollout to watch the off-policy student drift after its first error.</p>
+      <p class="concept-desc">Off-policy: the student is trained only on teacher prefixes, so its <i>first</i> mistake pushes it out-of-distribution, where it has never been supervised — errors compound, scaling like <span class="m" data-tex="O(\varepsilon L^2)"></span>. On-policy: the student is supervised at <i>its own</i> visited states, so a slip is corrected next step — error stays bounded, <span class="m" data-tex="O(\varepsilon L)"></span>. Drag the trajectory length and per-step error and step through a rollout to watch the off-policy student drift after its first error.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>Trajectory length L = <span id="ex-len-val">12</span></label>
+          <label>Trajectory length <span class="m" data-tex="L"></span> = <span id="ex-len-val">12</span></label>
           <input type="range" id="ex-len" min="3" max="20" step="1" value="12">
-          <label>Per-step error &epsilon; = <span id="ex-eps-val">0.12</span></label>
+          <label>Per-step error <span class="m" data-tex="\varepsilon"></span> = <span id="ex-eps-val">0.12</span></label>
           <input type="range" id="ex-eps" min="0.02" max="0.4" step="0.01" value="0.12">
           <button id="ex-step">Roll one step ▶</button>
           <button id="ex-reset">Reset rollout</button>
@@ -406,25 +449,26 @@
           </div>
           <div class="legend"><span class="lg-on">on-track</span><span class="lg-q">teacher-corrected</span><span class="lg-off">drifted / OOD</span></div>
           <svg class="plot" viewBox="0 0 400 160" id="ex-plot"></svg>
-          <div class="formula-display" id="ex-formula"></div>
+          <div class="eq-readout" id="ex-formula"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="advantage">
       <h3>KD as an RL advantage</h3>
-      <p class="concept-desc">On-policy distillation lives in the policy-gradient framework: take the per-token reverse-KL contribution directly as the advantage. For a student-sampled token <code>aₜ</code> at state <code>sₜ</code>, <code>A<sub>t</sub><sup>OPD</sup> = log π_T(aₜ|sₜ) − log π_θ(aₜ|sₜ)</code>. Tokens the teacher likes more than the student get positive advantage; tokens it likes less get negative. This is dense, token-level feedback — richer than one sparse scalar reward. Drag the two log-probs and watch the advantage and its sign flip.</p>
+      <p class="concept-desc">On-policy distillation lives in the policy-gradient framework: take the per-token reverse-KL contribution directly as the advantage. For a student-sampled token <span class="m" data-tex="a_t"></span> at state <span class="m" data-tex="s_t"></span>, <span class="m" data-tex="A_t^{\mathrm{OPD}} = \log\pi_T(a_t\mid s_t) - \log\pi_\theta(a_t\mid s_t)"></span>. Tokens the teacher likes more than the student get positive advantage; tokens it likes less get negative. This is dense, token-level feedback — richer than one sparse scalar reward. Drag the two log-probs and watch the advantage and its sign flip.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>Teacher log π_T(aₜ|sₜ) = <span id="adv-t-val">-0.50</span></label>
+          <label>Teacher <span class="m" data-tex="\log\pi_T(a_t\mid s_t)"></span> = <span id="adv-t-val">-0.50</span></label>
           <input type="range" id="adv-t" min="-5" max="-0.05" step="0.05" value="-0.5">
-          <label>Student log π_θ(aₜ|sₜ) = <span id="adv-s-val">-1.50</span></label>
+          <label>Student <span class="m" data-tex="\log\pi_\theta(a_t\mid s_t)"></span> = <span id="adv-s-val">-1.50</span></label>
           <input type="range" id="adv-s" min="-5" max="-0.05" step="0.05" value="-1.5">
           <p class="hint" id="adv-hint"></p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 180" id="adv-plot"></svg>
-          <div class="formula-display" id="adv-formula"></div>
+          <div class="eq" id="adv-formula"></div>
+          <div class="eq-readout" id="adv-readout"></div>
         </div>
       </div>
     </article>
@@ -433,14 +477,20 @@
   <!-- ============ SECTION 3: AI FEEDBACK & CAI ============ -->
   <section class="group" id="cai">
     <div class="group-header"><span class="group-index">03</span><h2>AI feedback &amp; Constitutional AI</h2></div>
-    <p class="group-intro">RLAIF replaces the human-data step with AI: AI preference labels cost &lt;$0.01/prompt vs $1–$10+ for humans. Constitutional AI (CAI ⊂ RLAIF) was the earliest large-scale synthetic-RLHF method: a model critiques and revises its own answers against a written constitution (Stage 1 → SFT), then AI preference labels drive RL (Stage 2). Rubrics extend this to prompt-specific, near-verifiable criteria.</p>
+    <p class="group-intro">RLAIF replaces the human-data step with AI: AI preference labels cost &lt;$0.01/prompt vs $1–$10+ for humans. Constitutional AI (CAI <span class="m" data-tex="\subset"></span> RLAIF) was the earliest large-scale synthetic-RLHF method: a model critiques and revises its own answers against a written constitution (Stage 1 → SFT), then AI preference labels drive RL (Stage 2). Rubrics extend this to prompt-specific, near-verifiable criteria.</p>
+    <div class="eq" data-tex="P_{\mathrm{AI}}(y_w\succ y_l\mid x) = \sigma\big(r_{\mathrm{AI}}(x,y_w) - r_{\mathrm{AI}}(x,y_l)\big)"></div>
+    <div class="symbol-key">
+      <div class="row"><span class="sym" data-tex="r_{\mathrm{AI}}"></span><span class="def">the reward / score an AI labeler assigns a response — replaces the human label in the RLHF pipeline (this is the "AI" in RLAIF)</span></div>
+      <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic sigmoid <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span> turning the AI-score gap into a preference probability — same Bradley–Terry form as human RLHF</span></div>
+      <div class="row"><span class="sym" data-tex="y_w,\ y_l"></span><span class="def">the AI-preferred (winning) and AI-dispreferred (losing) responses to prompt <span class="m" data-tex="x"></span></span></div>
+    </div>
 
     <article class="concept" id="cai-loop">
       <h3>Constitutional AI: the critique → revise loop</h3>
-      <p class="concept-desc">Stage 1 of CAI. The model drafts a response, samples a principle <code>cᵢ</code> from the constitution, critiques its latest draft against that principle, and revises. Repeating <code>{c₀,…,c<sub>n−1</sub>} → {y⁰,…,yⁿ}</code> yields one SFT point <code>(x, yⁿ)</code> — the refined final answer. Pick a principle and step the loop; watch the draft get progressively safer/more aligned.</p>
+      <p class="concept-desc">Stage 1 of CAI. The model drafts a response, samples a principle <span class="m" data-tex="c_i"></span> from the constitution, critiques its latest draft against that principle, and revises. Repeating <span class="m" data-tex="\{c_0,\dots,c_{n-1}\}\to\{y^0,\dots,y^n\}"></span> yields one SFT point <span class="m" data-tex="(x, y^n)"></span> — the refined final answer. Pick a principle and step the loop; watch the draft get progressively safer/more aligned.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>Constitutional principle cᵢ</label>
+          <label>Constitutional principle <span class="m" data-tex="c_i"></span></label>
           <div class="tabs" id="cai-principles"></div>
           <button id="cai-step">Critique &amp; revise ▶</button>
           <button id="cai-reset">Reset to red-teamed draft</button>
@@ -448,19 +498,27 @@
         </div>
         <div class="panel-viz">
           <div id="cai-cards" style="display:flex;flex-direction:column;gap:10px;"></div>
-          <div class="formula-display" id="cai-formula"></div>
+          <div class="eq" id="cai-formula"></div>
+          <div class="eq-readout" id="cai-readout"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="biasvar">
       <h3>The bias–variance tradeoff: human vs AI feedback</h3>
-      <p class="concept-desc">A colloquial rule of thumb from the early RLHF-vs-RLAIF debates. <b>Human</b> preference data is <i>high-noise, low-bias</i>: each label is wobbly, but the signal is unbiased and reliable once aggregated. <b>AI</b> feedback is <i>low-noise, high-bias</i>: cheap and consistent, but with systematic errors baked in (e.g. self-preference bias). Mix them: route hard points to humans, most to AI. Drag the mix and watch the expected squared error decompose into bias² + variance.</p>
+      <p class="concept-desc">A colloquial rule of thumb from the early RLHF-vs-RLAIF debates. <b>Human</b> preference data is <i>high-noise, low-bias</i>: each label is wobbly, but the signal is unbiased and reliable once aggregated. <b>AI</b> feedback is <i>low-noise, high-bias</i>: cheap and consistent, but with systematic errors baked in (e.g. self-preference bias). Mix them: route hard points to humans, most to AI. Drag the mix and watch the expected squared error decompose into <span class="m" data-tex="\text{bias}^2 + \text{variance}"></span>.</p>
+      <div class="eq" data-tex="\mathbb{E}\big[(\hat y - y)^2\big] = \underbrace{\big(\alpha\,b_{\mathrm{AI}} + (1-\alpha)\,b_{\mathrm{H}}\big)^2}_{\text{bias}^2} + \underbrace{\frac{\alpha\,\sigma^2_{\mathrm{AI}} + (1-\alpha)\,\sigma^2_{\mathrm{H}}}{N}}_{\text{variance}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\alpha"></span><span class="def">the fraction of labels drawn from AI feedback (<span class="m" data-tex="1-\alpha"></span> from humans)</span></div>
+        <div class="row"><span class="sym" data-tex="b_{\mathrm{AI}},\ b_{\mathrm{H}}"></span><span class="def">the systematic bias of AI vs human labels — AI carries a non-zero bias, humans are ~unbiased</span></div>
+        <div class="row"><span class="sym" data-tex="\sigma^2_{\mathrm{AI}},\ \sigma^2_{\mathrm{H}}"></span><span class="def">per-label noise variance — AI is low-variance, humans are high-variance</span></div>
+        <div class="row"><span class="sym" data-tex="N"></span><span class="def">number of labels averaged per point: variance falls like <span class="m" data-tex="1/N"></span>, but bias does not average away</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Fraction routed to AI feedback = <span id="bv-frac-val">0.70</span></label>
+          <label>Fraction routed to AI feedback <span class="m" data-tex="\alpha"></span> = <span id="bv-frac-val">0.70</span></label>
           <input type="range" id="bv-frac" min="0" max="1" step="0.01" value="0.7">
-          <label>Number of labels per point N = <span id="bv-n-val">8</span></label>
+          <label>Number of labels per point <span class="m" data-tex="N"></span> = <span id="bv-n-val">8</span></label>
           <input type="range" id="bv-n" min="1" max="40" step="1" value="8">
           <button id="bv-opt">Snap to error-minimizing mix</button>
           <p class="hint" id="bv-hint"></p>
@@ -468,14 +526,15 @@
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="bv-plot"></svg>
-          <div class="formula-display" id="bv-formula"></div>
+          <div class="eq" id="bv-formula"></div>
+          <div class="eq-readout" id="bv-readout"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="rubric">
       <h3>Rubrics: prompt-specific AI feedback</h3>
-      <p class="concept-desc">For prompts with no single right answer, score completions against tagged criteria. <code>[Hard Rule]</code> items are atomic must-pass checks; <code>[Principle]</code> items are softer quality criteria. The total rubric score sums the satisfied items' weights — RL then updates toward the best-scoring answers. Toggle which criteria a candidate answer satisfies and watch the score and pass/fail verdict update.</p>
+      <p class="concept-desc">For prompts with no single right answer, score completions against tagged criteria. <code>[Hard Rule]</code> items are atomic must-pass checks; <code>[Principle]</code> items are softer quality criteria. The total rubric score <span class="m" data-tex="\sum_i w_i\,[\,\text{satisfied}_i\,]"></span> sums the satisfied items' weights — RL then updates toward the best-scoring answers. Toggle which criteria a candidate answer satisfies and watch the score and pass/fail verdict update.</p>
       <div class="panel">
         <div class="panel-controls">
           <div id="rub-items"></div>
@@ -486,7 +545,8 @@
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="rub-bars" style="height:150px;"></div>
-          <div class="formula-display" id="rub-formula"></div>
+          <div class="eq" id="rub-formula"></div>
+          <div class="eq-readout" id="rub-readout"></div>
         </div>
       </div>
     </article>
@@ -505,6 +565,19 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -550,6 +623,7 @@
     var tokensEl = document.getElementById('ws-tokens');
     var barsEl = document.getElementById('ws-bars');
     var formulaEl = document.getElementById('ws-formula');
+    var readoutEl = document.getElementById('ws-readout');
     var hintEl = document.getElementById('ws-hint');
 
     function render(){
@@ -595,15 +669,17 @@
       if(mode === 'word'){
         // word-KD loss at this position: cross-entropy H(q,p) = -sum q log p
         var wkd = -sum(q.map(function(qi,i){ return qi*Math.log(p[i]); }));
-        formulaEl.innerHTML =
-          'L<sub>WORD-KD</sub>(j=' + pos + ') = &minus;&Sigma;<sub>k</sub> q(u<sub>j</sub>=k) log p(u<sub>j</sub>=k) = <b>' + wkd.toFixed(3) + '</b> nats<br>' +
-          '<span style="color:var(--text-dim)">matches the full soft distribution over |V|=' + vocab.length + ' tokens · cost O(J&middot;|V|)</span>';
+        tex(formulaEl,
+          '\\mathcal{L}_{\\text{WORD-KD}}(j=' + pos + ') = -\\sum_k q(u_j=k)\\,\\log p(u_j=k) = ' + wkd.toFixed(3) + '\\ \\text{nats}',
+          true);
+        readoutEl.innerHTML = 'matches the full soft distribution over ' + escapeHtml('|V|=' + vocab.length) + ' tokens · cost ' + escapeHtml('O(J·|V|)');
         hintEl.innerHTML = 'Word-KD matches the teacher’s <b>full</b> soft distribution at every position. Lower &tau; sharpens the teacher target; higher &tau; exposes relationships between low-probability tokens (Hinton soft labels).';
       } else {
         var seqLoss = -Math.log(p[qHard]); // NLL on beam-search token
-        formulaEl.innerHTML =
-          'L<sub>SEQ-KD</sub> &asymp; &minus;log p(û<sub>j</sub>=&quot;' + vocab[qHard] + '&quot;) = <b>' + seqLoss.toFixed(3) + '</b> nats<br>' +
-          '<span style="color:var(--text-dim)">teacher ≈ point mass on its beam-search token û → plain NLL = SFT on teacher text</span>';
+        tex(formulaEl,
+          '\\mathcal{L}_{\\text{SEQ-KD}} \\approx -\\log p\\big(\\hat u_j=\\text{``' + vocab[qHard] + '\'\'}\\big) = ' + seqLoss.toFixed(3) + '\\ \\text{nats}',
+          true);
+        readoutEl.innerHTML = 'teacher ≈ point mass on its beam-search token ' + escapeHtml('û') + ' → plain NLL = SFT on teacher text';
         hintEl.innerHTML = 'Sequence-KD replaces the soft target with the teacher’s single high-probability output û = BeamSearch<sub>q</sub>(s). The student then just does ordinary NLL on it — i.e. SFT — which minimizes the <b>forward</b> KL D<sub>KL</sub>(q‖p).';
       }
     }
@@ -628,6 +704,7 @@
     var sigVal = document.getElementById('kl-sig-val');
     var svg = document.getElementById('kl-plot');
     var formulaEl = document.getElementById('kl-formula');
+    var readoutEl = document.getElementById('kl-readout');
     var hintEl = document.getElementById('kl-hint');
 
     // fixed bimodal teacher p on a grid
@@ -697,9 +774,14 @@
         '<text x="' + xToPx(0).toFixed(1) + '" y="' + (PAD+2) + '" fill="var(--accent-bright)" font-size="10" text-anchor="middle">p (teacher, bimodal)</text>' +
         '<text x="' + xToPx(mu).toFixed(1) + '" y="' + (yToPx(Math.max.apply(null,q))-4).toFixed(1) + '" fill="var(--orange)" font-size="10" text-anchor="middle">q</text>';
 
-      formulaEl.innerHTML =
-        'Forward <b>D<sub>KL</sub>(p&Vert;q)</b> = <b>' + fkl.toFixed(3) + '</b> <span style="color:var(--text-dim)">(mass-covering / mean-seeking)</span><br>' +
-        'Reverse <b>D<sub>KL</sub>(q&Vert;p)</b> = <b>' + rkl.toFixed(3) + '</b> <span style="color:var(--text-dim)">(mode-seeking)</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\mathrm{KL}(p\\,\\Vert\\,q) &= ' + fkl.toFixed(3) + ' \\quad \\text{(forward · mass-covering)} \\\\[2pt] ' +
+        '\\mathrm{KL}(q\\,\\Vert\\,p) &= ' + rkl.toFixed(3) + ' \\quad \\text{(reverse · mode-seeking)}' +
+        '\\end{aligned}',
+        true);
+      readoutEl.innerHTML =
+        'forward KL = <b>' + fkl.toFixed(3) + '</b> &nbsp;|&nbsp; reverse KL = <b>' + rkl.toFixed(3) + '</b>';
 
       var near = function(o){ return Math.abs(mu-o.mu)<0.25 && Math.abs(s-o.sig)<0.25; };
       if(near(optFwd)){
@@ -849,6 +931,7 @@
     var sVal = document.getElementById('adv-s-val');
     var plot = document.getElementById('adv-plot');
     var formulaEl = document.getElementById('adv-formula');
+    var readoutEl = document.getElementById('adv-readout');
     var hintEl = document.getElementById('adv-hint');
 
     function render(){
@@ -875,9 +958,14 @@
         '<text x="'+(W-PAD)+'" y="'+(H-PAD+14)+'" fill="var(--accent)" font-size="10" text-anchor="end">A&gt;0 (teacher prefers)</text>' +
         '<text x="'+aX.toFixed(1)+'" y="'+(midY-22)+'" fill="var(--orange)" font-size="11" text-anchor="middle">A = '+A.toFixed(2)+'</text>';
 
-      formulaEl.innerHTML =
-        'A<sub>t</sub><sup>OPD</sup> = log π_T(a<sub>t</sub>) − log π_θ(a<sub>t</sub>) = (' + lt.toFixed(2) + ') − (' + ls.toFixed(2) + ') = <b>' + A.toFixed(2) + '</b><br>' +
-        '<span style="color:var(--text-dim)">= −D<sub>KL</sub> contribution of this token · ∇J ≈ A<sub>t</sub><sup>OPD</sup>&middot;∇log π_θ(a<sub>t</sub>) (policy gradient)</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'A_t^{\\mathrm{OPD}} &= \\log\\pi_T(a_t) - \\log\\pi_\\theta(a_t) = (' + lt.toFixed(2) + ') - (' + ls.toFixed(2) + ') = ' + A.toFixed(2) + ' \\\\[2pt] ' +
+        '\\nabla_\\theta J &\\approx A_t^{\\mathrm{OPD}}\\,\\nabla_\\theta\\log\\pi_\\theta(a_t) \\quad \\text{(policy gradient)}' +
+        '\\end{aligned}',
+        true);
+      readoutEl.innerHTML = escapeHtml('A = ') + '<b>' + A.toFixed(2) + '</b> &mdash; ' +
+        escapeHtml('negative per-token reverse-KL contribution');
 
       if(A > 0.05){
         hintEl.innerHTML = 'The <b>teacher</b> assigns this token higher probability than the student → <b>positive advantage</b>: the policy gradient pushes π_θ to <i>increase</i> it. Dense, per-token signal — every token gets a reward, unlike a single sparse scalar.';
@@ -917,6 +1005,7 @@
     var principlesEl = document.getElementById('cai-principles');
     var cardsEl = document.getElementById('cai-cards');
     var formulaEl = document.getElementById('cai-formula');
+    var readoutEl = document.getElementById('cai-readout');
     var hintEl = document.getElementById('cai-hint');
     var current = principles[0];
     var revisionStep = 0; // 0 = red-teamed draft, up to drafts.length-1
@@ -951,10 +1040,12 @@
       if(!critiqued) crit.classList.add('faded');
       cardsEl.appendChild(crit);
 
-      formulaEl.innerHTML =
-        '{c<sub>0</sub>,…,c<sub>n−1</sub>} → {y<sup>0</sup>,…,y<sup>n</sup>} &rArr; SFT point (x, y<sup>n</sup>)<br>' +
-        '<span style="color:var(--text-dim)">principle: ' + escapeHtml(current.label) + ' · revision ' + revisionStep + ' / ' + maxStep + ' · ' +
-        (revisionStep>=maxStep ? '<b>final yⁿ → added to SFT set</b>' : 'keep revising') + '</span>';
+      tex(formulaEl,
+        '\\{c_0,\\dots,c_{n-1}\\} \\to \\{y^0,\\dots,y^n\\} \\;\\Rightarrow\\; \\text{SFT point } (x, y^n)',
+        true);
+      readoutEl.innerHTML =
+        'principle: ' + escapeHtml(current.label) + ' · revision ' + revisionStep + ' / ' + maxStep + ' · ' +
+        (revisionStep>=maxStep ? '<b>final yⁿ → added to SFT set</b>' : 'keep revising');
 
       if(revisionStep >= maxStep){
         hintEl.innerHTML = 'The draft now complies with <b>' + escapeHtml(current.label) + '</b>. The final revision yⁿ becomes the SFT target (x, yⁿ). In full CAI the model loops over <i>many</i> sampled principles before settling. Stage 2 then builds AI preference labels for RLAIF.';
@@ -977,6 +1068,7 @@
     var nVal = document.getElementById('bv-n-val');
     var plot = document.getElementById('bv-plot');
     var formulaEl = document.getElementById('bv-formula');
+    var readoutEl = document.getElementById('bv-readout');
     var hintEl = document.getElementById('bv-hint');
 
     // human: high variance per-label, ~zero bias. AI: low variance, fixed bias.
@@ -1041,9 +1133,12 @@
         '<text x="'+(W-PAD-78)+'" y="'+(PAD+10)+'" fill="var(--orange)" font-size="9">bias² (AI)</text>' +
         '<text x="'+(W-PAD-78)+'" y="'+(PAD+22)+'" fill="var(--accent)" font-size="9">variance/N (human)</text>';
 
-      formulaEl.innerHTML =
-        'E[(ŷ−y)²] = bias² + variance = <b>' + e.bias2.toFixed(3) + '</b> + <b>' + e.variance.toFixed(3) + '</b> = <b>' + e.total.toFixed(3) + '</b><br>' +
-        '<span style="color:var(--text-dim)">AI: low var (' + aiVar + ') / high bias (' + aiBias + ') &middot; Human: high var (' + humanVar + ') / ~0 bias &middot; N=' + N + '</span>';
+      tex(formulaEl,
+        '\\mathbb{E}\\big[(\\hat y - y)^2\\big] = \\text{bias}^2 + \\text{variance} = ' +
+        e.bias2.toFixed(3) + ' + ' + e.variance.toFixed(3) + ' = ' + e.total.toFixed(3),
+        true);
+      readoutEl.innerHTML =
+        escapeHtml('AI: low var (' + aiVar + ') / high bias (' + aiBias + ') · Human: high var (' + humanVar + ') / ~0 bias · N=' + N);
 
       if(Math.abs(frac-bf)<0.03){
         hintEl.innerHTML = 'Near the <b>error-minimizing mix</b> for N=' + N + ': roughly ' + Math.round(bf*100) + '% AF. As you collect <b>more</b> labels (raise N), variance shrinks and the optimum shifts toward <b>more human</b> data — because the bias of AI feedback no longer averages away.';
@@ -1073,6 +1168,7 @@
     var itemsEl = document.getElementById('rub-items');
     var barsEl = document.getElementById('rub-bars');
     var formulaEl = document.getElementById('rub-formula');
+    var readoutEl = document.getElementById('rub-readout');
 
     function buildControls(){
       itemsEl.innerHTML = '';
@@ -1120,8 +1216,10 @@
         barsEl.appendChild(col);
       });
 
-      formulaEl.innerHTML =
-        'Rubric score = &Sigma; w<sub>i</sub>·[satisfied] = <b>' + score + '</b> / ' + maxScore + '<br>' +
+      tex(formulaEl,
+        '\\text{Rubric score} = \\sum_i w_i\\,[\\,\\text{satisfied}_i\\,] = ' + score + ' \\,/\\, ' + maxScore,
+        true);
+      readoutEl.innerHTML =
         '<span style="color:' + (hardAllPass?'var(--accent-bright)':'var(--orange)') + '">' +
         (hardAllPass ? 'All [Hard Rule]s pass — valid answer; principles add ' + (score - sum(items.filter(function(x){return x.hard;}).map(function(x){return x.w;}))) + ' quality points.'
                      : 'A [Hard Rule] failed — invalid answer (RL should down-weight it regardless of principle score).') + '</span>';
@@ -1133,6 +1231,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initWordSeq();
     initForwardReverseKL();
     initExposure();

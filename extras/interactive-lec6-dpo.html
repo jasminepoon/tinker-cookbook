@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Direct Preference Optimization — Interactive Lecture 6</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -204,6 +206,33 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  .eq-readout .pos{ color:var(--accent-bright); }
+  .eq-readout .neg{ color:var(--pink); }
+  .eq-readout .dim{ color:var(--text-dim); }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -318,7 +347,7 @@
   <!-- ============ SECTION A: SETUP ============ -->
   <section class="group" id="setup">
     <div class="group-header"><span class="group-index">01</span><h2>The Promise of DPO</h2></div>
-    <p class="group-intro">Classic RLHF has three moving parts: collect preference pairs, train a reward model <code>r<sub>φ</sub>(x,y)</code>, then optimize the policy against it with RL (e.g. PPO) under a KL penalty. DPO collapses steps 2 and 3 into <b>one supervised-style loss</b>. The key realization we will prove: the optimal RLHF policy and the reward model are two views of the <i>same</i> object — know one, and you know the other in closed form.</p>
+    <p class="group-intro">Classic RLHF has three moving parts: collect preference pairs, train a reward model <span class="m" data-tex="r_\phi(x,y)"></span>, then optimize the policy against it with RL (e.g. PPO) under a KL penalty. DPO collapses steps 2 and 3 into <b>one supervised-style loss</b>. The key realization we will prove: the optimal RLHF policy and the reward model are two views of the <i>same</i> object — know one, and you know the other in closed form.</p>
 
     <article class="concept" id="pipeline">
       <h3>Where DPO sits: collapsing the pipeline</h3>
@@ -333,7 +362,7 @@
         </div>
         <div class="panel-viz">
           <div id="pipe-stages" style="display:flex;flex-direction:column;gap:10px;"></div>
-          <div class="formula-display" id="pipe-formula"></div>
+          <div class="eq" id="pipe-formula"></div>
         </div>
       </div>
     </article>
@@ -372,21 +401,30 @@
   <!-- ============ SECTION C: OPTIMAL POLICY ============ -->
   <section class="group" id="policy">
     <div class="group-header"><span class="group-index">03</span><h2>The Optimal Policy</h2></div>
-    <p class="group-intro">The RLHF objective's closed-form solution is <code>π*(y|x) = (1/Z(x)) · π<sub>ref</sub>(y|x) · exp(r(x,y)/β)</code>: take the reference policy and reweight each response by <code>e<sup>r/β</sup></code>, then renormalize with the partition function <code>Z(x)</code>. β controls how aggressive that reweighting is.</p>
+    <p class="group-intro">The RLHF objective's closed-form solution takes the reference policy and reweights each response by <span class="m" data-tex="e^{r/\beta}"></span>, then renormalizes with the partition function <span class="m" data-tex="Z(x)"></span>. <span class="m" data-tex="\beta"></span> controls how aggressive that reweighting is.</p>
+    <div class="eq" data-tex="\pi^*(y\mid x) = \frac{1}{Z(x)}\,\pi_{\mathrm{ref}}(y\mid x)\,\exp\!\left(\frac{r(x,y)}{\beta}\right), \qquad Z(x)=\sum_{y}\pi_{\mathrm{ref}}(y\mid x)\,\exp\!\left(\frac{r(x,y)}{\beta}\right)"></div>
+    <div class="symbol-key">
+      <div class="row"><span class="sym" data-tex="\pi^*(y\mid x)"></span><span class="def">the optimal RLHF policy — the distribution over responses <span class="m" data-tex="y"></span> that maximizes reward minus the KL penalty</span></div>
+      <div class="row"><span class="sym" data-tex="\pi_{\mathrm{ref}}"></span><span class="def">the frozen reference policy (typically the SFT model) the optimum is pulled toward</span></div>
+      <div class="row"><span class="sym" data-tex="r(x,y)"></span><span class="def">the reward assigned to response <span class="m" data-tex="y"></span> for prompt <span class="m" data-tex="x"></span></span></div>
+      <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">the KL temperature: large <span class="m" data-tex="\beta"></span> keeps <span class="m" data-tex="\pi^*"></span> near <span class="m" data-tex="\pi_{\mathrm{ref}}"></span>, small <span class="m" data-tex="\beta"></span> chases reward</span></div>
+      <div class="row"><span class="sym" data-tex="Z(x)"></span><span class="def">the partition function — sums the reweighted reference mass so <span class="m" data-tex="\pi^*"></span> normalizes to 1; depends on <span class="m" data-tex="x"></span> and <span class="m" data-tex="r"></span>, not on <span class="m" data-tex="\pi"></span></span></div>
+    </div>
 
     <article class="concept" id="policyshape">
-      <h3>How β morphs π<sub>ref</sub> into the reward-tilted optimum</h3>
-      <p class="concept-desc">A small set of candidate responses, each with a reference probability and a reward. The green bars are <code>π<sub>ref</sub></code>; the bright bars are <code>π*</code>. Slide β: as <b>β→∞</b> the KL penalty dominates and π* collapses back onto π<sub>ref</sub>; as <b>β→0</b> the reward dominates and π* becomes greedy, piling all mass on the highest-reward response. Edit the rewards to see the tilt change.</p>
+      <h3>How <span class="m" data-tex="\beta"></span> morphs <span class="m" data-tex="\pi_{\mathrm{ref}}"></span> into the reward-tilted optimum</h3>
+      <p class="concept-desc">A small set of candidate responses, each with a reference probability and a reward. The green bars are <span class="m" data-tex="\pi_{\mathrm{ref}}"></span>; the bright bars are <span class="m" data-tex="\pi^*"></span>. Slide <span class="m" data-tex="\beta"></span>: as <span class="m" data-tex="\beta\to\infty"></span> the KL penalty dominates and <span class="m" data-tex="\pi^*"></span> collapses back onto <span class="m" data-tex="\pi_{\mathrm{ref}}"></span>; as <span class="m" data-tex="\beta\to 0"></span> the reward dominates and <span class="m" data-tex="\pi^*"></span> becomes greedy, piling all mass on the highest-reward response. Edit the rewards to see the tilt change.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>β = <span id="ps-beta-val">1.00</span> <span class="dim" id="ps-beta-tag"></span></label>
+          <label><span class="m" data-tex="\beta"></span> = <span id="ps-beta-val">1.00</span> <span class="dim" id="ps-beta-tag"></span></label>
           <input type="range" id="ps-beta" min="-2" max="2.3" step="0.02" value="0">
           <div id="ps-rsliders"></div>
-          <p class="hint">β is shown on a log scale (slider value is log₁₀β). Reward sliders tilt the distribution; π<sub>ref</sub> is fixed.</p>
+          <p class="hint"><span class="m" data-tex="\beta"></span> is shown on a log scale (slider value is <span class="m" data-tex="\log_{10}\beta"></span>). Reward sliders tilt the distribution; <span class="m" data-tex="\pi_{\mathrm{ref}}"></span> is fixed.</p>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="ps-bars"></div>
-          <div class="formula-display" id="ps-formula"></div>
+          <div class="eq" id="ps-formula"></div>
+          <div class="eq-readout" id="ps-readout"></div>
         </div>
       </div>
     </article>
@@ -395,29 +433,31 @@
   <!-- ============ SECTION D: IMPLICIT REWARD ============ -->
   <section class="group" id="reward">
     <div class="group-header"><span class="group-index">04</span><h2>The Implicit Reward</h2></div>
-    <p class="group-intro">Inverting the optimal policy gives <code>r*(x,y) = β·log(π*(y|x)/π<sub>ref</sub>(y|x)) + β·log Z(x)</code> — "your language model is secretly a reward model." The reward is just β times the log-ratio of the policy against the reference (plus a per-prompt constant <code>β log Z</code> that cancels in any preference comparison).</p>
+    <p class="group-intro">Inverting the optimal policy — "your language model is secretly a reward model." The reward is just <span class="m" data-tex="\beta"></span> times the log-ratio of the policy against the reference, plus a per-prompt constant <span class="m" data-tex="\beta\log Z(x)"></span> that cancels in any preference comparison.</p>
+    <div class="eq" data-tex="r^*(x,y) = \beta\,\log\frac{\pi^*(y\mid x)}{\pi_{\mathrm{ref}}(y\mid x)} + \beta\,\log Z(x)"></div>
 
     <article class="concept" id="implicit">
       <h3>Reading the reward off the log-ratio</h3>
-      <p class="concept-desc">Drag the policy and reference log-probabilities for a response, and β. The implied reward is <code>β·(log π<sub>θ</sub> − log π<sub>ref</sub>)</code>. When the policy assigns the response <i>more</i> mass than the reference, the implicit reward is positive; less mass, negative. The <code>β log Z</code> term is a prompt-level offset — toggle it to see it shift every reward by the same amount.</p>
+      <p class="concept-desc">Drag the policy and reference log-probabilities for a response, and <span class="m" data-tex="\beta"></span>. The implied reward is <span class="m" data-tex="\beta\,(\log\pi_\theta - \log\pi_{\mathrm{ref}})"></span>. When the policy assigns the response <i>more</i> mass than the reference, the implicit reward is positive; less mass, negative. The <span class="m" data-tex="\beta\log Z"></span> term is a prompt-level offset — toggle it to see it shift every reward by the same amount.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>log π<sub>θ</sub>(y|x) = <span id="ir-pi-val">-1.20</span></label>
+          <label><span class="m" data-tex="\log\pi_\theta(y\mid x)"></span> = <span id="ir-pi-val">-1.20</span></label>
           <input type="range" id="ir-pi" min="-6" max="-0.05" step="0.05" value="-1.2">
-          <label>log π<sub>ref</sub>(y|x) = <span id="ir-ref-val">-2.00</span></label>
+          <label><span class="m" data-tex="\log\pi_{\mathrm{ref}}(y\mid x)"></span> = <span id="ir-ref-val">-2.00</span></label>
           <input type="range" id="ir-ref" min="-6" max="-0.05" step="0.05" value="-2.0">
-          <label>β = <span id="ir-beta-val">0.10</span></label>
+          <label><span class="m" data-tex="\beta"></span> = <span id="ir-beta-val">0.10</span></label>
           <input type="range" id="ir-beta" min="0.01" max="1" step="0.01" value="0.1">
           <label style="display:flex;align-items:center;gap:8px;margin-top:12px;">
-            <input type="checkbox" id="ir-z"> include β·log Z(x) offset
+            <input type="checkbox" id="ir-z"> include <span class="m" data-tex="\beta\log Z(x)"></span> offset
           </label>
-          <label id="ir-z-row" style="display:none;">log Z(x) = <span id="ir-z-val">0.50</span>
+          <label id="ir-z-row" style="display:none;"><span class="m" data-tex="\log Z(x)"></span> = <span id="ir-z-val">0.50</span>
             <input type="range" id="ir-z-slider" min="-2" max="2" step="0.05" value="0.5"></label>
-          <p class="hint">Only the log-ratio is learnable; log Z(x) is the same for every response to a given prompt, so it never affects which response is preferred.</p>
+          <p class="hint">Only the log-ratio is learnable; <span class="m" data-tex="\log Z(x)"></span> is the same for every response to a given prompt, so it never affects which response is preferred.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 200" id="ir-plot"></svg>
-          <div class="formula-display" id="ir-formula"></div>
+          <div class="eq" id="ir-formula"></div>
+          <div class="eq-readout" id="ir-readout"></div>
         </div>
       </div>
     </article>
@@ -426,28 +466,37 @@
   <!-- ============ SECTION E: THE DPO LOSS ============ -->
   <section class="group" id="loss">
     <div class="group-header"><span class="group-index">05</span><h2>The DPO Loss</h2></div>
-    <p class="group-intro">Substituting the implicit reward into Bradley–Terry, the partition function cancels and the preference becomes a sigmoid of a difference of log-ratios. Minimizing the negative log-likelihood of the observed preferences gives the DPO loss: <code>L = −log σ( β·[ log(π<sub>θ</sub>(y<sub>w</sub>)/π<sub>ref</sub>(y<sub>w</sub>)) − log(π<sub>θ</sub>(y<sub>l</sub>)/π<sub>ref</sub>(y<sub>l</sub>)) ] )</code>.</p>
+    <p class="group-intro">Substituting the implicit reward into Bradley–Terry, the partition function cancels and the preference becomes a sigmoid of a difference of log-ratios. Minimizing the negative log-likelihood of the observed preferences gives the DPO loss.</p>
+    <div class="eq" data-tex="\mathcal{L}_{\mathrm{DPO}}(\pi_\theta;\pi_{\mathrm{ref}}) = -\,\mathbb{E}_{(x,y_w,y_l)\sim\mathcal{D}}\!\left[\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w\mid x)}{\pi_{\mathrm{ref}}(y_w\mid x)} - \beta\log\frac{\pi_\theta(y_l\mid x)}{\pi_{\mathrm{ref}}(y_l\mid x)}\right)\right]"></div>
+    <div class="symbol-key">
+      <div class="row"><span class="sym" data-tex="\mathcal{L}_{\mathrm{DPO}}"></span><span class="def">the loss being minimized — the negative log-likelihood of the observed preferences under the implicit reward</span></div>
+      <div class="row"><span class="sym" data-tex="\mathbb{E}_{(x,y_w,y_l)\sim\mathcal{D}}"></span><span class="def">average over preference triples drawn from the dataset <span class="m" data-tex="\mathcal{D}"></span>: prompt <span class="m" data-tex="x"></span>, chosen (winning) <span class="m" data-tex="y_w"></span>, rejected (losing) <span class="m" data-tex="y_l"></span></span></div>
+      <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic sigmoid <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span> turning the reward gap into a preference probability in <span class="m" data-tex="(0,1)"></span></span></div>
+      <div class="row"><span class="sym" data-tex="\pi_\theta,\ \pi_{\mathrm{ref}}"></span><span class="def">the trainable policy and the frozen reference; their log-ratio <span class="m" data-tex="\beta\log(\pi_\theta/\pi_{\mathrm{ref}})"></span> <em>is</em> the implicit reward</span></div>
+      <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">the same KL temperature as in the optimal policy — scales the margin and how far the policy may drift</span></div>
+    </div>
 
     <article class="concept" id="dpoloss">
       <h3>The DPO loss, live</h3>
-      <p class="concept-desc">Four log-probabilities (policy and reference, for the chosen <code>y<sub>w</sub></code> and rejected <code>y<sub>l</sub></code>) plus β. The loss rewards <b>widening the margin</b>: pushing the chosen log-ratio above the rejected one relative to the reference. Watch the implicit reward margin and loss respond. Notice that the loss only sees the <i>margin</i> — not the absolute log-probs (the likelihood-displacement risk).</p>
+      <p class="concept-desc">Four log-probabilities (policy and reference, for the chosen <span class="m" data-tex="y_w"></span> and rejected <span class="m" data-tex="y_l"></span>) plus <span class="m" data-tex="\beta"></span>. The loss rewards <b>widening the margin</b>: pushing the chosen log-ratio above the rejected one relative to the reference. Watch the implicit reward margin and loss respond. Notice that the loss only sees the <i>margin</i> — not the absolute log-probs (the likelihood-displacement risk).</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>log π<sub>θ</sub>(y<sub>w</sub>) = <span id="dl-pw-val">-1.00</span></label>
+          <label><span class="m" data-tex="\log\pi_\theta(y_w)"></span> = <span id="dl-pw-val">-1.00</span></label>
           <input type="range" id="dl-pw" min="-6" max="-0.05" step="0.05" value="-1.0">
-          <label>log π<sub>ref</sub>(y<sub>w</sub>) = <span id="dl-rw-val">-1.50</span></label>
+          <label><span class="m" data-tex="\log\pi_{\mathrm{ref}}(y_w)"></span> = <span id="dl-rw-val">-1.50</span></label>
           <input type="range" id="dl-rw" min="-6" max="-0.05" step="0.05" value="-1.5">
-          <label>log π<sub>θ</sub>(y<sub>l</sub>) = <span id="dl-pl-val">-2.50</span></label>
+          <label><span class="m" data-tex="\log\pi_\theta(y_l)"></span> = <span id="dl-pl-val">-2.50</span></label>
           <input type="range" id="dl-pl" min="-6" max="-0.05" step="0.05" value="-2.5">
-          <label>log π<sub>ref</sub>(y<sub>l</sub>) = <span id="dl-rl-val">-2.00</span></label>
+          <label><span class="m" data-tex="\log\pi_{\mathrm{ref}}(y_l)"></span> = <span id="dl-rl-val">-2.00</span></label>
           <input type="range" id="dl-rl" min="-6" max="-0.05" step="0.05" value="-2.0">
-          <label>β = <span id="dl-beta-val">0.10</span></label>
+          <label><span class="m" data-tex="\beta"></span> = <span id="dl-beta-val">0.10</span></label>
           <input type="range" id="dl-beta" min="0.01" max="1" step="0.01" value="0.1">
           <p class="hint" id="dl-hint"></p>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="dl-bars" style="height:150px;"></div>
-          <div class="formula-display" id="dl-formula"></div>
+          <div class="eq" id="dl-formula"></div>
+          <div class="eq-readout" id="dl-readout"></div>
         </div>
       </div>
     </article>
@@ -456,20 +505,22 @@
   <!-- ============ SECTION F: GRADIENT ============ -->
   <section class="group" id="grad">
     <div class="group-header"><span class="group-index">06</span><h2>The Gradient: how DPO learns</h2></div>
-    <p class="group-intro">The DPO gradient is <code>∇L = −β·E[ w·(∇log π<sub>θ</sub>(y<sub>w</sub>) − ∇log π<sub>θ</sub>(y<sub>l</sub>)) ]</code> with weight <code>w = σ(r̂<sub>θ</sub>(y<sub>l</sub>) − r̂<sub>θ</sub>(y<sub>w</sub>))</code>. The bracket raises the likelihood of the chosen response and lowers the rejected one; the scalar weight <code>w ∈ (0,1)</code> is larger exactly when the model currently <b>misranks</b> the pair — the σ' weighting up-weights the wrong examples.</p>
+    <p class="group-intro">The DPO gradient raises the likelihood of the chosen response and lowers the rejected one; the scalar weight <span class="m" data-tex="w=\sigma(\hat r_\theta(y_l)-\hat r_\theta(y_w))\in(0,1)"></span> is larger exactly when the model currently <b>misranks</b> the pair — the <span class="m" data-tex="\sigma'"></span> weighting up-weights the wrong examples.</p>
+    <div class="eq" data-tex="\nabla_\theta\mathcal{L}_{\mathrm{DPO}} = -\beta\,\mathbb{E}_{(x,y_w,y_l)\sim\mathcal{D}}\Big[\,\underbrace{\sigma\!\big(\hat r_\theta(y_l)-\hat r_\theta(y_w)\big)}_{w:\ \text{weight when wrong}}\;\big(\nabla_\theta\log\pi_\theta(y_w) - \nabla_\theta\log\pi_\theta(y_l)\big)\Big]"></div>
 
     <article class="concept" id="gradweight">
-      <h3>The "how-wrong" weight w</h3>
-      <p class="concept-desc">Slide the implicit-reward margin <code>Δ = r̂<sub>θ</sub>(y<sub>w</sub>) − r̂<sub>θ</sub>(y<sub>l</sub>)</code> (positive = correctly ranked). The gradient weight is <code>w = σ(−Δ)</code>. When the pair is badly misranked (Δ ≪ 0), <code>w → 1</code> and the step is large; when the model already ranks the pair confidently right (Δ ≫ 0), <code>w → 0</code> and the example is nearly ignored. This is the same σ' self-weighting as in logistic regression.</p>
+      <h3>The "how-wrong" weight <span class="m" data-tex="w"></span></h3>
+      <p class="concept-desc">Slide the implicit-reward margin <span class="m" data-tex="\Delta = \hat r_\theta(y_w) - \hat r_\theta(y_l)"></span> (positive = correctly ranked). The gradient weight is <span class="m" data-tex="w = \sigma(-\Delta)"></span>. When the pair is badly misranked (<span class="m" data-tex="\Delta\ll 0"></span>), <span class="m" data-tex="w\to 1"></span> and the step is large; when the model already ranks the pair confidently right (<span class="m" data-tex="\Delta\gg 0"></span>), <span class="m" data-tex="w\to 0"></span> and the example is nearly ignored. This is the same <span class="m" data-tex="\sigma'"></span> self-weighting as in logistic regression.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>implicit-reward margin Δ = r̂(y<sub>w</sub>) − r̂(y<sub>l</sub>) = <span id="gw-d-val">0.00</span></label>
+          <label>implicit-reward margin <span class="m" data-tex="\Delta = \hat r(y_w) - \hat r(y_l)"></span> = <span id="gw-d-val">0.00</span></label>
           <input type="range" id="gw-d" min="-6" max="6" step="0.1" value="0">
           <p class="hint" id="gw-hint"></p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 200" id="gw-plot"></svg>
-          <div class="formula-display" id="gw-formula"></div>
+          <div class="eq" id="gw-formula"></div>
+          <div class="eq-readout" id="gw-readout"></div>
         </div>
       </div>
     </article>
@@ -498,9 +549,9 @@
       <p class="concept-desc">The loss only cares about the <b>margin</b>. So the model can lower the loss by pushing the <i>rejected</i> log-prob down faster than the chosen — even while the chosen log-prob <i>also</i> falls. Drag the per-step changes to each policy log-prob and watch: the margin can widen (loss drops) while the chosen probability drifts downward. Practitioners sometimes add an SFT term on the chosen response to counter this.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>Δ log π<sub>θ</sub>(y<sub>w</sub>) per step = <span id="ld-dw-val">-0.10</span></label>
+          <label><span class="m" data-tex="\Delta\log\pi_\theta(y_w)"></span> per step = <span id="ld-dw-val">-0.10</span></label>
           <input type="range" id="ld-dw" min="-0.5" max="0.3" step="0.01" value="-0.1">
-          <label>Δ log π<sub>θ</sub>(y<sub>l</sub>) per step = <span id="ld-dl-val">-0.40</span></label>
+          <label><span class="m" data-tex="\Delta\log\pi_\theta(y_l)"></span> per step = <span id="ld-dl-val">-0.40</span></label>
           <input type="range" id="ld-dl" min="-0.8" max="0.3" step="0.01" value="-0.4">
           <button id="ld-step">Train step ▶</button>
           <button id="ld-reset">Reset</button>
@@ -509,14 +560,14 @@
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="ld-plot"></svg>
-          <div class="formula-display" id="ld-formula"></div>
+          <div class="eq-readout" id="ld-formula"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="code">
       <h3>The whole loss, in code</h3>
-      <p class="concept-desc">No generation during training, no separate reward model. <code>π<sub>ref</sub></code> is frozen, so its log-probs can be precomputed and cached to cut peak memory roughly in half. Step through to see how the four cached log-probs become the loss.</p>
+      <p class="concept-desc">No generation during training, no separate reward model. <span class="m" data-tex="\pi_{\mathrm{ref}}"></span> is frozen, so its log-probs can be precomputed and cached to cut peak memory roughly in half. Step through to see how the four cached log-probs become the loss.</p>
       <div class="panel">
         <div class="panel-controls">
           <button id="cd-prev">◀ Prev</button>
@@ -544,6 +595,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -586,9 +651,13 @@
       });
       hintEl.textContent = hints[mode];
       if(mode==='rlhf'){
-        formulaEl.innerHTML = '<span class="dim">RLHF:</span> max<sub>π</sub> E[ r<sub>φ</sub>(x,y) ] &minus; β D<sub>KL</sub>(π &Vert; π<sub>ref</sub>) &nbsp;<span class="dim">via PPO on samples from π</span>';
+        tex(formulaEl,
+          '\\underbrace{\\max_{\\pi}\\ \\mathbb{E}_{x\\sim\\mathcal{D},\\,y\\sim\\pi}\\big[\\,r_\\phi(x,y)\\,\\big] - \\beta\\,\\mathrm{KL}\\big(\\pi(y\\mid x)\\,\\Vert\\,\\pi_{\\mathrm{ref}}(y\\mid x)\\big)}_{\\text{RLHF: optimized by PPO on samples from }\\pi}',
+          true);
       } else {
-        formulaEl.innerHTML = '<span class="dim">DPO:</span> L = &minus;log σ( β[ log <span class="pos">π<sub>θ</sub>(y<sub>w</sub>)/π<sub>ref</sub>(y<sub>w</sub>)</span> &minus; log <span class="neg">π<sub>θ</sub>(y<sub>l</sub>)/π<sub>ref</sub>(y<sub>l</sub>)</span> ] )';
+        tex(formulaEl,
+          '\\underbrace{\\mathcal{L} = -\\log\\sigma\\!\\left(\\beta\\log\\frac{\\pi_\\theta(y_w)}{\\pi_{\\mathrm{ref}}(y_w)} - \\beta\\log\\frac{\\pi_\\theta(y_l)}{\\pi_{\\mathrm{ref}}(y_l)}\\right)}_{\\text{DPO: one differentiable loss, no reward model}}',
+          true);
       }
     }
     tabs.forEach(function(btn){
@@ -607,48 +676,48 @@
     // Each step: part index (0..3), equation HTML, gloss.
     var steps = [
       // P1: optimal policy
-      { part:0, eq:'max<sub>π</sub> &nbsp;E<sub>x~D, y~π</sub>[ r(x,y) ] &minus; β·D<sub>KL</sub>(π &Vert; π<sub>ref</sub>)',
+      { part:0, eq:'\\max_{\\pi}\\ \\mathbb{E}_{x\\sim\\mathcal{D},\\,y\\sim\\pi}\\big[\\,r(x,y)\\,\\big] - \\beta\\,\\mathrm{KL}\\big(\\pi(y\\mid x)\\,\\Vert\\,\\pi_{\\mathrm{ref}}(y\\mid x)\\big)',
         gloss:'The RLHF objective: maximize expected reward while staying close to the reference policy. β sets how hard the KL leash pulls.' },
-      { part:0, eq:'= max<sub>π</sub> &nbsp;E[ r(x,y) &minus; β·log( π(y|x) / π<sub>ref</sub>(y|x) ) ]',
-        gloss:'Fold the KL into the expectation: D<sub>KL</sub>(π‖π<sub>ref</sub>) = E<sub>y~π</sub>[ log π/π<sub>ref</sub> ].' },
-      { part:0, eq:'= min<sub>π</sub> &nbsp;E[ log( π(y|x) / π<sub>ref</sub>(y|x) ) &minus; (1/β)·r(x,y) ]',
-        gloss:'Multiply by &minus;1 (max → min) and divide by β. Just rescaling — the optimizer is unchanged.' },
-      { part:0, eq:'= min<sub>π</sub> &nbsp;E[ log( π(y|x) / ( π<sub>ref</sub>(y|x)·e<sup>r(x,y)/β</sup> ) ) ]',
+      { part:0, eq:'= \\max_{\\pi}\\ \\mathbb{E}\\left[\\,r(x,y) - \\beta\\log\\frac{\\pi(y\\mid x)}{\\pi_{\\mathrm{ref}}(y\\mid x)}\\,\\right]',
+        gloss:'Fold the KL into the expectation: KL(π‖π_ref) = E_{y~π}[ log(π/π_ref) ].' },
+      { part:0, eq:'= \\min_{\\pi}\\ \\mathbb{E}\\left[\\,\\log\\frac{\\pi(y\\mid x)}{\\pi_{\\mathrm{ref}}(y\\mid x)} - \\frac{1}{\\beta}\\,r(x,y)\\,\\right]',
+        gloss:'Multiply by −1 (max → min) and divide by β. Just rescaling — the optimizer is unchanged.' },
+      { part:0, eq:'= \\min_{\\pi}\\ \\mathbb{E}\\left[\\,\\log\\frac{\\pi(y\\mid x)}{\\pi_{\\mathrm{ref}}(y\\mid x)\\,e^{r(x,y)/\\beta}}\\,\\right]',
         gloss:'Use (1/β)r = log e^{r/β} to fold the reward into the denominator: the reference reweighted by reward.' },
-      { part:0, eq:'Z(x) = Σ<sub>y</sub> π<sub>ref</sub>(y|x)·exp( r(x,y)/β )',
+      { part:0, eq:'Z(x) = \\sum_{y}\\pi_{\\mathrm{ref}}(y\\mid x)\\,\\exp\\!\\left(\\frac{r(x,y)}{\\beta}\\right)',
         gloss:'The denominator is not a distribution (it does not sum to 1). Define the partition function Z(x) to normalize it. Z depends on x and r, not on π.' },
-      { part:0, eq:'q(y|x) = (1/Z(x))·π<sub>ref</sub>(y|x)·e<sup>r/β</sup> &nbsp;&nbsp;<span class="dim">— now a valid distribution</span>',
+      { part:0, eq:'q(y\\mid x) = \\frac{1}{Z(x)}\\,\\pi_{\\mathrm{ref}}(y\\mid x)\\,e^{r/\\beta} \\qquad \\text{(now a valid distribution)}',
         gloss:'With Z(x) dividing through, q is a genuine probability distribution over y.' },
-      { part:0, eq:'= min<sub>π</sub> &nbsp;E<sub>x~D</sub>[ D<sub>KL</sub>( π(y|x) &Vert; q(y|x) ) &minus; log Z(x) ]',
+      { part:0, eq:'= \\min_{\\pi}\\ \\mathbb{E}_{x\\sim\\mathcal{D}}\\Big[\\,\\mathrm{KL}\\big(\\pi(y\\mid x)\\,\\Vert\\,q(y\\mid x)\\big) - \\log Z(x)\\,\\Big]',
         gloss:'After adding 0 = logZ − logZ and grouping, the objective is a KL plus a π-independent constant log Z(x).' },
-      { part:0, eq:'⇒ &nbsp;π*(y|x) = q(y|x) = (1/Z(x))·π<sub>ref</sub>(y|x)·exp( r(x,y)/β )',
+      { part:0, eq:'\\Rightarrow\\ \\pi^*(y\\mid x) = q(y\\mid x) = \\frac{1}{Z(x)}\\,\\pi_{\\mathrm{ref}}(y\\mid x)\\,\\exp\\!\\left(\\frac{r(x,y)}{\\beta}\\right)',
         gloss:'Gibbs\' inequality: a KL is ≥ 0 and equals 0 only when π = q. log Z does not depend on π, so the minimizer is π* = q. This is the closed-form RLHF optimum.' },
       // P2: implicit reward
-      { part:1, eq:'π*(y|x) = (1/Z(x))·π<sub>ref</sub>(y|x)·exp( r*(x,y)/β )',
+      { part:1, eq:'\\pi^*(y\\mid x) = \\frac{1}{Z(x)}\\,\\pi_{\\mathrm{ref}}(y\\mid x)\\,\\exp\\!\\left(\\frac{r^*(x,y)}{\\beta}\\right)',
         gloss:'Start from the optimal policy and solve it for the reward instead. We want r in terms of π.' },
-      { part:1, eq:'log π*(y|x) = &minus;log Z(x) + log π<sub>ref</sub>(y|x) + (1/β)·r*(x,y)',
+      { part:1, eq:'\\log\\pi^*(y\\mid x) = -\\log Z(x) + \\log\\pi_{\\mathrm{ref}}(y\\mid x) + \\frac{1}{\\beta}\\,r^*(x,y)',
         gloss:'Take logs of both sides; log of a product becomes a sum.' },
-      { part:1, eq:'(1/β)·r*(x,y) = log π*(y|x) &minus; log π<sub>ref</sub>(y|x) + log Z(x)',
+      { part:1, eq:'\\frac{1}{\\beta}\\,r^*(x,y) = \\log\\pi^*(y\\mid x) - \\log\\pi_{\\mathrm{ref}}(y\\mid x) + \\log Z(x)',
         gloss:'Rearrange to isolate the reward term.' },
-      { part:1, eq:'⇒ &nbsp;r*(x,y) = β·log( π*(y|x) / π<sub>ref</sub>(y|x) ) + β·log Z(x)',
+      { part:1, eq:'\\Rightarrow\\ r^*(x,y) = \\beta\\,\\log\\frac{\\pi^*(y\\mid x)}{\\pi_{\\mathrm{ref}}(y\\mid x)} + \\beta\\,\\log Z(x)',
         gloss:'Multiply by β. The reward is just β times a log-ratio of policy to reference, plus a prompt-level constant. "Your language model is secretly a reward model."' },
       // P3: Bradley-Terry
-      { part:2, eq:'p*(y<sub>1</sub> ≻ y<sub>2</sub> | x) = e<sup>r*(x,y₁)</sup> / ( e<sup>r*(x,y₁)</sup> + e<sup>r*(x,y₂)</sup> )',
+      { part:2, eq:'p^*(y_1\\succ y_2\\mid x) = \\frac{e^{r^*(x,y_1)}}{e^{r^*(x,y_1)} + e^{r^*(x,y_2)}}',
         gloss:'Bradley–Terry: the probability that y₁ is preferred is a softmax over the two rewards.' },
-      { part:2, eq:'= e<sup>Δ₁ + β log Z</sup> / ( e<sup>Δ₁ + β log Z</sup> + e<sup>Δ₂ + β log Z</sup> ), &nbsp; Δ<sub>i</sub> = β log(π*(y<sub>i</sub>)/π<sub>ref</sub>(y<sub>i</sub>))',
+      { part:2, eq:'= \\frac{e^{\\Delta_1 + \\beta\\log Z}}{e^{\\Delta_1 + \\beta\\log Z} + e^{\\Delta_2 + \\beta\\log Z}}, \\qquad \\Delta_i = \\beta\\log\\frac{\\pi^*(y_i)}{\\pi_{\\mathrm{ref}}(y_i)}',
         gloss:'Substitute the implicit reward. Every term carries the same factor e^{β log Z} = Z(x)^β.' },
-      { part:2, eq:'= e<sup>Δ₁</sup> / ( e<sup>Δ₁</sup> + e<sup>Δ₂</sup> ) &nbsp;&nbsp;<span class="dim">— the intractable Z cancels</span>',
+      { part:2, eq:'= \\frac{e^{\\Delta_1}}{e^{\\Delta_1} + e^{\\Delta_2}} \\qquad \\text{(the intractable } Z \\text{ cancels)}',
         gloss:'The shared Z(x)^β factors out of numerator and denominator and cancels. The intractable partition function is gone.' },
-      { part:2, eq:'= 1 / ( 1 + e<sup>Δ₂ − Δ₁</sup> ) = σ( Δ₁ − Δ₂ )',
+      { part:2, eq:'= \\frac{1}{1 + e^{\\Delta_2 - \\Delta_1}} = \\sigma(\\Delta_1 - \\Delta_2)',
         gloss:'Multiply through by e^{−Δ₁}: the numerator becomes 1 and the denominator holds the difference. That is exactly a sigmoid.' },
-      { part:2, eq:'⇒ &nbsp;p*(y<sub>1</sub> ≻ y<sub>2</sub>) = σ( β log(π*(y<sub>1</sub>)/π<sub>ref</sub>(y<sub>1</sub>)) &minus; β log(π*(y<sub>2</sub>)/π<sub>ref</sub>(y<sub>2</sub>)) )',
+      { part:2, eq:'\\Rightarrow\\ p^*(y_1\\succ y_2) = \\sigma\\!\\left(\\beta\\log\\frac{\\pi^*(y_1)}{\\pi_{\\mathrm{ref}}(y_1)} - \\beta\\log\\frac{\\pi^*(y_2)}{\\pi_{\\mathrm{ref}}(y_2)}\\right)',
         gloss:'Bradley–Terry, with the policy log-ratio in place of the reward model. A sigmoid of a difference of log-ratios.' },
       // P4: loss
-      { part:3, eq:'L<sub>DPO</sub> = &minus;E<sub>(x,y_c,y_r)~D</sub>[ log p(y<sub>c</sub> ≻ y<sub>r</sub> | x) ]',
+      { part:3, eq:'\\mathcal{L}_{\\mathrm{DPO}} = -\\,\\mathbb{E}_{(x,y_c,y_r)\\sim\\mathcal{D}}\\big[\\,\\log p(y_c\\succ y_r\\mid x)\\,\\big]',
         gloss:'Train by minimizing the negative log-likelihood of the observed preferences (chosen ≻ rejected).' },
-      { part:3, eq:'⇒ &nbsp;L<sub>DPO</sub> = &minus;E[ log σ( β log <span class="pos">π<sub>θ</sub>(y<sub>c</sub>)/π<sub>ref</sub>(y<sub>c</sub>)</span> &minus; β log <span class="neg">π<sub>θ</sub>(y<sub>r</sub>)/π<sub>ref</sub>(y<sub>r</sub>)</span> ) ]',
+      { part:3, eq:'\\Rightarrow\\ \\mathcal{L}_{\\mathrm{DPO}} = -\\,\\mathbb{E}\\left[\\,\\log\\sigma\\!\\left(\\beta\\log\\frac{\\pi_\\theta(y_c)}{\\pi_{\\mathrm{ref}}(y_c)} - \\beta\\log\\frac{\\pi_\\theta(y_r)}{\\pi_{\\mathrm{ref}}(y_r)}\\right)\\right]',
         gloss:'Plug in the sigmoid form with the trainable policy π_θ as the implicit reward. Directly differentiable — no reward model, no sampling, no RL loop.' },
-      { part:3, eq:'∇<sub>θ</sub>L<sub>DPO</sub> = &minus;β·E[ σ(−u)·( ∇log π<sub>θ</sub>(y<sub>c</sub>) − ∇log π<sub>θ</sub>(y<sub>r</sub>) ) ], &nbsp; u = the term inside σ',
+      { part:3, eq:'\\nabla_\\theta\\mathcal{L}_{\\mathrm{DPO}} = -\\beta\\,\\mathbb{E}\\big[\\,\\sigma(-u)\\,\\big(\\nabla_\\theta\\log\\pi_\\theta(y_c) - \\nabla_\\theta\\log\\pi_\\theta(y_r)\\big)\\,\\big], \\quad u = \\text{term inside } \\sigma',
         gloss:'The gradient: a weight w = σ(−u) = σ(r̂(y_r) − r̂(y_c)) times a bracket that raises log π_θ(y_c) and lowers log π_θ(y_r). w is largest exactly when the model misranks the pair.' }
     ];
     var partLabels = ['P1 — Optimal policy','P2 — Implicit reward','P3 — Bradley–Terry','P4 — Loss & gradient'];
@@ -668,7 +737,7 @@
     }
     function render(){
       var s = steps[idx];
-      eqEl.innerHTML = s.eq;
+      tex(eqEl, s.eq, true);
       glossEl.innerHTML = s.gloss;
       partLabelEl.innerHTML = partLabels[s.part];
       counterEl.textContent = 'Step ' + (idx+1) + ' of ' + steps.length + '.';
@@ -704,6 +773,7 @@
     var rsEl = document.getElementById('ps-rsliders');
     var barsEl = document.getElementById('ps-bars');
     var formulaEl = document.getElementById('ps-formula');
+    var readoutEl = document.getElementById('ps-readout');
 
     rewards.forEach(function(v,i){
       var row = document.createElement('div');
@@ -738,10 +808,14 @@
         barsEl.appendChild(col);
       }
       var maxI = piStar.indexOf(Math.max.apply(null, piStar));
-      formulaEl.innerHTML =
-        '<span class="dim">π_ref (dark) vs π* (bright). π*(y|x) = (1/Z)·π_ref·exp(r/β)</span><br>' +
-        'π*: [ ' + piStar.map(function(p){ return p.toFixed(3); }).join(', ') + ' ]<br>' +
-        'argmax π* = <b>' + labels[maxI] + '</b> &nbsp;|&nbsp; β = ' + (beta<10?beta.toFixed(2):beta.toFixed(0));
+      tex(formulaEl,
+        '\\pi^*(y\\mid x) = \\frac{1}{Z(x)}\\,\\pi_{\\mathrm{ref}}(y\\mid x)\\,\\exp\\!\\left(\\frac{r(x,y)}{\\beta}\\right)',
+        true);
+      readoutEl.innerHTML =
+        '<span class="dim">' + escapeHtml('π_ref (dark) vs π* (bright)') + '</span><br>' +
+        escapeHtml('π* = [ ' + piStar.map(function(p){ return p.toFixed(3); }).join(', ') + ' ]') + '<br>' +
+        escapeHtml('argmax π* = ') + '<b>' + escapeHtml(labels[maxI]) + '</b> &nbsp;|&nbsp; ' +
+        escapeHtml('β = ' + (beta<10?beta.toFixed(2):beta.toFixed(0)));
     }
     rewards.forEach(function(_,i){
       document.getElementById('ps-r-' + i).addEventListener('input', function(e){
@@ -764,6 +838,7 @@
     var zS = document.getElementById('ir-z-slider');
     var plot = document.getElementById('ir-plot');
     var formulaEl = document.getElementById('ir-formula');
+    var readoutEl = document.getElementById('ir-readout');
 
     function render(){
       var lpi = parseFloat(piS.value);
@@ -805,11 +880,18 @@
         '<text x="'+(xpx(0)+4)+'" y="'+(PAD+10)+'" fill="var(--text-dim)" font-size="9">r̂</text>';
 
       var sign = r>0.0005?'pos':(r<-0.0005?'neg':'dim');
-      formulaEl.innerHTML =
-        'log-ratio = ' + lpi.toFixed(2) + ' &minus; (' + lref.toFixed(2) + ') = <b>' + logratio.toFixed(2) + '</b><br>' +
-        'r̂ = β·(log π_θ − log π_ref)' + (useZ?' + β·log Z':'') + ' = ' + beta.toFixed(2) + '·' + logratio.toFixed(2) +
-        (useZ?(' + ' + beta.toFixed(2) + '·' + logZ.toFixed(2)):'') +
-        ' = <span class="' + sign + '"><b>' + r.toFixed(3) + '</b></span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\text{log-ratio} &= \\log\\pi_\\theta - \\log\\pi_{\\mathrm{ref}} = ' + lpi.toFixed(2) + ' - (' + lref.toFixed(2) + ') = ' + logratio.toFixed(2) + ' \\\\[2pt] ' +
+        '\\hat r &= \\beta\\,(\\log\\pi_\\theta - \\log\\pi_{\\mathrm{ref}})' + (useZ?' + \\beta\\log Z':'') +
+        ' = ' + beta.toFixed(2) + '\\cdot' + logratio.toFixed(2) +
+        (useZ?(' + ' + beta.toFixed(2) + '\\cdot' + logZ.toFixed(2)):'') +
+        ' = ' + r.toFixed(3) +
+        '\\end{aligned}',
+        true);
+      readoutEl.innerHTML =
+        'implicit reward ' + '<span class="' + sign + '"><b>' + escapeHtml('r̂ = ' + r.toFixed(3)) + '</b></span> &mdash; ' +
+        (r>0.0005 ? 'policy favors this response over the reference' : (r<-0.0005 ? 'policy disfavors this response vs the reference' : 'policy matches the reference here'));
     }
     [piS,refS,betaS,zS].forEach(function(s){ s.addEventListener('input', render); });
     zChk.addEventListener('change', render);
@@ -823,6 +905,7 @@
     ids.forEach(function(id){ els[id] = document.getElementById(id); });
     var barsEl = document.getElementById('dl-bars');
     var formulaEl = document.getElementById('dl-formula');
+    var readoutEl = document.getElementById('dl-readout');
     var hintEl = document.getElementById('dl-hint');
 
     function render(){
@@ -853,10 +936,17 @@
         '<div class="bar-col"><div class="bar-track" style="height:100%;"><div class="bar-fill" style="height:' + clamp(loss/4*100,2,100).toFixed(1) + '%;background:linear-gradient(to top,var(--orange),#f0c98a);"></div></div><div class="bar-label">loss<br>' + loss.toFixed(3) + '</div></div>';
 
       var mSign = margin>0?'pos':(margin<0?'neg':'dim');
-      formulaEl.innerHTML =
-        'r̂(y_w) = β(log π_θ − log π_ref) = ' + rHatW.toFixed(3) + ' &nbsp;|&nbsp; r̂(y_l) = ' + rHatL.toFixed(3) + '<br>' +
-        'margin u = r̂(y_w) − r̂(y_l) = <span class="' + mSign + '"><b>' + margin.toFixed(3) + '</b></span><br>' +
-        'P(y_w ≻ y_l) = σ(u) = ' + pPref.toFixed(3) + ' &nbsp;|&nbsp; L = −log σ(u) = <b>' + loss.toFixed(3) + '</b>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\hat r(y_w) &= \\beta(\\log\\pi_\\theta - \\log\\pi_{\\mathrm{ref}}) = ' + rHatW.toFixed(3) + ' \\qquad \\hat r(y_l) = ' + rHatL.toFixed(3) + ' \\\\[2pt] ' +
+        'u &= \\hat r(y_w) - \\hat r(y_l) = ' + margin.toFixed(3) + ' \\\\[2pt] ' +
+        '\\mathcal{L} &= -\\log\\sigma(u) = -\\log(' + pPref.toFixed(3) + ') = ' + loss.toFixed(3) +
+        '\\end{aligned}',
+        true);
+      readoutEl.innerHTML =
+        escapeHtml('margin u = ') + '<span class="' + mSign + '"><b>' + margin.toFixed(3) + '</b></span> &nbsp;|&nbsp; ' +
+        escapeHtml('P(y_w ≻ y_l) = ') + pPref.toFixed(3) + ' &nbsp;|&nbsp; ' +
+        escapeHtml('L = ') + '<b>' + loss.toFixed(3) + '</b>';
 
       if(margin > 0.5) hintEl.textContent = 'Healthy margin: chosen implicit reward beats rejected, loss is low. The loss reads only this margin — try lowering both policy log-probs by the same amount and watch the loss stay put.';
       else if(margin < -0.5) hintEl.textContent = 'Misranked: the model assigns the rejected response a higher implicit reward. Loss is high; the gradient will push hard to flip the ordering.';
@@ -871,6 +961,7 @@
     var slider = document.getElementById('gw-d');
     var plot = document.getElementById('gw-plot');
     var formulaEl = document.getElementById('gw-formula');
+    var readoutEl = document.getElementById('gw-readout');
     var hintEl = document.getElementById('gw-hint');
 
     var W=340,H=200,PAD=28;
@@ -895,9 +986,13 @@
         '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
         '<text x="'+(W-PAD-78)+'" y="'+(H-PAD-6)+'" fill="var(--text-dim)" font-size="9">margin Δ (correct →)</text>' +
         '<text x="'+(xpx(0)+4)+'" y="'+(PAD+10)+'" fill="var(--text-dim)" font-size="9">w = σ(−Δ)</text>';
-      formulaEl.innerHTML =
-        'w = σ(−Δ) = σ(' + (-d).toFixed(2) + ') = <b>' + w.toFixed(3) + '</b><br>' +
-        '<span class="dim">∇L = −β·w·( ∇log π_θ(y_w) − ∇log π_θ(y_l) )</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'w &= \\sigma(-\\Delta) = \\sigma(' + (-d).toFixed(2) + ') = ' + w.toFixed(3) + ' \\\\[2pt] ' +
+        '\\nabla_\\theta\\mathcal{L} &= -\\beta\\,w\\,\\big(\\nabla_\\theta\\log\\pi_\\theta(y_w) - \\nabla_\\theta\\log\\pi_\\theta(y_l)\\big)' +
+        '\\end{aligned}',
+        true);
+      readoutEl.innerHTML = escapeHtml('w = σ(−Δ) = ') + '<b>' + w.toFixed(3) + '</b>';
       if(d < -1) hintEl.textContent = 'Strongly misranked (Δ ≪ 0): w → 1. This example dominates the batch gradient — DPO up-weights exactly the pairs it currently gets wrong.';
       else if(d > 1) hintEl.textContent = 'Confidently correct (Δ ≫ 0): w → 0. The example is nearly ignored — no need to push a pair the model already ranks right.';
       else hintEl.textContent = 'Near the decision boundary (Δ ≈ 0): w ≈ 0.5, a moderate update.';
@@ -1040,6 +1135,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initPipeline();
     initDerivation();
     initPolicyShape();
