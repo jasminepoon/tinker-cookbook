@@ -575,6 +575,15 @@
         </div>
       </div>
     </article>
+
+    <article class="concept" id="recurring-shapes">
+      <h3>Why these shapes keep recurring</h3>
+      <p class="concept-desc">Every loss on this site is built from the same three atoms you just saw above: a <b>log</b>-probability, a <b>sigmoid/softmax</b> squashing function, and <b>KL divergence</b>. They aren't separate ideas — committing to "outputs are distributions, quality is likelihood" forces all three.</p>
+      <div class="eq" data-tex="\underbrace{\text{score}}_{\text{logit / reward}} \;\xrightarrow{\ \exp\ }\; \underbrace{\text{probability}}_{\sigma\,/\,\mathrm{softmax}} \;\xrightarrow{\ -\log\ }\; \underbrace{\text{loss}}_{\mathcal{L}}"></div>
+      <p class="concept-desc"><b>Why log:</b> probabilities of a whole sequence multiply (chain rule), and <span class="m" data-tex="\log\prod_i p_i = \sum_i \log p_i"></span> turns that product into a sum that's numerically stable to optimize. Its asymmetric shape — <span class="m" data-tex="p\to1 \Rightarrow -\log p \to 0"></span> but <span class="m" data-tex="p\to0 \Rightarrow -\log p \to \infty"></span> — punishes confident wrongness far harder than it rewards confidence. The loss isn't minimized <i>in order to</i> reach 0; 0 is just the floor you hit once <span class="m" data-tex="p=1"></span>. The real target is putting probability mass on the right answer.</p>
+      <p class="concept-desc"><b>Why sigmoid / softmax:</b> models output unbounded scores (logits, rewards), but a loss needs a probability. Sigmoid and softmax are the <span class="m" data-tex="\exp"></span>-side partner of <span class="m" data-tex="\log"></span> — score&nbsp;&rarr;&nbsp;probability is <span class="m" data-tex="\exp"></span>-shaped, probability&nbsp;&rarr;&nbsp;score is <span class="m" data-tex="\log"></span>-shaped (a logit is literally a log-odds). That's why squashing a score gap with <span class="m" data-tex="\sigma(\Delta r)"></span> (Bradley&ndash;Terry, above) and then taking <span class="m" data-tex="-\log"></span> of it is the same two-step move as cross-entropy.</p>
+      <p class="concept-desc"><b>Why KL:</b> <span class="m" data-tex="D_{\mathrm{KL}}(p\,\|\,q) = \mathbb{E}_p[\log p - \log q]"></span> is built from nothing but log-probabilities — the expected gap between two distributions' surprisal. That's why it plays two different roles elsewhere in this course: as the <i>objective</i> (SFT minimizing <span class="m" data-tex="-\log p"></span> on data is exactly minimizing <span class="m" data-tex="D_{\mathrm{KL}}(\text{data}\,\|\,\text{model})"></span>), and as a <i>leash</i> (the RLHF KL penalty <span class="m" data-tex="D_{\mathrm{KL}}(\pi\,\|\,\pi_{\text{ref}})"></span> keeps a policy from drifting too far while it chases reward). DPO's loss derives from combining both roles with Bradley&ndash;Terry in a single line — the same atoms, recombined.</p>
+    </article>
   </section>
 
   <!-- ============ SECTION D: RL FRAMING ============ -->
