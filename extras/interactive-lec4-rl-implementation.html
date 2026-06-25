@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RL Implementation & Practice — Interactive Lecture 4</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -202,6 +204,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -331,7 +357,7 @@
   <!-- ============ SECTION A: THE ALGORITHM FAMILY ============ -->
   <section class="group" id="sec-family">
     <div class="group-header"><span class="group-index">01</span><h2>The policy-gradient family</h2></div>
-    <p class="group-intro">Every method in this lecture minimizes the same loss skeleton — a sum of log-probs weighted by an advantage <code>&minus;&Sigma; log&pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>)&middot;&Psi;<sub>t</sub></code>. They differ only in <b>what &Psi;<sub>t</sub> is</b> (the baseline / advantage) and <b>how updates are bounded</b> (clipping). Climb the ladder and see exactly what each algorithm adds.</p>
+    <p class="group-intro">Every method in this lecture minimizes the same loss skeleton — a sum of log-probs weighted by an advantage <span class="m" data-tex="-\sum_t \log\pi_\theta(a_t\mid s_t)\cdot\Psi_t"></span>. They differ only in <b>what <span class="m" data-tex="\Psi_t"></span> is</b> (the baseline / advantage) and <b>how updates are bounded</b> (clipping). Climb the ladder and see exactly what each algorithm adds.</p>
 
     <article class="concept" id="ladder">
       <h3>Algorithm ladder: REINFORCE → RLOO → PPO → GRPO</h3>
@@ -339,28 +365,38 @@
       <div class="panel">
         <div class="panel-controls">
           <div class="ladder-steps" id="ladder-steps"></div>
-          <p class="hint">Notice: the only thing that ever changes is &Psi;<sub>t</sub> (the advantage) and whether the ratio is clipped. PPO is the only rung that needs a value network.</p>
+          <p class="hint">Notice: the only thing that ever changes is <span class="m" data-tex="\Psi_t"></span> (the advantage) and whether the ratio is clipped. PPO is the only rung that needs a value network.</p>
         </div>
         <div class="panel-viz">
-          <div class="formula-display" id="ladder-loss"></div>
+          <div class="eq-readout" id="ladder-loss-label"></div>
+          <div class="eq" id="ladder-loss"></div>
           <div class="feature-grid" id="ladder-features"></div>
-          <div class="formula-display" id="ladder-psi"></div>
+          <div class="eq-readout" id="ladder-psi-label">advantage <span class="m" data-tex="\Psi_t"></span></div>
+          <div class="eq" id="ladder-psi"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="rloo">
       <h3>The RLOO leave-one-out baseline</h3>
-      <p class="concept-desc">REINFORCE subtracts the batch-mean reward as a baseline. <b>RLOO</b> samples <code>K</code> completions per prompt and, for each one, subtracts the mean of its <i>siblings</i>: <code>b<sub>i</sub> = (1/(K&minus;1))&Sigma;<sub>j&ne;i</sub> R<sub>j</sub></code>. A per-prompt baseline removes prompt-difficulty variance the batch mean leaves in. Drag the rewards and watch each advantage recompute.</p>
+      <p class="concept-desc">REINFORCE subtracts the batch-mean reward as a baseline. <b>RLOO</b> samples <span class="m" data-tex="K"></span> completions per prompt and, for each one, subtracts the mean of its <i>siblings</i>: <span class="m" data-tex="b_i = \tfrac{1}{K-1}\sum_{j\ne i} R_j"></span>. A per-prompt baseline removes prompt-difficulty variance the batch mean leaves in. Drag the rewards and watch each advantage recompute.</p>
+      <div class="eq" data-tex="A_i = R_i - b_i, \qquad b_i = \frac{1}{K-1}\sum_{j\ne i} R_j"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="R_i"></span><span class="def">the scalar reward of the <span class="m" data-tex="i"></span>-th completion sampled for this prompt</span></div>
+        <div class="row"><span class="sym" data-tex="b_i"></span><span class="def">the leave-one-out baseline for completion <span class="m" data-tex="i"></span> — the mean reward of its <span class="m" data-tex="K-1"></span> siblings (itself excluded)</span></div>
+        <div class="row"><span class="sym" data-tex="A_i"></span><span class="def">the centered advantage that weights this completion's policy gradient</span></div>
+        <div class="row"><span class="sym" data-tex="K"></span><span class="def">number of completions sampled per prompt</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div id="rloo-sliders"></div>
           <button id="rloo-rand">Randomize rewards</button>
-          <p class="hint">Each advantage A<sub>i</sub> = R<sub>i</sub> &minus; (mean of the other K&minus;1). Unlike REINFORCE's single batch baseline, a hard prompt that scores low across the board still produces sensible centered advantages.</p>
+          <p class="hint">Each advantage <span class="m" data-tex="A_i = R_i - b_i"></span> subtracts the mean of the other <span class="m" data-tex="K-1"></span>. Unlike REINFORCE's single batch baseline, a hard prompt that scores low across the board still produces sensible centered advantages.</p>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="rloo-bars"></div>
-          <div class="formula-display" id="rloo-formula"></div>
+          <div class="eq" id="rloo-formula"></div>
+          <div class="eq-readout" id="rloo-status"></div>
         </div>
       </div>
     </article>
@@ -373,41 +409,58 @@
 
     <article class="concept" id="ppo">
       <h3>PPO clipped surrogate</h3>
-      <p class="concept-desc">The importance ratio is <code>&rho; = &pi;<sub>&theta;</sub>(a|s)/&pi;<sub>old</sub>(a|s)</code>. PPO minimizes <code>&minus;min(&rho;&middot;A, clip(&rho;,1&minus;&epsilon;,1+&epsilon;)&middot;A)</code>. In code that's <code>torch.max(&minus;A&middot;&rho;, &minus;A&middot;clamp(&rho;))</code> — picking the more pessimistic gradient. Drag the ratio and watch the objective flatten the moment you leave <code>[1&minus;&epsilon;, 1+&epsilon;]</code>.</p>
+      <p class="concept-desc">The importance ratio is <span class="m" data-tex="\rho = \pi_\theta(a\mid s)/\pi_{\text{old}}(a\mid s)"></span>. PPO minimizes <span class="m" data-tex="-\min\!\big(\rho A,\ \mathrm{clip}(\rho,1-\epsilon,1+\epsilon)A\big)"></span>. In code that's <code>torch.max(-A*&rho;, -A*clamp(&rho;))</code> — picking the more pessimistic gradient. Drag the ratio and watch the objective flatten the moment you leave <span class="m" data-tex="[1-\epsilon,\ 1+\epsilon]"></span>.</p>
+      <div class="eq" data-tex="\mathcal{L}^{\text{clip}} = -\min\!\Big(\rho_t A_t,\ \mathrm{clip}(\rho_t, 1-\epsilon, 1+\epsilon)\,A_t\Big), \qquad \rho_t = \frac{\pi_\theta(a_t\mid s_t)}{\pi_{\text{old}}(a_t\mid s_t)}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\rho_t"></span><span class="def">importance ratio of the new policy to the sampling policy at token <span class="m" data-tex="t"></span>; <span class="m" data-tex="\rho_t=1"></span> when nothing has changed</span></div>
+        <div class="row"><span class="sym" data-tex="A_t"></span><span class="def">the advantage of the action — how much better than the baseline this token was</span></div>
+        <div class="row"><span class="sym" data-tex="\epsilon"></span><span class="def">the clip width; the ratio is confined to the trust region <span class="m" data-tex="[1-\epsilon,1+\epsilon]"></span> (typically 0.2)</span></div>
+        <div class="row"><span class="sym" data-tex="\mathrm{clip}"></span><span class="def">clamps <span class="m" data-tex="\rho_t"></span> into the band, so an update that strays too far earns no extra objective</span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}^{\text{clip}}"></span><span class="def">the (per-token) clipped surrogate loss being minimized; the <span class="m" data-tex="\min"></span> picks the more pessimistic of the two terms</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Probability ratio &rho; = <span id="ppo-r-val">1.00</span></label>
+          <label>Probability ratio <span class="m" data-tex="\rho"></span> = <span id="ppo-r-val">1.00</span></label>
           <input type="range" id="ppo-r" min="0.1" max="2.5" step="0.01" value="1">
-          <label>Advantage A = <span id="ppo-a-val">1.00</span></label>
+          <label>Advantage <span class="m" data-tex="A"></span> = <span id="ppo-a-val">1.00</span></label>
           <input type="range" id="ppo-a" min="-2" max="2" step="0.1" value="1">
-          <label>Clip &epsilon; = <span id="ppo-eps-val">0.20</span></label>
+          <label>Clip <span class="m" data-tex="\epsilon"></span> = <span id="ppo-eps-val">0.20</span></label>
           <input type="range" id="ppo-eps" min="0.05" max="0.5" step="0.01" value="0.2">
           <p class="hint" id="ppo-hint"></p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 220" id="ppo-plot"></svg>
-          <div class="formula-display" id="ppo-formula"></div>
+          <div class="eq" id="ppo-formula"></div>
+          <div class="eq-readout" id="ppo-status"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="gae">
       <h3>Generalized Advantage Estimation (GAE)</h3>
-      <p class="concept-desc">GAE turns the terminal reward into per-token advantages by propagating TD errors <code>&delta;<sub>t</sub> = r<sub>t</sub> + &gamma;V(s<sub>t+1</sub>) &minus; V(s<sub>t</sub>)</code> backward with decay <code>(&gamma;&lambda;)</code>: <code>&Acirc;<sub>t</sub> = &Sigma;<sub>l</sub>(&gamma;&lambda;)<sup>l</sup>&delta;<sub>t+l</sub></code>. <code>&lambda;=0</code> is pure TD (low variance, high bias); <code>&lambda;=1</code> is Monte-Carlo (high variance, low bias). Drag &gamma; and &lambda; and watch per-token advantages reshape across the sequence.</p>
+      <p class="concept-desc">GAE turns the terminal reward into per-token advantages by propagating TD errors <span class="m" data-tex="\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)"></span> backward with decay <span class="m" data-tex="(\gamma\lambda)"></span>: <span class="m" data-tex="\hat{A}_t = \sum_l (\gamma\lambda)^l \delta_{t+l}"></span>. <span class="m" data-tex="\lambda=0"></span> is pure TD (low variance, high bias); <span class="m" data-tex="\lambda=1"></span> is Monte-Carlo (high variance, low bias). Drag <span class="m" data-tex="\gamma"></span> and <span class="m" data-tex="\lambda"></span> and watch per-token advantages reshape across the sequence.</p>
+      <div class="eq" data-tex="\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t), \qquad \hat{A}_t = \sum_{l\ge 0} (\gamma\lambda)^l\, \delta_{t+l}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\delta_t"></span><span class="def">the TD error at token <span class="m" data-tex="t"></span> — observed reward plus discounted next-state value minus current value</span></div>
+        <div class="row"><span class="sym" data-tex="V(s_t)"></span><span class="def">the critic's value estimate of state <span class="m" data-tex="s_t"></span> (needs a learned value net <span class="m" data-tex="V_\phi"></span>)</span></div>
+        <div class="row"><span class="sym" data-tex="\gamma"></span><span class="def">discount factor weighting future reward; <span class="m" data-tex="\gamma\to 1"></span> in language RL</span></div>
+        <div class="row"><span class="sym" data-tex="\lambda"></span><span class="def">GAE decay trading bias for variance: 0 = single-step TD, 1 = Monte-Carlo return</span></div>
+        <div class="row"><span class="sym" data-tex="\hat{A}_t"></span><span class="def">the estimated per-token advantage — a <span class="m" data-tex="(\gamma\lambda)"></span>-discounted sum of future TD errors</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Discount &gamma; = <span id="gae-g-val">1.00</span></label>
+          <label>Discount <span class="m" data-tex="\gamma"></span> = <span id="gae-g-val">1.00</span></label>
           <input type="range" id="gae-g" min="0.8" max="1" step="0.01" value="1">
-          <label>GAE &lambda; = <span id="gae-l-val">0.95</span></label>
+          <label>GAE <span class="m" data-tex="\lambda"></span> = <span id="gae-l-val">0.95</span></label>
           <input type="range" id="gae-l" min="0" max="1" step="0.01" value="0.95">
-          <label>Terminal reward R = <span id="gae-r-val">1.0</span></label>
+          <label>Terminal reward <span class="m" data-tex="R"></span> = <span id="gae-r-val">1.0</span></label>
           <input type="range" id="gae-r" min="-2" max="2" step="0.1" value="1">
           <button id="gae-resample">Resample value estimates</button>
           <p class="hint" id="gae-hint"></p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 200" id="gae-plot"></svg>
-          <div class="formula-display" id="gae-formula"></div>
+          <div class="eq" id="gae-formula"></div>
         </div>
       </div>
     </article>
@@ -416,11 +469,18 @@
   <!-- ============ SECTION C: GRPO ============ -->
   <section class="group" id="sec-grpo">
     <div class="group-header"><span class="group-index">03</span><h2>GRPO & group-relative advantages</h2></div>
-    <p class="group-intro">GRPO throws away the value function and GAE entirely. For each prompt it samples a <b>group</b> of <code>G</code> completions and computes advantages purely by comparing siblings: <code>&Acirc;<sub>i</sub> = (R<sub>i</sub> &minus; &mu;<sub>G</sub>)/&sigma;<sub>G</sub></code>. Same clipped loss as PPO, one fewer model in memory.</p>
+    <p class="group-intro">GRPO throws away the value function and GAE entirely. For each prompt it samples a <b>group</b> of <span class="m" data-tex="G"></span> completions and computes advantages purely by comparing siblings: <span class="m" data-tex="\hat{A}_i = (R_i - \mu_G)/\sigma_G"></span>. Same clipped loss as PPO, one fewer model in memory.</p>
 
     <article class="concept" id="grpo">
       <h3>Group-relative advantages (the core GRPO idea)</h3>
-      <p class="concept-desc">Sample a group of <code>G</code> responses for <i>one</i> prompt, give them toy rewards, then <b>center within the group</b>: subtract the group mean and divide by the group std. The baseline is the group itself — better-than-average siblings get positive advantage, worse-than-average get negative. Watch the std-collapse warning when all rewards are equal (the NaN trap).</p>
+      <p class="concept-desc">Sample a group of <span class="m" data-tex="G"></span> responses for <i>one</i> prompt, give them toy rewards, then <b>center within the group</b>: subtract the group mean and divide by the group std. The baseline is the group itself — better-than-average siblings get positive advantage, worse-than-average get negative. Watch the std-collapse warning when all rewards are equal (the NaN trap).</p>
+      <div class="eq" data-tex="\hat{A}_i = \frac{R_i - \mu_G}{\sigma_G + \varepsilon}, \qquad \mu_G = \frac{1}{G}\sum_{j} R_j, \quad \sigma_G = \sqrt{\tfrac{1}{G}\sum_j (R_j-\mu_G)^2}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="R_i"></span><span class="def">the reward of the <span class="m" data-tex="i"></span>-th completion in the group sampled for one prompt</span></div>
+        <div class="row"><span class="sym" data-tex="\mu_G,\ \sigma_G"></span><span class="def">the mean and standard deviation of rewards <i>within the group</i> — the baseline and scale</span></div>
+        <div class="row"><span class="sym" data-tex="\varepsilon"></span><span class="def">a tiny constant (<span class="m" data-tex="10^{-4}"></span>) guarding against division by zero when the group's rewards collapse</span></div>
+        <div class="row"><span class="sym" data-tex="\hat{A}_i"></span><span class="def">the group-relative advantage; positive for better-than-average siblings, negative for worse</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div id="grpo-sliders"></div>
@@ -430,21 +490,21 @@
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="grpo-bars"></div>
-          <div class="formula-display" id="grpo-formula"></div>
+          <div class="eq" id="grpo-formula"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="kl">
       <h3>KL penalty placement: in-reward vs in-loss</h3>
-      <p class="concept-desc">Same goal — constrain drift from the reference policy — two placements. <b>PPO</b> folds <code>&minus;&beta;&middot;KL<sub>t</sub></code> into the per-token <i>reward</i> before GAE, so KL flows through advantage estimation. <b>GRPO</b> adds <code>&beta;&middot;KL<sub>t</sub></code> as a separate <i>loss</i> term, leaving advantages untouched. Toggle and see what the per-token training signal becomes.</p>
+      <p class="concept-desc">Same goal — constrain drift from the reference policy — two placements. <b>PPO</b> folds <span class="m" data-tex="-\beta\cdot\mathrm{KL}_t"></span> into the per-token <i>reward</i> before GAE, so KL flows through advantage estimation. <b>GRPO</b> adds <span class="m" data-tex="\beta\cdot\mathrm{KL}_t"></span> as a separate <i>loss</i> term, leaving advantages untouched. Toggle and see what the per-token training signal becomes.</p>
       <div class="panel">
         <div class="panel-controls">
           <div class="tabs" id="kl-tabs">
             <button data-mode="reward" class="active">KL in reward (PPO)</button>
             <button data-mode="loss">KL in loss (GRPO)</button>
           </div>
-          <label>KL coefficient &beta; = <span id="kl-beta-val">0.05</span></label>
+          <label>KL coefficient <span class="m" data-tex="\beta"></span> = <span id="kl-beta-val">0.05</span></label>
           <input type="range" id="kl-beta" min="0" max="0.3" step="0.01" value="0.05">
           <label>Per-token KL magnitude = <span id="kl-mag-val">0.40</span></label>
           <input type="range" id="kl-mag" min="0" max="2" step="0.05" value="0.4">
@@ -453,7 +513,9 @@
         </div>
         <div class="panel-viz">
           <div class="code-block" id="kl-code"></div>
-          <div class="formula-display" id="kl-formula"></div>
+          <div class="eq-readout" id="kl-label"></div>
+          <div class="eq" id="kl-formula"></div>
+          <div class="eq-readout" id="kl-status"></div>
         </div>
       </div>
     </article>
@@ -479,27 +541,34 @@
         </div>
         <div class="panel-viz">
           <div class="mem-grid" id="mem-grid"></div>
-          <div class="formula-display" id="mem-formula"></div>
+          <div class="eq-readout" id="mem-formula"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="aggregation">
       <h3>Loss aggregation: per-sequence vs per-token vs fixed-length</h3>
-      <p class="concept-desc">Same gradient <code>&nabla;log&pi;&middot;A</code>, three ways to reduce it to a batch scalar. <b>Per-sequence</b> (GRPO) gives each sequence equal weight → short sequences get bigger per-token gradients. <b>Per-token</b> (DAPO) gives each token equal weight → long sequences contribute more total gradient. <b>Fixed-length</b> (Dr.&nbsp;GRPO) divides by a constant L<sub>max</sub>. Edit the two toy sequences and compare.</p>
+      <p class="concept-desc">Same gradient <span class="m" data-tex="\nabla\log\pi\cdot A"></span>, three ways to reduce it to a batch scalar. <b>Per-sequence</b> (GRPO) gives each sequence equal weight → short sequences get bigger per-token gradients. <b>Per-token</b> (DAPO) gives each token equal weight → long sequences contribute more total gradient. <b>Fixed-length</b> (Dr.&nbsp;GRPO) divides by a constant <span class="m" data-tex="L_{\max}"></span>. Edit the two toy sequences and compare.</p>
+      <div class="eq" data-tex="\underbrace{\frac{1}{B}\sum_i \frac{1}{|a_i|}\sum_t \ell_{i,t}}_{\text{per-sequence}} \qquad \underbrace{\frac{\sum_i\sum_t \ell_{i,t}}{\sum_i |a_i|}}_{\text{per-token}} \qquad \underbrace{\frac{1}{B}\sum_i \frac{1}{L_{\max}}\sum_t \ell_{i,t}}_{\text{fixed-length}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\ell_{i,t}"></span><span class="def">the per-token loss for token <span class="m" data-tex="t"></span> of sequence <span class="m" data-tex="i"></span></span></div>
+        <div class="row"><span class="sym" data-tex="|a_i|"></span><span class="def">the length (token count) of sequence <span class="m" data-tex="i"></span></span></div>
+        <div class="row"><span class="sym" data-tex="B"></span><span class="def">the number of sequences in the batch</span></div>
+        <div class="row"><span class="sym" data-tex="L_{\max}"></span><span class="def">a fixed normalizing length (Dr.&nbsp;GRPO), independent of any sequence's actual length</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>Sequence 1 token losses (comma-separated)</label>
           <input type="text" id="agg-seq1" value="1,1,1,1,10">
           <label>Sequence 2 token losses (comma-separated)</label>
           <input type="text" id="agg-seq2" value="1,1,1,1,1,1,1,1,1,10">
-          <label>L<sub>max</sub> (fixed-length norm) = <span id="agg-lmax-val">10</span></label>
+          <label><span class="m" data-tex="L_{\max}"></span> (fixed-length norm) = <span id="agg-lmax-val">10</span></label>
           <input type="range" id="agg-lmax" min="5" max="20" step="1" value="10">
-          <p class="hint">Per-token gradient weight for a token in a sequence of length |a|: per-sequence = 1/(B|a|), per-token = 1/&Sigma;|a|, fixed = 1/(B&middot;L<sub>max</sub>). Equal columns mean equal per-token weighting.</p>
+          <p class="hint">Per-token gradient weight for a token in a sequence of length <span class="m" data-tex="|a|"></span>: per-sequence <span class="m" data-tex="=1/(B|a|)"></span>, per-token <span class="m" data-tex="=1/\sum|a|"></span>, fixed <span class="m" data-tex="=1/(B\,L_{\max})"></span>. Equal columns mean equal per-token weighting.</p>
         </div>
         <div class="panel-viz">
           <table class="cmp" id="agg-table"></table>
-          <div class="formula-display" id="agg-formula"></div>
+          <div class="eq-readout" id="agg-formula"></div>
         </div>
       </div>
     </article>
@@ -518,6 +587,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -537,29 +620,29 @@
       {
         name:'REINFORCE',
         tag:'sequence reward + batch baseline',
-        loss:'L = &minus;(1/T) &Sigma;<sub>t</sub> log&pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>) &middot; (G<sub>t</sub> &minus; b)',
-        psi:'&Psi;<sub>t</sub> = G<sub>t</sub> &minus; b &nbsp; with &nbsp; b = mean reward over the batch',
+        loss:'\\mathcal{L} = -\\frac{1}{T}\\sum_t \\log\\pi_\\theta(a_t\\mid s_t)\\,(G_t - b)',
+        psi:'\\Psi_t = G_t - b \\quad\\text{with}\\quad b = \\text{mean reward over the batch}',
         feat:{ baseline:true, value:false, gae:false, clip:false, group:false }
       },
       {
         name:'RLOO',
         tag:'leave-one-out per-prompt baseline',
-        loss:'L = &minus;(1/K) &Sigma;<sub>i</sub> &Sigma;<sub>t</sub> log&pi;<sub>&theta;</sub>(a<sub>i,t</sub>|s<sub>i,t</sub>) &middot; (R<sub>i</sub> &minus; b<sub>i</sub>)',
-        psi:'&Psi;<sub>i</sub> = R<sub>i</sub> &minus; b<sub>i</sub>, &nbsp; b<sub>i</sub> = (1/(K&minus;1))&Sigma;<sub>j&ne;i</sub> R<sub>j</sub> &nbsp; (per-prompt, lower variance)',
+        loss:'\\mathcal{L} = -\\frac{1}{K}\\sum_i\\sum_t \\log\\pi_\\theta(a_{i,t}\\mid s_{i,t})\\,(R_i - b_i)',
+        psi:'\\Psi_i = R_i - b_i, \\quad b_i = \\frac{1}{K-1}\\sum_{j\\ne i} R_j \\quad\\text{(per-prompt, lower variance)}',
         feat:{ baseline:true, value:false, gae:false, clip:false, group:true }
       },
       {
         name:'PPO',
         tag:'clipped ratio + GAE per-token advantage',
-        loss:'L = &minus;(1/T) &Sigma;<sub>t</sub> min(&rho;<sub>t</sub>A<sub>t</sub>, clip(&rho;<sub>t</sub>,1&minus;&epsilon;,1+&epsilon;)A<sub>t</sub>)',
-        psi:'&Psi;<sub>t</sub> = A<sub>t</sub> via GAE (needs value net V<sub>&phi;</sub>); &nbsp; &rho;<sub>t</sub> = &pi;<sub>&theta;</sub>/&pi;<sub>old</sub> clipped to a trust region',
+        loss:'\\mathcal{L} = -\\frac{1}{T}\\sum_t \\min\\!\\big(\\rho_t A_t,\\ \\mathrm{clip}(\\rho_t,1-\\epsilon,1+\\epsilon)A_t\\big)',
+        psi:'\\Psi_t = A_t \\text{ via GAE (needs value net } V_\\phi\\text{);}\\quad \\rho_t = \\pi_\\theta/\\pi_{\\text{old}} \\text{ clipped to a trust region}',
         feat:{ baseline:true, value:true, gae:true, clip:true, group:false }
       },
       {
         name:'GRPO',
         tag:'group-relative advantage, no value net',
-        loss:'L = &minus;(1/G) &Sigma;<sub>i</sub> (1/|a<sub>i</sub>|) &Sigma;<sub>t</sub> min(&rho;<sub>i,t</sub>&Acirc;<sub>i</sub>, clip(&rho;<sub>i,t</sub>,1&minus;&epsilon;,1+&epsilon;)&Acirc;<sub>i</sub>) + &beta;&middot;KL',
-        psi:'&Acirc;<sub>i</sub> = (R<sub>i</sub> &minus; &mu;<sub>G</sub>)/&sigma;<sub>G</sub> &nbsp; sequence-level, group-normalized; &nbsp; per-token ratio &rho;<sub>i,t</sub>, no value net',
+        loss:'\\mathcal{L} = -\\frac{1}{G}\\sum_i \\frac{1}{|a_i|}\\sum_t \\min\\!\\big(\\rho_{i,t}\\hat{A}_i,\\ \\mathrm{clip}(\\rho_{i,t},1-\\epsilon,1+\\epsilon)\\hat{A}_i\\big) + \\beta\\,\\mathrm{KL}',
+        psi:'\\hat{A}_i = (R_i - \\mu_G)/\\sigma_G \\quad\\text{sequence-level, group-normalized;}\\quad \\text{per-token ratio } \\rho_{i,t}\\text{, no value net}',
         feat:{ baseline:true, value:false, gae:false, clip:true, group:true }
       }
     ];
@@ -571,6 +654,7 @@
       group:'group / per-prompt'
     };
     var stepsEl = document.getElementById('ladder-steps');
+    var lossLabelEl = document.getElementById('ladder-loss-label');
     var lossEl = document.getElementById('ladder-loss');
     var featEl = document.getElementById('ladder-features');
     var psiEl = document.getElementById('ladder-psi');
@@ -587,12 +671,13 @@
         stepsEl.appendChild(d);
       });
       var a = algos[sel];
-      lossEl.innerHTML = '<b>' + a.name + ' loss</b><br>' + a.loss;
+      lossLabelEl.innerHTML = '<b>' + a.name + '</b> loss';
+      tex(lossEl, a.loss, true);
       featEl.innerHTML = Object.keys(featLabels).map(function(k){
         var on = a.feat[k];
         return '<span class="feature-chip ' + (on?'on':'off') + '">' + featLabels[k] + '</span>';
       }).join('');
-      psiEl.innerHTML = a.psi;
+      tex(psiEl, a.psi, true);
     }
     render();
   }
@@ -604,6 +689,7 @@
     var slidersEl = document.getElementById('rloo-sliders');
     var barsEl = document.getElementById('rloo-bars');
     var formulaEl = document.getElementById('rloo-formula');
+    var statusEl = document.getElementById('rloo-status');
 
     rewards.forEach(function(v, i){
       var row = document.createElement('div');
@@ -641,10 +727,14 @@
       });
       var i0 = 0;
       var b0 = (total - rewards[i0]) / (K-1);
-      formulaEl.innerHTML =
-        'b<sub>1</sub> = (&Sigma;<sub>j&ne;1</sub>R<sub>j</sub>)/(K&minus;1) = ' + (total-rewards[i0]).toFixed(2) + '/' + (K-1) + ' = <b>' + b0.toFixed(3) + '</b><br>' +
-        'A<sub>1</sub> = R<sub>1</sub> &minus; b<sub>1</sub> = ' + rewards[i0].toFixed(2) + ' &minus; ' + b0.toFixed(3) + ' = <b>' + (rewards[i0]-b0).toFixed(3) + '</b><br>' +
-        '<span style="color:var(--text-dim)">&Sigma;A = ' + sum(adv).toFixed(3) + ' (need not be exactly 0 under leave-one-out)</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'b_1 &= \\frac{\\sum_{j\\ne 1} R_j}{K-1} = \\frac{' + (total-rewards[i0]).toFixed(2) + '}{' + (K-1) + '} = ' + b0.toFixed(3) + ' \\\\ ' +
+        'A_1 &= R_1 - b_1 = ' + rewards[i0].toFixed(2) + ' - ' + b0.toFixed(3) + ' = ' + (rewards[i0]-b0).toFixed(3) +
+        '\\end{aligned}',
+        true);
+      statusEl.innerHTML =
+        '&Sigma;A = <b>' + sum(adv).toFixed(3) + '</b> (need not be exactly 0 under leave-one-out)';
     }
     rewards.forEach(function(_, i){
       document.getElementById('rloo-' + i).addEventListener('input', function(e){
@@ -674,6 +764,7 @@
     var epsVal = document.getElementById('ppo-eps-val');
     var svg = document.getElementById('ppo-plot');
     var formulaEl = document.getElementById('ppo-formula');
+    var statusEl = document.getElementById('ppo-status');
     var hintEl = document.getElementById('ppo-hint');
 
     var W = 360, H = 220, PAD = 26;
@@ -729,10 +820,11 @@
       }
       hintEl.innerHTML = 'Green = PPO surrogate (the min). Dashed grey = unclipped &rho;&middot;A. Band = [1&minus;&epsilon;,1+&epsilon;]. With K=1 epoch and no minibatching &rho;&equiv;1 and clipping never fires.';
 
-      formulaEl.innerHTML =
-        '&rho;&middot;A = ' + lu.toFixed(2) + ' &nbsp;|&nbsp; clip(&rho;)&middot;A = ' + (clipR(r,eps)*A).toFixed(2) +
-        ' &nbsp;|&nbsp; objective = min = <b>' + lp.toFixed(2) + '</b>' + (clippedNow ? ' &nbsp;<span style="color:var(--orange)">[clipped]</span>' : '') +
-        '<br><span style="color:var(--text-dim)">' + region + '</span>';
+      tex(formulaEl,
+        '\\rho A = ' + lu.toFixed(2) + ' \\quad|\\quad \\mathrm{clip}(\\rho)A = ' + (clipR(r,eps)*A).toFixed(2) +
+        ' \\quad|\\quad \\text{objective} = \\min = ' + lp.toFixed(2) + (clippedNow ? '\\ \\text{[clipped]}' : ''),
+        true);
+      statusEl.innerHTML = '<span style="color:var(--text-dim)">' + region + '</span>';
     }
     rSlider.addEventListener('input', render);
     aSlider.addEventListener('input', render);
@@ -812,9 +904,12 @@
         '<text x="' + (W-PAD-46) + '" y="' + (PAD+4) + '" fill="var(--text-dim)" font-size="9">terminal →</text>';
 
       var spread = (Math.max.apply(null,adv) - Math.min.apply(null,adv)).toFixed(3);
-      formulaEl.innerHTML =
-        '&delta;<sub>t</sub> = r<sub>t</sub> + &gamma;V(s<sub>t+1</sub>) &minus; V(s<sub>t</sub>), &nbsp; &Acirc;<sub>t</sub> = &Sigma;<sub>l</sub>(&gamma;&lambda;)<sup>l</sup>&delta;<sub>t+l</sub><br>' +
-        '&Acirc; (last token) = <b>' + adv[T-1].toFixed(3) + '</b> &nbsp;|&nbsp; &Acirc; (first token) = <b>' + adv[0].toFixed(3) + '</b> &nbsp;|&nbsp; spread = ' + spread;
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\delta_t &= r_t + \\gamma V(s_{t+1}) - V(s_t), \\quad \\hat{A}_t = \\sum_l (\\gamma\\lambda)^l \\delta_{t+l} \\\\ ' +
+        '\\hat{A}_{\\text{last}} &= ' + adv[T-1].toFixed(3) + ' \\quad|\\quad \\hat{A}_{\\text{first}} = ' + adv[0].toFixed(3) + ' \\quad|\\quad \\text{spread} = ' + spread +
+        '\\end{aligned}',
+        true);
 
       var biasNote;
       if(lam < 0.15) biasNote = '&lambda;&asymp;0 (TD): advantages collapse to single-step &delta;<sub>t</sub> &mdash; low variance, high bias. Credit barely propagates back.';
@@ -873,9 +968,12 @@
         barsEl.appendChild(col);
       });
 
-      formulaEl.innerHTML =
-        '&mu;<sub>G</sub> = ' + mu.toFixed(3) + ' &nbsp;|&nbsp; &sigma;<sub>G</sub> = ' + sigma.toFixed(3) + '<br>' +
-        '&Acirc;<sub>i</sub> = (R<sub>i</sub> &minus; &mu;<sub>G</sub>)/(&sigma;<sub>G</sub> + 1e-4) &nbsp;|&nbsp; &Sigma;&Acirc; = <b>' + sum(adv).toFixed(3) + '</b> (centered)';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\mu_G &= ' + mu.toFixed(3) + ' \\quad|\\quad \\sigma_G = ' + sigma.toFixed(3) + ' \\\\ ' +
+        '\\hat{A}_i &= \\frac{R_i - \\mu_G}{\\sigma_G + 10^{-4}} \\quad|\\quad \\textstyle\\sum \\hat{A} = ' + sum(adv).toFixed(3) + '\\ \\text{(centered)}' +
+        '\\end{aligned}',
+        true);
 
       if(sigma < 1e-6){
         hintEl.innerHTML = '<span style="color:var(--orange)">&sigma;<sub>G</sub> &asymp; 0 &mdash; all completions scored identically. Without the +1e-4 guard this divides by zero → NaN advantages. A real silent bug: a zero-std group gives no learning signal.</span>';
@@ -915,7 +1013,9 @@
     var betaVal = document.getElementById('kl-beta-val');
     var magVal = document.getElementById('kl-mag-val');
     var codeEl = document.getElementById('kl-code');
+    var labelEl = document.getElementById('kl-label');
     var formulaEl = document.getElementById('kl-formula');
+    var statusEl = document.getElementById('kl-status');
     var hintEl = document.getElementById('kl-hint');
     var mode = 'reward';
 
@@ -944,18 +1044,24 @@
       if(mode === 'reward'){
         var shapedTerminal = rmScore - beta*mag;
         var shapedMid = -beta*mag;
-        formulaEl.innerHTML =
-          '<b>Per-token reward fed to GAE:</b><br>' +
-          'mid token: r<sub>t</sub> = &minus;&beta;&middot;KL<sub>t</sub> = &minus;' + beta.toFixed(2) + '&middot;' + mag.toFixed(2) + ' = <b>' + shapedMid.toFixed(3) + '</b><br>' +
-          'final token: r<sub>T</sub> = R &minus; &beta;&middot;KL<sub>T</sub> = 1 &minus; ' + (beta*mag).toFixed(3) + ' = <b>' + shapedTerminal.toFixed(3) + '</b><br>' +
-          '<span style="color:var(--text-dim)">Every token carries a small negative KL reward; advantages inherit it.</span>';
+        labelEl.innerHTML = '<b>Per-token reward fed to GAE:</b>';
+        tex(formulaEl,
+          '\\begin{aligned}' +
+          'r_t^{\\text{mid}} &= -\\beta\\,\\mathrm{KL}_t = -' + beta.toFixed(2) + '\\cdot' + mag.toFixed(2) + ' = ' + shapedMid.toFixed(3) + ' \\\\ ' +
+          'r_T^{\\text{final}} &= R - \\beta\\,\\mathrm{KL}_T = 1 - ' + (beta*mag).toFixed(3) + ' = ' + shapedTerminal.toFixed(3) +
+          '\\end{aligned}',
+          true);
+        statusEl.innerHTML = '<span style="color:var(--text-dim)">Every token carries a small negative KL reward; advantages inherit it.</span>';
       } else {
         var penalty = beta*mag;
-        formulaEl.innerHTML =
-          '<b>Per-token loss (advantage kept clean):</b><br>' +
-          '&Acirc;<sub>i</sub> = z_score(R) &nbsp;(no KL inside)<br>' +
-          'loss<sub>t</sub> = pg_loss<sub>t</sub> + &beta;&middot;KL<sub>t</sub> &nbsp;&rarr;&nbsp; +' + beta.toFixed(2) + '&middot;' + mag.toFixed(2) + ' = <b>+' + penalty.toFixed(3) + '</b> added<br>' +
-          '<span style="color:var(--text-dim)">KL pushes loss up directly; it never touches advantage estimation.</span>';
+        labelEl.innerHTML = '<b>Per-token loss (advantage kept clean):</b>';
+        tex(formulaEl,
+          '\\begin{aligned}' +
+          '\\hat{A}_i &= \\mathrm{z\\_score}(R) \\quad\\text{(no KL inside)} \\\\ ' +
+          '\\mathrm{loss}_t &= \\mathrm{pg\\_loss}_t + \\beta\\,\\mathrm{KL}_t \\;\\to\\; +' + beta.toFixed(2) + '\\cdot' + mag.toFixed(2) + ' = +' + penalty.toFixed(3) + '\\ \\text{added}' +
+          '\\end{aligned}',
+          true);
+        statusEl.innerHTML = '<span style="color:var(--text-dim)">KL pushes loss up directly; it never touches advantage estimation.</span>';
       }
       hintEl.innerHTML = mode === 'reward'
         ? 'PPO mixes KL into reward, so KL interacts with GAE / value targets. Beware: scatter the RM score to the last <i>generated</i> token, not [:, &minus;1].'
@@ -1098,6 +1204,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initLadder();
     initRLOO();
     initPPO();

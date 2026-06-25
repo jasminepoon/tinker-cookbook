@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Preferences & Preference Data — Interactive Lecture 8</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -203,6 +205,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -336,7 +362,14 @@
 
     <article class="concept" id="vnm">
       <h3>VNM utility → scalar reward</h3>
-      <p class="concept-desc">Von Neumann–Morgenstern: if your preferences obey completeness, transitivity, continuity, and independence, they are represented by a single <b>utility function</b>, and rational choice = maximizing <b>expected utility</b>. Pin the best outcome to u=1 and the worst to u=0; then for any middle outcome, the lottery probability <code>p</code> that makes you indifferent between "the middle outcome for sure" and "a p-chance at the best, else the worst" <i>is</i> its utility: <code>u(mid) = p</code>. Set your indifference probabilities and read off the implied scalar utility.</p>
+      <p class="concept-desc">Von Neumann–Morgenstern: if your preferences obey completeness, transitivity, continuity, and independence, they are represented by a single <b>utility function</b> <span class="m" data-tex="u"></span>, and rational choice = maximizing <b>expected utility</b> <span class="m" data-tex="\mathbb{E}[u]"></span>. Pin the best outcome to <span class="m" data-tex="u=1"></span> and the worst to <span class="m" data-tex="u=0"></span>; then for any middle outcome, the lottery probability <span class="m" data-tex="p"></span> that makes you indifferent between "the middle outcome for sure" and "a <span class="m" data-tex="p"></span>-chance at the best, else the worst" <i>is</i> its utility: <span class="m" data-tex="u(\text{mid}) = p"></span>. Set your indifference probabilities and read off the implied scalar utility.</p>
+      <div class="eq" data-tex="u(\text{best})=1,\quad u(\text{worst})=0,\qquad \text{mid} \sim p\cdot\text{best} + (1-p)\cdot\text{worst} \;\Rightarrow\; u(\text{mid}) = p"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="u"></span><span class="def">the scalar <b>utility</b> the VNM theorem guarantees — one number per outcome that preferences maximize in expectation</span></div>
+        <div class="row"><span class="sym" data-tex="p"></span><span class="def">the indifference probability of the best-vs-worst lottery that you rate equal to the middle outcome for sure</span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}[u]"></span><span class="def">expected utility — rational choice picks the option with the highest probability-weighted utility</span></div>
+        <div class="row"><span class="sym" data-tex="\sim"></span><span class="def">"is indifferent to"; the sure middle outcome and the lottery are judged equally preferable</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div id="vnm-sliders"></div>
@@ -344,25 +377,33 @@
         </div>
         <div class="panel-viz">
           <div class="rank-list" id="vnm-ranklist"></div>
-          <div class="formula-display" id="vnm-formula"></div>
+          <div class="eq-readout" id="vnm-formula"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="bt">
       <h3>Bradley–Terry: the bridge from rewards to preferences</h3>
-      <p class="concept-desc">Once outcomes have scalar rewards, a pairwise preference is just a sigmoid of the reward gap: <code>P(y_w ≻ y_l | x) = σ(r(x,y_w) − r(x,y_l)) = e^{r_w}/(e^{r_w}+e^{r_l})</code>. Only the <i>difference</i> matters. Drag the two rewards and watch the predicted preference probability and the Bradley–Terry loss <code>−log σ(Δr)</code>.</p>
+      <p class="concept-desc">Once outcomes have scalar rewards, a pairwise preference is just a sigmoid of the reward gap: <span class="m" data-tex="P(y_w \succ y_l \mid x) = \sigma\big(r(x,y_w) - r(x,y_l)\big)"></span>. Only the <i>difference</i> matters. Drag the two rewards and watch the predicted preference probability and the Bradley–Terry loss <span class="m" data-tex="-\log\sigma(\Delta r)"></span>.</p>
+      <div class="eq" data-tex="P(y_w \succ y_l \mid x) = \sigma\big(r_w - r_l\big) = \frac{e^{r_w}}{e^{r_w}+e^{r_l}}, \qquad \mathcal{L} = -\log\sigma(r_w - r_l)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_w,\ r_l"></span><span class="def">the scalar reward <span class="m" data-tex="r(x,y)"></span> the model assigns the <b>w</b>inning (chosen) and <b>l</b>osing (rejected) completion</span></div>
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic sigmoid <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span>, squashing the reward gap into a probability in <span class="m" data-tex="(0,1)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="P(y_w \succ y_l)"></span><span class="def">the predicted probability that the judge prefers <span class="m" data-tex="y_w"></span> over <span class="m" data-tex="y_l"></span> — depends only on the gap <span class="m" data-tex="r_w - r_l"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the Bradley–Terry loss (negative log-likelihood) minimized when training the reward model, in nats</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>r(x, y_w) = <span id="bt-rw-val">1.5</span></label>
+          <label><span class="m" data-tex="r(x, y_w)"></span> = <span id="bt-rw-val">1.5</span></label>
           <input type="range" id="bt-rw" min="-4" max="4" step="0.1" value="1.5">
-          <label>r(x, y_l) = <span id="bt-rl-val">0.0</span></label>
+          <label><span class="m" data-tex="r(x, y_l)"></span> = <span id="bt-rl-val">0.0</span></label>
           <input type="range" id="bt-rl" min="-4" max="4" step="0.1" value="0">
-          <p class="hint">Δr = 0 → toss-up (P = 0.5). Large positive Δr → near-certain preference for the "winner". The same sigmoid appears in lectures 0 and 2.</p>
+          <p class="hint"><span class="m" data-tex="\Delta r = 0"></span> → toss-up (<span class="m" data-tex="P = 0.5"></span>). Large positive <span class="m" data-tex="\Delta r"></span> → near-certain preference for the "winner". The same sigmoid appears in lectures 0 and 2.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 200" id="bt-plot"></svg>
-          <div class="formula-display" id="bt-formula"></div>
+          <div class="eq" id="bt-formula"></div>
+          <div class="eq-readout" id="bt-status"></div>
         </div>
       </div>
     </article>
@@ -375,7 +416,7 @@
 
     <article class="concept" id="cycle">
       <h3>Intransitivity: a preference cycle no scalar can fit</h3>
-      <p class="concept-desc">Transitivity says A≻B and B≻C ⟹ A≻C. But real pairwise preferences can cycle like rock-paper-scissors: A≻B≻C≻A. <b>No single scalar utility can represent a cycle</b> — any numbering r(A), r(B), r(C) forces a total order, and a total order has no loops. Click each edge to flip who wins the pairwise comparison, and watch the detector report whether a consistent scalar reward exists.</p>
+      <p class="concept-desc">Transitivity says <span class="m" data-tex="A\succ B"></span> and <span class="m" data-tex="B\succ C \Rightarrow A\succ C"></span>. But real pairwise preferences can cycle like rock-paper-scissors: <span class="m" data-tex="A\succ B\succ C\succ A"></span>. <b>No single scalar utility can represent a cycle</b> — any numbering <span class="m" data-tex="r(A), r(B), r(C)"></span> forces a total order, and a total order has no loops. Click each edge to flip who wins the pairwise comparison, and watch the detector report whether a consistent scalar reward exists.</p>
       <div class="panel">
         <div class="panel-controls">
           <div id="cyc-edges"></div>
@@ -385,14 +426,20 @@
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 220" id="cyc-plot"></svg>
-          <div class="formula-display" id="cyc-formula"></div>
+          <div class="eq-readout" id="cyc-formula"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="scalar">
       <h3>One scalar, many things</h3>
-      <p class="concept-desc">A reward model compresses helpfulness, honesty, harmlessness, tone, format, length, plus the annotator's psychology and the interface framing — all into one number <code>r = Σ wᵢ · aᵢ</code>. We then optimize <i>hard</i> against that scalar and over-optimize whatever happened to get extra weight (often noise). Set how much each hidden dimension is weighted and see how two responses with different real profiles collapse to a single comparable score.</p>
+      <p class="concept-desc">A reward model compresses helpfulness, honesty, harmlessness, tone, format, length, plus the annotator's psychology and the interface framing — all into one number <span class="m" data-tex="r = \sum_i w_i\, a_i"></span>. We then optimize <i>hard</i> against that scalar and over-optimize whatever happened to get extra weight (often noise). Set how much each hidden dimension is weighted and see how two responses with different real profiles collapse to a single comparable score.</p>
+      <div class="eq" data-tex="r = \sum_i w_i\, a_i, \qquad P(A \succ B) = \sigma\big(r(A) - r(B)\big)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="a_i"></span><span class="def">how strongly a response expresses hidden dimension <span class="m" data-tex="i"></span> (helpfulness, honesty, length, …)</span></div>
+        <div class="row"><span class="sym" data-tex="w_i"></span><span class="def">the weight the reward model places on dimension <span class="m" data-tex="i"></span> — often set implicitly by noisy annotation</span></div>
+        <div class="row"><span class="sym" data-tex="r"></span><span class="def">the single scalar reward all those dimensions collapse into; the thing RL optimizes hard</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div id="scal-sliders"></div>
@@ -400,7 +447,8 @@
         </div>
         <div class="panel-viz">
           <div class="rank-list" id="scal-bars"></div>
-          <div class="formula-display" id="scal-formula"></div>
+          <div class="eq" id="scal-formula"></div>
+          <div class="eq-readout" id="scal-status"></div>
         </div>
       </div>
     </article>
@@ -427,7 +475,7 @@
         </div>
         <div class="panel-viz">
           <div class="iface-stage" id="iface-stage"></div>
-          <div class="formula-display" id="iface-formula"></div>
+          <div class="eq-readout" id="iface-formula"></div>
         </div>
       </div>
     </article>
@@ -450,7 +498,7 @@
         </div>
         <div class="panel-viz">
           <div class="rank-list" id="lik-bars"></div>
-          <div class="formula-display" id="lik-formula"></div>
+          <div class="eq-readout" id="lik-formula"></div>
         </div>
       </div>
     </article>
@@ -458,27 +506,35 @@
     <article class="concept" id="bias">
       <h3>Bias: length &amp; position distort the learned reward</h3>
       <p class="concept-desc">Subtle systematic biases sail from the data into the model: <b>verbosity</b> (longer rated higher), <b>position/order</b> (the first-shown or prefix answer over-preferred), formatting, sycophancy, flattery. Here, two answers have equal <i>true</i> quality, but the annotator's <i>observed</i> preference is nudged by length and which side is shown first. The reward model fits the nudged label — so it learns to be long and to game position, not to be good.</p>
+      <div class="eq" data-tex="\Delta_{\text{obs}} = \underbrace{(q_A - q_B)}_{\text{true gap}} + \beta_{\text{len}}\,\Delta\text{len} \pm \beta_{\text{pos}}, \qquad P_{\text{obs}}(A\succ B) = \sigma(\Delta_{\text{obs}})"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="q_A - q_B"></span><span class="def">the <i>true</i> quality gap between the two answers (the signal we actually want to learn)</span></div>
+        <div class="row"><span class="sym" data-tex="\beta_{\text{len}}"></span><span class="def">verbosity-bias strength: how many reward points each extra token <span class="m" data-tex="\Delta\text{len}"></span> buys</span></div>
+        <div class="row"><span class="sym" data-tex="\beta_{\text{pos}}"></span><span class="def">position-bias strength nudging the verdict toward whichever answer is shown first (sign flips with the toggle)</span></div>
+        <div class="row"><span class="sym" data-tex="\Delta_{\text{obs}}"></span><span class="def">the <i>observed</i> score gap the annotator actually acts on — true gap plus the two biases</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>True quality gap, q_A − q_B = <span id="bias-q-val">0.0</span></label>
+          <label>True quality gap, <span class="m" data-tex="q_A - q_B"></span> = <span id="bias-q-val">0.0</span></label>
           <input type="range" id="bias-q" min="-2" max="2" step="0.1" value="0">
           <label>Length advantage of A (extra tokens) = <span id="bias-len-val">120</span></label>
           <input type="range" id="bias-len" min="-200" max="200" step="10" value="120">
-          <label>Verbosity bias strength β_len = <span id="bias-blen-val">0.006</span></label>
+          <label>Verbosity bias strength <span class="m" data-tex="\beta_{\text{len}}"></span> = <span id="bias-blen-val">0.006</span></label>
           <input type="range" id="bias-blen" min="0" max="0.012" step="0.0005" value="0.006">
           <label>A is shown first?</label>
           <div class="tabs" id="bias-pos">
             <button data-pos="1" class="active">A first</button>
             <button data-pos="0">B first</button>
           </div>
-          <label>Position bias strength β_pos = <span id="bias-bpos-val">0.6</span></label>
+          <label>Position bias strength <span class="m" data-tex="\beta_{\text{pos}}"></span> = <span id="bias-bpos-val">0.6</span></label>
           <input type="range" id="bias-bpos" min="0" max="1.5" step="0.05" value="0.6">
           <p class="hint" id="bias-hint"></p>
           <div class="in-practice"><b>In practice</b> · This is the reward-hacking story one step upstream: the bias never has to enter the RL loop at all if it's already baked into the labels. Auditing preference data for length/position/sycophancy artifacts before training a reward model is cheaper than discovering the hack after the fact.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 200" id="bias-plot"></svg>
-          <div class="formula-display" id="bias-formula"></div>
+          <div class="eq" id="bias-formula"></div>
+          <div class="eq-readout" id="bias-status"></div>
         </div>
       </div>
     </article>
@@ -498,6 +554,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -549,12 +619,10 @@
       });
       // expected utility example: a coin flip between great and snarky
       var mids = outcomes.filter(function(o){ return o.fixed === undefined; });
-      var midStr = mids.map(function(o){ return 'u("' + o.name + '") = p = ' + o.p.toFixed(2); }).join(' &nbsp;|&nbsp; ');
+      var midStr = mids.map(function(o){ return 'u("' + escapeHtml(o.name) + '") = p = ' + o.p.toFixed(2); }).join(' &nbsp;|&nbsp; ');
       // sanity: implied preference order must be a clean total order (it always is here)
       var sortedNames = items.map(function(it){ return it.name; });
       formulaEl.innerHTML =
-        'Anchors: u(best)=1, u(worst)=0. For a middle outcome, indifference between it and a ' +
-        '<i>p</i>-lottery on (best, worst) gives <b>u = p</b>.<br>' +
         midStr + '<br>' +
         '<span style="color:var(--text-dim)">Implied total order (best→worst): </span>' + escapeHtml(sortedNames.join(' ≻ '));
       hintEl.innerHTML = 'This is where the scalar story is <b>clean</b>: a complete, transitive, continuous, independent preference yields one consistent utility number per outcome. Section 02 shows what breaks it.';
@@ -578,6 +646,7 @@
     var rwVal = document.getElementById('bt-rw-val');
     var rlVal = document.getElementById('bt-rl-val');
     var formulaEl = document.getElementById('bt-formula');
+    var statusEl = document.getElementById('bt-status');
     var svg = document.getElementById('bt-plot');
 
     var domain = [-6, 6];
@@ -610,11 +679,14 @@
         '<text x="14" y="32" fill="var(--text-dim)" font-size="10">P=1</text>' +
         '<text x="14" y="186" fill="var(--text-dim)" font-size="10">P=0</text>' +
         '<text x="164" y="32" fill="var(--text-dim)" font-size="10">&Delta;r=0</text>';
-      formulaEl.innerHTML =
-        '&Delta;r = r_w &minus; r_l = ' + rw.toFixed(1) + ' &minus; ' + rl.toFixed(1) + ' = <b>' + dr.toFixed(2) + '</b><br>' +
-        'P(y_w &#8827; y_l) = &sigma;(&Delta;r) = e<sup>' + rw.toFixed(1) + '</sup>/(e<sup>' + rw.toFixed(1) + '</sup>+e<sup>' + rl.toFixed(1) + '</sup>) = <b>' + p.toFixed(3) + '</b> ' +
-        '<span style="color:var(--text-dim)">(check ' + pExp.toFixed(3) + ')</span><br>' +
-        'BT loss &minus;log&sigma;(&Delta;r) = <b>' + loss.toFixed(3) + '</b> nats';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\Delta r &= r_w - r_l = ' + rw.toFixed(1) + ' - (' + rl.toFixed(1) + ') = ' + dr.toFixed(2) + ' \\\\ ' +
+        'P(y_w \\succ y_l) &= \\sigma(\\Delta r) = \\frac{e^{' + rw.toFixed(1) + '}}{e^{' + rw.toFixed(1) + '}+e^{' + rl.toFixed(1) + '}} = ' + p.toFixed(3) + ' \\\\ ' +
+        '\\mathcal{L} &= -\\log\\sigma(\\Delta r) = ' + loss.toFixed(3) + '\\ \\text{nats}' +
+        '\\end{aligned}',
+        true);
+      statusEl.innerHTML = 'closed-form check: <b>' + pExp.toFixed(3) + '</b> (matches the sigmoid)';
     }
     rwSlider.addEventListener('input', render);
     rlSlider.addEventListener('input', render);
@@ -756,6 +828,7 @@
     var slidersEl = document.getElementById('scal-sliders');
     var barsEl = document.getElementById('scal-bars');
     var formulaEl = document.getElementById('scal-formula');
+    var statusEl = document.getElementById('scal-status');
     var hintEl = document.getElementById('scal-hint');
 
     dims.forEach(function(d){
@@ -786,9 +859,13 @@
       var dr = rA - rB;
       var p = sigmoid(dr);
       var winner = dr > 0 ? 'A' : (dr < 0 ? 'B' : 'tie');
-      formulaEl.innerHTML =
-        'r(A) = &Sigma; wᵢ·aᵢ = <b>' + rA.toFixed(2) + '</b> &nbsp;|&nbsp; r(B) = <b>' + rB.toFixed(2) + '</b><br>' +
-        '&Delta;r = ' + dr.toFixed(2) + ' &rarr; P(A&#8827;B) = &sigma;(&Delta;r) = <b>' + p.toFixed(3) + '</b> &nbsp; (winner: ' + winner + ')';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'r(A) &= \\textstyle\\sum_i w_i a_i = ' + rA.toFixed(2) + ' \\quad|\\quad r(B) = ' + rB.toFixed(2) + ' \\\\ ' +
+        '\\Delta r &= ' + dr.toFixed(2) + ' \\;\\to\\; P(A\\succ B) = \\sigma(\\Delta r) = ' + p.toFixed(3) +
+        '\\end{aligned}',
+        true);
+      statusEl.innerHTML = 'winner: <b>' + winner + '</b>';
       // A is short-but-helpful-and-long; B is honest. Reveal the over-optimization.
       hintEl.innerHTML = 'A is long &amp; helpful but dishonest; B is honest &amp; kinder. Crank <b>w(Length/format)</b> up and the model learns to prefer the verbose-but-wrong answer — the scalar over-weights whatever the framing inflated. That is the over-optimization the lecture warns about.';
     }
@@ -1037,6 +1114,7 @@
     var bposVal = document.getElementById('bias-bpos-val');
     var hintEl = document.getElementById('bias-hint');
     var formulaEl = document.getElementById('bias-formula');
+    var statusEl = document.getElementById('bias-status');
     var svg = document.getElementById('bias-plot');
     var aFirst = true;
 
@@ -1082,11 +1160,16 @@
       var obsWin = observedGap>0 ? 'A' : (observedGap<0?'B':'tie');
       var flipped = trueWin!=='tie' && obsWin!=='tie' && trueWin!==obsWin;
 
-      formulaEl.innerHTML =
-        'observed Δ = q + β_len·Δlen + (±β_pos)<br>' +
-        '= ' + q.toFixed(1) + ' + ' + blen.toFixed(4) + '·(' + len.toFixed(0) + ') + (' + posNudge.toFixed(2) + ') = <b>' + observedGap.toFixed(2) + '</b><br>' +
-        'P_true(A≻B) = ' + pTrue.toFixed(3) + ' &nbsp;→&nbsp; P_observed = <b>' + pObs.toFixed(3) + '</b>' +
-        (flipped ? ' &nbsp;<span class="badge warn">label FLIPPED to ' + obsWin + '</span>' : '');
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\Delta_{\\text{obs}} &= q + \\beta_{\\text{len}}\\,\\Delta\\text{len} \\pm \\beta_{\\text{pos}} \\\\ ' +
+        '&= ' + q.toFixed(1) + ' + ' + blen.toFixed(4) + '\\cdot(' + len.toFixed(0) + ') + (' + posNudge.toFixed(2) + ') = ' + observedGap.toFixed(2) + ' \\\\ ' +
+        'P_{\\text{true}} &= ' + pTrue.toFixed(3) + ' \\;\\to\\; P_{\\text{obs}} = ' + pObs.toFixed(3) +
+        '\\end{aligned}',
+        true);
+      statusEl.innerHTML = flipped
+        ? '<span class="badge warn">label FLIPPED to ' + obsWin + '</span>'
+        : '<span style="color:var(--text-dim)">order preserved (no flip)</span>';
 
       if(flipped){
         hintEl.innerHTML = 'The annotator now prefers the <b>worse</b> answer purely because it is longer and/or shown first. The reward model fits this flipped label and learns to <b>game length/position</b>, not quality.';
@@ -1113,6 +1196,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initVNM();
     initBradleyTerry();
     initCycle();
