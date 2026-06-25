@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IFT, Reward Models & Rejection Sampling — Interactive Lecture 2</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -221,6 +223,30 @@
   .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
   .formula-display .muted{ color:var(--text-dim); }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* token chips */
   .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
   .token-chip{
@@ -266,7 +292,8 @@
   /* derivation step-through */
   .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
   .deriv-step{ background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:14px 16px; font-size:0.95em; min-height:90px; }
-  .deriv-step .eq{ font-family:var(--mono); color:var(--accent-bright); font-size:1.05em; margin:8px 0; overflow-x:auto; }
+  .deriv-step .eq{ color:var(--accent-bright); font-size:1.05em; margin:8px 0; overflow-x:auto; background:none; border:none; padding:0; }
+  .deriv-step .eq .katex{ color:var(--accent-bright); }
   .deriv-step .why{ color:var(--text-dim); font-size:0.85em; }
   .dots{ display:flex; gap:6px; margin-top:8px; }
   .dot{ width:7px; height:7px; border-radius:50%; background:var(--border); }
@@ -399,7 +426,13 @@ u: Are you sure about that?</textarea>
         </div>
         <div class="panel-viz">
           <div class="chat-render" id="mask-render"></div>
-          <div class="formula-display" id="mask-formula"></div>
+          <div class="eq" data-tex="\mathcal{L}(\theta) = -\sum_{t\,\in\,\text{mask}} \log P_\theta\!\left(x_t \mid x_{<t}\right)"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the <b>cross-entropy</b> loss — same as pretraining, but summed over a restricted set of tokens</span></div>
+            <div class="row"><span class="sym" data-tex="t\in\text{mask}"></span><span class="def">only <b>assistant</b> tokens are in the loss mask; system / user / role-marker tokens are skipped</span></div>
+            <div class="row"><span class="sym" data-tex="P_\theta(x_t\mid x_{<t})"></span><span class="def">the model's predicted probability of the next token <span class="m" data-tex="x_t"></span> given all preceding tokens <span class="m" data-tex="x_{<t}"></span></span></div>
+          </div>
+          <div class="eq-readout" id="mask-formula"></div>
         </div>
       </div>
     </article>
@@ -417,7 +450,8 @@ u: Are you sure about that?</textarea>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="sc-plot"></svg>
-          <div class="formula-display" id="sc-formula"></div>
+          <div class="eq" id="sc-formula"></div>
+          <div class="eq-readout" id="sc-readout"></div>
         </div>
       </div>
     </article>
@@ -430,46 +464,58 @@ u: Are you sure about that?</textarea>
 
     <article class="concept" id="bt-model">
       <h3>The Bradley–Terry model of preferences</h3>
-      <p class="concept-desc">Bradley–Terry (1952) gives each item a latent strength <code>p_i&gt;0</code>; the chance a judge prefers <code>i</code> over <code>j</code> is <code>p_i/(p_i+p_j)</code>. Reparametrizing <code>p_i=e^{r_i}</code> gives unbounded scores — exactly what a network outputs — and the preference becomes <code>σ(r_i − r_j)</code>. Only the <b>difference</b> matters: shift both rewards by the same constant and the probability is unchanged. Drag the two reward sliders.</p>
+      <p class="concept-desc">Bradley–Terry (1952) gives each item a latent strength <span class="m" data-tex="p_i>0"></span>; the chance a judge prefers <span class="m" data-tex="i"></span> over <span class="m" data-tex="j"></span> is <span class="m" data-tex="p_i/(p_i+p_j)"></span>. Reparametrizing <span class="m" data-tex="p_i=e^{r_i}"></span> gives unbounded scores — exactly what a network outputs — and the preference becomes <span class="m" data-tex="\sigma(r_i - r_j)"></span>. Only the <b>difference</b> matters: shift both rewards by the same constant and the probability is unchanged. Drag the two reward sliders.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>r<sub>w</sub> (chosen / y<sub>w</sub>) = <span id="bt-rw-val">1.50</span></label>
+          <label><span class="m" data-tex="r_w"></span> (chosen / <span class="m" data-tex="y_w"></span>) = <span id="bt-rw-val">1.50</span></label>
           <input type="range" id="bt-rw" min="-5" max="5" step="0.1" value="1.5">
-          <label>r<sub>l</sub> (rejected / y<sub>l</sub>) = <span id="bt-rl-val">0.00</span></label>
+          <label><span class="m" data-tex="r_l"></span> (rejected / <span class="m" data-tex="y_l"></span>) = <span id="bt-rl-val">0.00</span></label>
           <input type="range" id="bt-rl" min="-5" max="5" step="0.1" value="0">
           <p class="hint" id="bt-hint"></p>
-          <div class="in-practice"><b>In practice</b> · This pairwise label <i>is</i> the reward design decision — whoever picks (y_w, y_l) is implicitly defining what "good" means for the policy. Sloppy or inconsistent labeling becomes a reward model the policy can hack.</div>
+          <div class="in-practice"><b>In practice</b> · This pairwise label <i>is</i> the reward design decision — whoever picks <span class="m" data-tex="(y_w, y_l)"></span> is implicitly defining what "good" means for the policy. Sloppy or inconsistent labeling becomes a reward model the policy can hack.</div>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 210" id="bt-plot"></svg>
-          <div class="formula-display" id="bt-formula"></div>
+          <div class="eq" data-tex="P(y_w \succ y_l) = \sigma(r_w - r_l) = \frac{e^{r_w}}{e^{r_w}+e^{r_l}}"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="r_w,\ r_l"></span><span class="def">the scalar reward the model gives the <b>w</b>inning (chosen) and <b>l</b>osing (rejected) responses</span></div>
+            <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic <b>sigmoid</b> <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span>, mapping the score gap into a probability in <span class="m" data-tex="(0,1)"></span></span></div>
+            <div class="row"><span class="sym" data-tex="\succ"></span><span class="def">"is preferred over" — so <span class="m" data-tex="P(y_w\succ y_l)"></span> is the probability the judge picks the chosen response</span></div>
+          </div>
+          <div class="eq" id="bt-formula"></div>
+          <div class="eq-readout" id="bt-readout"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="loss">
       <h3>Deriving the reward-model loss</h3>
-      <p class="concept-desc">Step through the algebra from "maximize the preference probability" to the InstructGPT loss <code>L = −log σ(r<sub>w</sub> − r<sub>l</sub>)</code>. Each step is a single, reversible rewrite. The live readout on the right evaluates every line at your current <code>r<sub>w</sub></code>, <code>r<sub>l</sub></code> — drag the sliders and watch the loss, then step through to see <i>why</i> each form is equal.</p>
+      <p class="concept-desc">Step through the algebra from "maximize the preference probability" to the InstructGPT loss <span class="m" data-tex="\mathcal{L} = -\log\sigma(r_w - r_l)"></span>. Each step is a single, reversible rewrite. The live readout on the right evaluates every line at your current <span class="m" data-tex="r_w"></span>, <span class="m" data-tex="r_l"></span> — drag the sliders and watch the loss, then step through to see <i>why</i> each form is equal.</p>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\mathcal{L}(\theta)"></span><span class="def">the reward-model <b>loss</b> being minimized; it is exactly binary cross-entropy on the preference label</span></div>
+        <div class="row"><span class="sym" data-tex="\arg\max"></span><span class="def">the parameters <span class="m" data-tex="\theta^\star"></span> that <b>maximize</b> the chance of ranking chosen above rejected</span></div>
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the <b>sigmoid</b> <span class="m" data-tex="\sigma(z)=1/(1+e^{-z})"></span>; <span class="m" data-tex="\log\sigma\le 0"></span>, so the loss <span class="m" data-tex="-\log\sigma\ge 0"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <button id="dv-prev">◀ Prev</button>
           <button id="dv-next">Next ▶</button>
           <div class="dots" id="dv-dots"></div>
-          <label style="margin-top:14px;">r<sub>w</sub> = <span id="dv-rw-val">2.00</span></label>
+          <label style="margin-top:14px;"><span class="m" data-tex="r_w"></span> = <span id="dv-rw-val">2.00</span></label>
           <input type="range" id="dv-rw" min="-5" max="5" step="0.1" value="2">
-          <label>r<sub>l</sub> = <span id="dv-rl-val">0.50</span></label>
+          <label><span class="m" data-tex="r_l"></span> = <span id="dv-rl-val">0.50</span></label>
           <input type="range" id="dv-rl" min="-5" max="5" step="0.1" value="0.5">
         </div>
         <div class="panel-viz">
           <div class="deriv-step" id="dv-step"></div>
-          <div class="formula-display" id="dv-formula"></div>
+          <div class="eq" id="dv-formula"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="variants">
       <h3>Loss variants: BT, margin, ORM</h3>
-      <p class="concept-desc">The same contrastive idea has variants. <b>Bradley–Terry</b> is the base. <b>Llama 2's margin loss</b> subtracts a margin <code>m</code> (from Likert gaps) inside the sigmoid, forcing larger score gaps for strongly-preferred pairs. <b>Outcome RMs</b> drop pairwise comparisons entirely: a per-token binary cross-entropy against a single correctness label <code>r∈{0,1}</code> broadcast over every completion token. Switch the loss and drag the inputs.</p>
+      <p class="concept-desc">The same contrastive idea has variants. <b>Bradley–Terry</b> is the base. <b>Llama 2's margin loss</b> subtracts a margin <span class="m" data-tex="m"></span> (from Likert gaps) inside the sigmoid, forcing larger score gaps for strongly-preferred pairs. <b>Outcome RMs</b> drop pairwise comparisons entirely: a per-token binary cross-entropy against a single correctness label <span class="m" data-tex="r\in\{0,1\}"></span> broadcast over every completion token. Switch the loss and drag the inputs.</p>
       <div class="panel">
         <div class="panel-controls">
           <div class="tabs" id="var-tabs">
@@ -478,17 +524,17 @@ u: Are you sure about that?</textarea>
             <button data-mode="orm">ORM (per-token)</button>
           </div>
           <div id="var-bt-ctrl">
-            <label>r<sub>w</sub> − r<sub>l</sub> = Δ = <span id="var-d-val">1.00</span></label>
+            <label><span class="m" data-tex="\Delta r = r_w - r_l"></span> = <span id="var-d-val">1.00</span></label>
             <input type="range" id="var-d" min="-5" max="5" step="0.1" value="1">
           </div>
           <div id="var-m-ctrl" style="display:none;">
-            <label>margin m = <span id="var-m-val">0.50</span></label>
+            <label>margin <span class="m" data-tex="m"></span> = <span id="var-m-val">0.50</span></label>
             <input type="range" id="var-m" min="0" max="4" step="0.1" value="0.5">
           </div>
           <div id="var-orm-ctrl" style="display:none;">
-            <label>predicted p(correct) = <span id="var-p-val">0.70</span></label>
+            <label>predicted <span class="m" data-tex="p(\text{correct})"></span> = <span id="var-p-val">0.70</span></label>
             <input type="range" id="var-p" min="0.01" max="0.99" step="0.01" value="0.7">
-            <label>true label r</label>
+            <label>true label <span class="m" data-tex="r"></span></label>
             <div class="tabs" id="var-label">
               <button data-r="1" class="active">r = 1 (correct)</button>
               <button data-r="0">r = 0 (incorrect)</button>
@@ -498,7 +544,8 @@ u: Are you sure about that?</textarea>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 210" id="var-plot"></svg>
-          <div class="formula-display" id="var-formula"></div>
+          <div class="eq" id="var-formula"></div>
+          <div class="eq-readout" id="var-readout"></div>
         </div>
       </div>
     </article>
@@ -567,6 +614,20 @@ u: Are you sure about that?</textarea>
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -736,9 +797,8 @@ u: Are you sure about that?</textarea>
       });
       renderEl.innerHTML = html;
 
-      formulaEl.innerHTML = 'L = &minus; &Sigma;<sub>t &isin; mask</sub> log P<sub>&theta;</sub>(x<sub>t</sub> | x<sub>&lt;t</sub>) &nbsp;&middot;&nbsp; ' +
-        '<b>' + trainedTok + '</b> / ' + totalContentTok + ' content tokens trained ' +
-        '(<span class="muted">' + (maskOn ? (strat==='all'?'all assistant turns':'final turn only') : 'no mask — every token') + '</span>)';
+      formulaEl.innerHTML = '<b>' + trainedTok + '</b> / ' + totalContentTok + ' content tokens trained ' +
+        '(<span style="color:var(--text-dim)">' + (maskOn ? (strat==='all'?'all assistant turns':'final turn only') : 'no mask — every token') + '</span>)';
 
       hintEl.textContent = maskOn
         ? (strat==='all'
@@ -766,6 +826,7 @@ u: Are you sure about that?</textarea>
     var qVal = document.getElementById('sc-q-val');
     var svg = document.getElementById('sc-plot');
     var formulaEl = document.getElementById('sc-formula');
+    var readoutEl = document.getElementById('sc-readout');
     var hintEl = document.getElementById('sc-hint');
 
     // N in thousands; slider 1..100 -> 1k..1M (log)
@@ -821,8 +882,11 @@ u: Are you sure about that?</textarea>
         '<text x="'+(W-PAD-86)+'" y="'+(H-PAD+18)+'" fill="var(--text-dim)" font-size="10">dataset size (log N)</text>' +
         '<text x="'+(W-PAD-92)+'" y="'+(yToPx(skill(1e6,1))-4).toFixed(1)+'" fill="var(--text-dim)" font-size="9">q = 1 (perfectly clean)</text>';
 
-      formulaEl.innerHTML = 'effective clean data N&middot;q = <b>' + Math.round(N*q).toLocaleString() + '</b><br>' +
-        'model skill &asymp; <b>' + sk.toFixed(3) + '</b> &nbsp;<span class="muted">(0&ndash;1; noise term subtracts ' + (0.00000045*N*(1-q)).toFixed(3) + ')</span>';
+      tex(formulaEl,
+        '\\text{skill} \\approx 0.16\\,\\log_{10}(N q + 1) - \\lambda\\, N(1-q) = ' + sk.toFixed(3),
+        true);
+      readoutEl.innerHTML = 'effective clean data <b>N·q = ' + Math.round(N*q).toLocaleString() + '</b> ' +
+        '&nbsp;<span style="color:var(--text-dim)">(model skill 0&ndash;1; noise term subtracts ' + (0.00000045*N*(1-q)).toFixed(3) + ')</span>';
 
       var clean = Math.round(N*q), noise = Math.round(N*(1-q));
       if(q > 0.85){
@@ -846,6 +910,7 @@ u: Are you sure about that?</textarea>
     var rlVal = document.getElementById('bt-rl-val');
     var svg = document.getElementById('bt-plot');
     var formulaEl = document.getElementById('bt-formula');
+    var readoutEl = document.getElementById('bt-readout');
     var hintEl = document.getElementById('bt-hint');
 
     var PAD=28, W=340, H=210, plotW=W-PAD*2, plotH=H-PAD*2;
@@ -875,9 +940,10 @@ u: Are you sure about that?</textarea>
         '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
         '<text x="'+(PAD+2)+'" y="'+(PAD+2)+'" fill="var(--text-dim)" font-size="10">P=1</text>' +
         '<text x="'+(W-PAD-44)+'" y="'+(yToPx(0.5)-4).toFixed(1)+'" fill="var(--text-dim)" font-size="10">&Delta;r = r_w&minus;r_l</text>';
-      formulaEl.innerHTML =
-        'P(y<sub>w</sub> &succ; y<sub>l</sub>) = &sigma;(r<sub>w</sub> &minus; r<sub>l</sub>) = &sigma;(' + rw.toFixed(2) + ' &minus; ' + rl.toFixed(2) + ') = &sigma;(' + d.toFixed(2) + ') = <b>' + p.toFixed(3) + '</b><br>' +
-        '<span class="muted">= e^{r_w}/(e^{r_w}+e^{r_l}) = ' + Math.exp(rw).toFixed(2) + '/(' + Math.exp(rw).toFixed(2) + '+' + Math.exp(rl).toFixed(2) + ')</span>';
+      tex(formulaEl,
+        'P(y_w \\succ y_l) = \\sigma(' + rw.toFixed(2) + ' - ' + rl.toFixed(2) + ') = \\sigma(' + d.toFixed(2) + ') = \\mathbf{' + p.toFixed(3) + '}',
+        true);
+      readoutEl.innerHTML = '= e^{r_w}/(e^{r_w}+e^{r_l}) = ' + Math.exp(rw).toFixed(2) + ' / (' + Math.exp(rw).toFixed(2) + '+' + Math.exp(rl).toFixed(2) + ')';
       if(Math.abs(d)<0.15) hintEl.textContent='Δr ≈ 0 → a toss-up (P = 0.5). The model is indifferent between the two responses.';
       else if(d>0) hintEl.textContent='r_w > r_l → the chosen response is preferred with probability '+(p*100).toFixed(1)+'%. Only the difference '+d.toFixed(2)+' matters, not absolute values.';
       else hintEl.textContent='r_w < r_l → the model currently prefers the REJECTED response ('+(p*100).toFixed(1)+'% for y_w). Training pushes r_w up / r_l down.';
@@ -891,40 +957,40 @@ u: Are you sure about that?</textarea>
   function initDerivation(){
     var steps = [
       {
-        eq: 'θ* = argmax  e^{r_w} / (e^{r_w} + e^{r_l})',
+        texEq: '\\theta^\\star = \\arg\\max\\ \\frac{e^{r_w}}{e^{r_w} + e^{r_l}}',
         why: 'Start from the Bradley–Terry preference probability: maximize the chance the model ranks the chosen completion above the rejected one.',
         val: function(rw,rl){ return Math.exp(rw)/(Math.exp(rw)+Math.exp(rl)); },
-        label: 'P(y_w ≻ y_l)'
+        texLabel: 'P(y_w \\succ y_l)'
       },
       {
-        eq: '= argmax  [e^{r_w}/e^{r_w}] / [(e^{r_w}+e^{r_l})/e^{r_w}]',
+        texEq: '= \\arg\\max\\ \\frac{e^{r_w}/e^{r_w}}{(e^{r_w}+e^{r_l})/e^{r_w}}',
         why: 'Divide numerator and denominator by e^{r_w}. Nothing changes — it is the same ratio.',
         val: function(rw,rl){ return Math.exp(rw)/(Math.exp(rw)+Math.exp(rl)); },
-        label: 'P(y_w ≻ y_l)'
+        texLabel: 'P(y_w \\succ y_l)'
       },
       {
-        eq: '= argmax  1 / (1 + e^{r_l − r_w})',
+        texEq: '= \\arg\\max\\ \\frac{1}{1 + e^{\\,r_l - r_w}}',
         why: 'Numerator becomes 1; the cross term e^{r_l}/e^{r_w} = e^{r_l − r_w}.',
         val: function(rw,rl){ return 1/(1+Math.exp(rl-rw)); },
-        label: 'P(y_w ≻ y_l)'
+        texLabel: 'P(y_w \\succ y_l)'
       },
       {
-        eq: '= argmax  σ(r_w − r_l)',
+        texEq: '= \\arg\\max\\ \\sigma(r_w - r_l)',
         why: 'Rewrite as 1/(1 + e^{−(r_w − r_l)}) and recognize the sigmoid σ(z) = 1/(1+e^{−z}).',
         val: function(rw,rl){ return sigmoid(rw-rl); },
-        label: 'σ(r_w − r_l)'
+        texLabel: '\\sigma(r_w - r_l)'
       },
       {
-        eq: '= argmax  log σ(r_w − r_l)',
+        texEq: '= \\arg\\max\\ \\log\\sigma(r_w - r_l)',
         why: 'log is monotonic, so argmax of σ equals argmax of log σ. (Value shown is now log σ, ≤ 0.)',
         val: function(rw,rl){ return logsigmoid(rw-rl); },
-        label: 'log σ(r_w − r_l)'
+        texLabel: '\\log\\sigma(r_w - r_l)'
       },
       {
-        eq: 'L(θ) = − log σ(r_w − r_l)',
+        texEq: '\\mathcal{L}(\\theta) = -\\log\\sigma(r_w - r_l)',
         why: 'Flip the sign to turn maximization into a minimization — the InstructGPT reward-model loss. Equivalently L = log(1 + e^{r_l − r_w}) (Anthropic form). Both are just binary cross-entropy.',
         val: function(rw,rl){ return -logsigmoid(rw-rl); },
-        label: 'L(θ) = −log σ(Δr)'
+        texLabel: '\\mathcal{L}(\\theta) = -\\log\\sigma(\\Delta r)'
       }
     ];
     var idx=0;
@@ -941,7 +1007,8 @@ u: Are you sure about that?</textarea>
     function render(){
       var s=steps[idx];
       stepEl.innerHTML = '<div class="why"><b>Step '+(idx+1)+'/'+steps.length+'.</b> '+escapeHtml(s.why)+'</div>' +
-        '<div class="eq">'+escapeHtml(s.eq)+'</div>';
+        '<div class="eq" id="dv-step-eq"></div>';
+      tex(document.getElementById('dv-step-eq'), s.texEq, true);
       dotsEl.innerHTML = steps.map(function(_,i){ return '<span class="dot'+(i===idx?' on':'')+'"></span>'; }).join('');
       prevBtn.disabled = idx===0;
       nextBtn.disabled = idx===steps.length-1;
@@ -953,9 +1020,12 @@ u: Are you sure about that?</textarea>
       var s=steps[idx];
       var v=s.val(rw,rl);
       var loss=-logsigmoid(rw-rl);
-      formulaEl.innerHTML = 'at r<sub>w</sub>='+rw.toFixed(2)+', r<sub>l</sub>='+rl.toFixed(2)+
-        ': &nbsp;'+escapeHtml(s.label)+' = <b>'+v.toFixed(4)+'</b><br>' +
-        '<span class="muted">final loss L = &minus;log &sigma;('+(rw-rl).toFixed(2)+') = '+loss.toFixed(4)+' nats</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        s.texLabel + '\\big|_{r_w=' + rw.toFixed(2) + ',\\,r_l=' + rl.toFixed(2) + '} &= \\mathbf{' + v.toFixed(4) + '} \\\\ ' +
+        '\\mathcal{L} = -\\log\\sigma(' + (rw-rl).toFixed(2) + ') &= ' + loss.toFixed(4) + '\\text{ nats}' +
+        '\\end{aligned}',
+        true);
     }
     prevBtn.addEventListener('click', function(){ idx=Math.max(0,idx-1); render(); });
     nextBtn.addEventListener('click', function(){ idx=Math.min(steps.length-1,idx+1); render(); });
@@ -979,6 +1049,7 @@ u: Are you sure about that?</textarea>
     var ormCtrl=document.getElementById('var-orm-ctrl');
     var svg=document.getElementById('var-plot');
     var formulaEl=document.getElementById('var-formula');
+    var readoutEl=document.getElementById('var-readout');
     var hintEl=document.getElementById('var-hint');
     var mode='bt';
     var rLabel=1;
@@ -1018,7 +1089,10 @@ u: Are you sure about that?</textarea>
         var d=parseFloat(dSlider.value);
         plotLossCurve(function(x){ return -logsigmoid(x); }, -5, 5, 6, d, 'Δr = r_w − r_l');
         var L=-logsigmoid(d);
-        formulaEl.innerHTML='L = &minus;log &sigma;(&Delta;r) = &minus;log &sigma;('+d.toFixed(2)+') = <b>'+L.toFixed(4)+'</b> nats &nbsp;<span class="muted">P='+sigmoid(d).toFixed(3)+'</span>';
+        tex(formulaEl,
+          '\\mathcal{L} = -\\log\\sigma(\\Delta r) = -\\log\\sigma(' + d.toFixed(2) + ') = \\mathbf{' + L.toFixed(4) + '}\\text{ nats}',
+          true);
+        readoutEl.innerHTML = 'P = &sigma;(&Delta;r) = ' + sigmoid(d).toFixed(3);
         hintEl.textContent='Pure Bradley–Terry. Loss → 0 as Δr → +∞ (confidently correct), grows ~linearly as Δr → −∞ (confidently wrong).';
       } else if(mode==='margin'){
         var d2=parseFloat(dSlider.value);
@@ -1026,8 +1100,10 @@ u: Are you sure about that?</textarea>
         // L = -log sigma(d - m): margin shifts the curve right, demanding larger gap
         plotLossCurve(function(x){ return -logsigmoid(x - m); }, -5, 5, 6, d2, 'Δr');
         var L2=-logsigmoid(d2-m);
-        formulaEl.innerHTML='L = &minus;log &sigma;(&Delta;r &minus; m) = &minus;log &sigma;('+d2.toFixed(2)+' &minus; '+m.toFixed(2)+') = <b>'+L2.toFixed(4)+'</b><br>' +
-          '<span class="muted">vs. no-margin loss '+(-logsigmoid(d2)).toFixed(4)+' — margin penalizes until the gap exceeds m</span>';
+        tex(formulaEl,
+          '\\mathcal{L} = -\\log\\sigma(\\Delta r - m) = -\\log\\sigma(' + d2.toFixed(2) + ' - ' + m.toFixed(2) + ') = \\mathbf{' + L2.toFixed(4) + '}',
+          true);
+        readoutEl.innerHTML = 'vs. no-margin loss ' + (-logsigmoid(d2)).toFixed(4) + ' — margin penalizes until the gap exceeds m';
         hintEl.textContent='Llama 2 margin loss. The margin m (from Likert-rating gaps) shifts the whole curve right by '+m.toFixed(2)+': the model must open a gap larger than m before loss drops. Llama 3 later removed it.';
       } else { // orm
         var p=parseFloat(pSlider.value);
@@ -1038,8 +1114,13 @@ u: Are you sure about that?</textarea>
           return -(rLabel*Math.log(xx) + (1-rLabel)*Math.log(1-xx));
         }, 0.01, 0.99, 5, p, 'predicted p(correct)');
         var L3=-(rLabel*Math.log(p)+(1-rLabel)*Math.log(1-p));
-        formulaEl.innerHTML='L<sub>CE</sub> = &minus;[r&middot;log p + (1&minus;r)&middot;log(1&minus;p)]<br>' +
-          '= &minus;[' + rLabel + '&middot;log '+p.toFixed(2)+' + '+(1-rLabel)+'&middot;log '+(1-p).toFixed(2)+'] = <b>'+L3.toFixed(4)+'</b> per token';
+        tex(formulaEl,
+          '\\begin{aligned}' +
+          '\\mathcal{L}_{\\text{CE}} &= -\\big[r\\log p + (1-r)\\log(1-p)\\big] \\\\ ' +
+          '&= -\\big[' + rLabel + '\\cdot\\log ' + p.toFixed(2) + ' + ' + (1-rLabel) + '\\cdot\\log ' + (1-p).toFixed(2) + '\\big] = \\mathbf{' + L3.toFixed(4) + '}\\text{ /tok}' +
+          '\\end{aligned}',
+          true);
+        readoutEl.innerHTML = 'true label r = ' + rLabel + ' broadcast to every completion token';
         hintEl.textContent='Outcome RM: no pairs needed. The single correctness label r='+rLabel+' is broadcast to every completion token, trained with binary cross-entropy. Loss is minimized when p matches r.';
       }
     }
@@ -1247,6 +1328,7 @@ u: Are you sure about that?</textarea>
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initChatTemplate();
     initLossMask();
     initDataScaling();

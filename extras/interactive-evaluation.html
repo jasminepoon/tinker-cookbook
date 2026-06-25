@@ -461,7 +461,13 @@
             <span><span class="swatch" style="background:var(--accent)"></span>Training-task metric</span>
             <span><span class="swatch" style="background:var(--orange)"></span>Held-out eval (the one you trust)</span>
           </div>
-          <div class="formula-display" id="gen-formula"></div>
+          <div class="eq" data-tex="\text{held-out gain} = s \cdot \text{train gain} \qquad\quad \text{gap} = \text{train} - \text{held-out}"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="\text{train}"></span><span class="def">accuracy on the <b>training task</b> — always climbs, since the run optimizes it directly</span></div>
+            <div class="row"><span class="sym" data-tex="\text{held-out}"></span><span class="def">accuracy on a <b>held-out eval</b> the run never trained on — the only number you trust</span></div>
+            <div class="row"><span class="sym" data-tex="s\in[0,1]"></span><span class="def">the <b>generalization share</b>: how much of the training gain actually transfers to held-out</span></div>
+          </div>
+          <div class="eq" id="gen-formula"></div>
         </div>
       </div>
     </article>
@@ -515,7 +521,13 @@
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 200" id="pow-plot"></svg>
-          <div class="formula-display" id="pow-formula"></div>
+          <div class="eq" data-tex="\mathrm{SE} = \sigma\sqrt{\tfrac{2}{N}} \qquad\quad \text{power} = \Phi\!\left(\frac{\Delta}{\mathrm{SE}} - z_{0.95}\right)"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="\Delta"></span><span class="def">the <b>true</b> accuracy gain of run B over run A you are trying to detect</span></div>
+            <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">per-item <b>noise</b> std-dev; <span class="m" data-tex="N"></span> is the eval-set size, so more items shrink <span class="m" data-tex="\mathrm{SE}"></span></span></div>
+            <div class="row"><span class="sym" data-tex="\Phi"></span><span class="def">the standard-normal <b>CDF</b>; <span class="m" data-tex="z_{0.95}=1.645"></span> is the one-sided <span class="m" data-tex="\alpha=0.05"></span> threshold</span></div>
+          </div>
+          <div class="eq" id="pow-formula"></div>
         </div>
       </div>
     </article>
@@ -818,10 +830,13 @@
           '<div class="bar-label">' + escapeHtml(b.label) + '<br>' + (b.val*100).toFixed(1) + '%</div>';
         barsEl.appendChild(col);
       });
-      formulaEl.innerHTML =
-        'apparent = f&middot;acc<sub>mem</sub> + (1&minus;f)&middot;acc<sub>true</sub><br>' +
-        '= ' + f.toFixed(2) + '&middot;' + memAcc.toFixed(2) + ' + ' + (1-f).toFixed(2) + '&middot;' + trueAcc.toFixed(2) +
-        ' = <b>' + (apparent*100).toFixed(1) + '%</b> &nbsp; (+' + (inflation*100).toFixed(1) + ' pts illusion)';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\mathrm{acc}_{\\text{apparent}} &= ' + f.toFixed(2) + '\\cdot' + memAcc.toFixed(2) + ' + ' + (1-f).toFixed(2) + '\\cdot' + trueAcc.toFixed(2) +
+        ' = \\mathbf{' + (apparent*100).toFixed(1) + '\\%} \\\\ ' +
+        '\\text{illusion} &= \\mathrm{acc}_{\\text{apparent}} - \\mathrm{acc}_{\\text{true}} = +' + (inflation*100).toFixed(1) + '\\text{ pts}' +
+        '\\end{aligned}',
+        true);
       hintEl.innerHTML = f<0.01
         ? 'No contamination: apparent = true. The benchmark is honest signal.'
         : f.toFixed(2) + ' of the test set leaked into training. Those items are answered at ' + (memAcc*100).toFixed(1) + '% for the wrong reason, lifting the headline by <b>' + (inflation*100).toFixed(1) + ' points</b> over real ability.';
@@ -880,11 +895,14 @@
         '<text x="'+(W-PAD-58)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">training steps</text>';
 
       var gap = tNow - hNow;
-      formulaEl.innerHTML =
-        'train metric = <b style="color:var(--accent-bright)">' + (tNow*100).toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
-        'held-out = <b style="color:var(--orange)">' + (hNow*100).toFixed(1) + '%</b> &nbsp;|&nbsp; ' +
-        'gap = ' + (gap*100).toFixed(1) + ' pts<br>' +
-        'held-out gain transferred = share &times; train gain = ' + share.toFixed(2) + ' &times; ' + ((tNow-0.45)*100).toFixed(1) + ' = ' + ((hNow-0.45)*100).toFixed(1) + ' pts';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\text{train} &= ' + (tNow*100).toFixed(1) + '\\% \\quad ' +
+        '\\text{held-out} = ' + (hNow*100).toFixed(1) + '\\% \\quad ' +
+        '\\text{gap} = ' + (gap*100).toFixed(1) + '\\text{ pts} \\\\ ' +
+        '\\text{held-out gain} &= s\\times\\text{train gain} = ' + share.toFixed(2) + '\\times' + ((tNow-0.45)*100).toFixed(1) + ' = ' + ((hNow-0.45)*100).toFixed(1) + '\\text{ pts}' +
+        '\\end{aligned}',
+        true);
       if(share>0.75){
         hintEl.innerHTML = 'High transfer: the held-out eval climbs with the train metric. This change is real — ship it.';
       } else if(share<0.25){
@@ -1035,9 +1053,12 @@
         '<text x="'+(PAD+2)+'" y="'+(PAD-8)+'" fill="var(--text-dim)" font-size="10">detection power</text>' +
         '<text x="'+(W-PAD-44)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">eval size N</text>';
 
-      formulaEl.innerHTML =
-        'SE = &sigma;&middot;&radic;(2/N) = '+(noise/100).toFixed(3)+'&middot;&radic;(2/'+N+') = '+( (noise/100)*Math.sqrt(2/N) ).toFixed(4)+'<br>' +
-        'power = P(detect true +'+(gain*100).toFixed(1)+'pt gain) = <b>'+(pNow*100).toFixed(0)+'%</b>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\mathrm{SE} &= ' + (noise/100).toFixed(3) + '\\sqrt{\\tfrac{2}{' + N + '}} = ' + ( (noise/100)*Math.sqrt(2/N) ).toFixed(4) + ' \\\\ ' +
+        '\\text{power} &= P\\big(\\text{detect } +' + (gain*100).toFixed(1) + '\\text{pt}\\big) = \\mathbf{' + (pNow*100).toFixed(0) + '\\%}' +
+        '\\end{aligned}',
+        true);
       if(pNow>0.8){
         hintEl.innerHTML = 'Enough power: a real +'+(gain*100).toFixed(1)+'pt change is reliably detected. You can trust this eval to rank two runs.';
       } else if(pNow<0.4){

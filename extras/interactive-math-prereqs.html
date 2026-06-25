@@ -381,9 +381,9 @@
       <div class="panel">
         <div class="panel-controls">
           <div id="sm-sliders"></div>
-          <label>Temperature T = <span id="sm-temp-val">1.00</span></label>
+          <label>Temperature <span class="m" data-tex="T"></span> = <span id="sm-temp-val">1.00</span></label>
           <input type="range" id="sm-temp" min="0.1" max="3" step="0.05" value="1">
-          <p class="hint">Higher T → flatter, more diverse distribution. Lower T → sharper, closer to argmax (greedy).</p>
+          <p class="hint">Higher <span class="m" data-tex="T"></span> → flatter, more diverse distribution. Lower <span class="m" data-tex="T"></span> → sharper, closer to argmax (greedy).</p>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="sm-bars"></div>
@@ -433,12 +433,18 @@
 
     <article class="concept" id="ce">
       <h3>Cross-entropy / negative log-likelihood</h3>
-      <p class="concept-desc">The true next-token label is one-hot, so cross-entropy collapses to a single term: <code>H(q,P_θ) = −log P_θ(xₜ | x&lt;ₜ)</code>. Drag the predicted probability of the true token and watch the loss curve <code>−log(p)</code>.</p>
+      <p class="concept-desc">The true next-token label is one-hot, so cross-entropy collapses to a single term. Drag the predicted probability of the true token and watch the loss curve.</p>
+      <div class="eq" data-tex="\mathcal{L}_t = H(q, P_\theta) = -\log P_\theta\!\left(x_t \mid x_{<t}\right) = -\log p"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\mathcal{L}_t"></span><span class="def">the <b>loss</b> at position <span class="m" data-tex="t"></span> — the single number training pushes down</span></div>
+        <div class="row"><span class="sym" data-tex="H(q, P_\theta)"></span><span class="def"><b>cross-entropy</b> between the true label <span class="m" data-tex="q"></span> (one-hot) and the model's prediction <span class="m" data-tex="P_\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="p"></span><span class="def">the probability the model placed on the <i>true</i> token; this is the <b>negative log-likelihood</b> <span class="m" data-tex="-\log p"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Predicted probability of true token, p = <span id="ce-p-val">0.50</span></label>
+          <label>Predicted probability of true token, <span class="m" data-tex="p"></span> = <span id="ce-p-val">0.50</span></label>
           <input type="range" id="ce-p" min="0.01" max="0.99" step="0.01" value="0.5">
-          <p class="hint">As p → 1, loss → 0 (confident & correct). As p → 0, loss → ∞ (confident & wrong is punished hard).</p>
+          <p class="hint">As <span class="m" data-tex="p\to1"></span>, loss <span class="m" data-tex="\to0"></span> (confident &amp; correct). As <span class="m" data-tex="p\to0"></span>, loss <span class="m" data-tex="\to\infty"></span> (confident &amp; wrong is punished hard).</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 200" id="ce-plot"></svg>
@@ -451,14 +457,20 @@
   <!-- ============ SECTION B: OPTIMIZATION ============ -->
   <section class="group" id="opt">
     <div class="group-header"><span class="group-index">02</span><h2>Optimization & Fine-tuning</h2></div>
-    <p class="group-intro">Training repeats one step: <code>θ ← θ − η ∇_θ L(θ)</code>. What differs across pretraining, mid-training, and SFT is masking, sampling, and data — not the optimizer.</p>
+    <p class="group-intro">Training repeats one step: <span class="m" data-tex="\theta \leftarrow \theta - \eta\,\nabla_\theta \mathcal{L}(\theta)"></span>. What differs across pretraining, mid-training, and SFT is masking, sampling, and data — not the optimizer.</p>
 
     <article class="concept" id="gd">
       <h3>Gradient descent</h3>
-      <p class="concept-desc">Click anywhere on the curve to place θ, then step downhill. The dashed line shows the local gradient — descent moves opposite to it. Try a learning rate that's too large and watch it overshoot.</p>
+      <p class="concept-desc">Click anywhere on the curve to place <span class="m" data-tex="\theta"></span>, then step downhill. The dashed line shows the local gradient — descent moves opposite to it. Try a learning rate that's too large and watch it overshoot.</p>
+      <div class="eq" data-tex="\theta \leftarrow \theta - \eta\,\nabla_\theta \mathcal{L}(\theta)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\theta"></span><span class="def">the model <b>parameters</b> being optimized</span></div>
+        <div class="row"><span class="sym" data-tex="\eta"></span><span class="def">the <b>learning rate</b> — how big a step to take each update</span></div>
+        <div class="row"><span class="sym" data-tex="\nabla_\theta \mathcal{L}"></span><span class="def">the <b>gradient</b> of the loss w.r.t. <span class="m" data-tex="\theta"></span> — the direction of steepest <i>increase</i>, so we subtract it to go downhill</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Learning rate η = <span id="gd-lr-val">0.05</span></label>
+          <label>Learning rate <span class="m" data-tex="\eta"></span> = <span id="gd-lr-val">0.05</span></label>
           <input type="range" id="gd-lr" min="0.01" max="0.5" step="0.01" value="0.05">
           <button id="gd-step">Step ▶</button>
           <button id="gd-reset">Reset</button>
@@ -495,8 +507,14 @@
     <p class="group-intro">KL divergence is the central object of alignment — it's how the RLHF KL penalty and the DPO loss are both derived. Sigmoid turns score differences into preference probabilities.</p>
 
     <article class="concept" id="kl">
-      <h3>Entropy, cross-entropy & KL divergence</h3>
-      <p class="concept-desc">One identity ties them together: <code>H(p,q) = H(p) + D_KL(p‖q)</code>. Drag the weights for two distributions p and q over 5 outcomes and watch all three quantities update live.</p>
+      <h3>Entropy, cross-entropy &amp; KL divergence</h3>
+      <p class="concept-desc">One identity ties them together. Drag the weights for two distributions <span class="m" data-tex="p"></span> and <span class="m" data-tex="q"></span> over 5 outcomes and watch all three quantities update live.</p>
+      <div class="eq" data-tex="H(p,q) = H(p) + D_{\mathrm{KL}}(p \,\|\, q), \qquad D_{\mathrm{KL}}(p\,\|\,q) = \sum_i p_i \log\dfrac{p_i}{q_i}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="H(p)"></span><span class="def"><b>entropy</b> of <span class="m" data-tex="p"></span>, <span class="m" data-tex="-\sum_i p_i\log p_i"></span> — its inherent uncertainty</span></div>
+        <div class="row"><span class="sym" data-tex="H(p,q)"></span><span class="def"><b>cross-entropy</b>, <span class="m" data-tex="-\sum_i p_i\log q_i"></span> — cost of coding samples from <span class="m" data-tex="p"></span> using <span class="m" data-tex="q"></span></span></div>
+        <div class="row"><span class="sym" data-tex="D_{\mathrm{KL}}(p\,\|\,q)"></span><span class="def"><b>KL divergence</b> — the extra cost from using <span class="m" data-tex="q"></span> instead of the true <span class="m" data-tex="p"></span>; always <span class="m" data-tex="\geq 0"></span>, and <span class="m" data-tex="=0"></span> iff <span class="m" data-tex="p=q"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label style="color:var(--accent-bright)">p (policy)</label>
@@ -516,7 +534,13 @@
 
     <article class="concept" id="mc">
       <h3>Estimating KL by Monte Carlo</h3>
-      <p class="concept-desc">Over sequences, the KL sum is intractable — but KL is an expectation, so we estimate it from samples. The naive average (<b>k₁</b>) is unbiased but can go negative; RLHF's <b>k₃</b> estimator is always ≥ 0 and lower-variance. Draw samples from p and watch both estimators converge to the true KL.</p>
+      <p class="concept-desc">Over sequences, the KL sum is intractable — but KL is an <b>expectation</b>, so we estimate it from samples. The naive average (<span class="m" data-tex="k_1"></span>) is unbiased but can go negative; RLHF's <span class="m" data-tex="k_3"></span> estimator is always <span class="m" data-tex="\geq 0"></span> and lower-variance. Draw samples from <span class="m" data-tex="p"></span> and watch both estimators converge to the true KL.</p>
+      <div class="eq" data-tex="D_{\mathrm{KL}}(p\,\|\,q) = \mathbb{E}_{x\sim p}\!\left[\log\dfrac{p(x)}{q(x)}\right] \approx \underbrace{\tfrac{1}{N}\sum_i \log\tfrac{p(x_i)}{q(x_i)}}_{k_1} \;=\; \underbrace{\tfrac{1}{N}\sum_i \big(\rho_i - 1 - \log\rho_i\big)}_{k_3},\;\; \rho_i=\tfrac{q(x_i)}{p(x_i)}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\mathbb{E}_{x\sim p}"></span><span class="def"><b>expectation</b> over samples <span class="m" data-tex="x"></span> drawn from <span class="m" data-tex="p"></span> — KL is an average, which is why we can sample it</span></div>
+        <div class="row"><span class="sym" data-tex="k_1"></span><span class="def">naive estimator <span class="m" data-tex="\log(p/q)"></span>: unbiased but high-variance and can dip negative on a finite sample</span></div>
+        <div class="row"><span class="sym" data-tex="k_3"></span><span class="def">RLHF's estimator <span class="m" data-tex="\rho-1-\log\rho"></span>: same mean, always <span class="m" data-tex="\geq 0"></span>, lower variance</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <button id="mc-draw1">Draw 1 sample</button>
@@ -531,13 +555,19 @@
     </article>
 
     <article class="concept" id="sigmoid">
-      <h3>Sigmoid & the Bradley–Terry model</h3>
-      <p class="concept-desc">A preference is binary, so a reward difference is squeezed through a sigmoid: <code>P(y_w ≻ y_l) = σ(r(x,y_w) − r(x,y_l))</code>. Only the relative difference matters. Drag Δr and watch the preference probability and the implied loss <code>−log σ(Δr)</code>.</p>
+      <h3>Sigmoid &amp; the Bradley–Terry model</h3>
+      <p class="concept-desc">A preference is binary, so a reward difference is squeezed through a sigmoid. Only the relative difference matters. Drag <span class="m" data-tex="\Delta r"></span> and watch the preference probability and the implied loss.</p>
+      <div class="eq" data-tex="P(y_w \succ y_l) = \sigma\!\big(r(x,y_w) - r(x,y_l)\big) = \sigma(\Delta r), \qquad \sigma(z) = \dfrac{1}{1+e^{-z}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic <b>sigmoid</b> <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span> — squashes any real number into a probability in <span class="m" data-tex="(0,1)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\Delta r"></span><span class="def">the reward gap <span class="m" data-tex="r(x,y_w)-r(x,y_l)"></span> between the <b>w</b>inning and <b>l</b>osing responses</span></div>
+        <div class="row"><span class="sym" data-tex="y_w \succ y_l"></span><span class="def">"<span class="m" data-tex="y_w"></span> is preferred to <span class="m" data-tex="y_l"></span>"; the implied training loss is <span class="m" data-tex="-\log\sigma(\Delta r)"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Δr = r(x, y_w) − r(x, y_l) = <span id="sig-dr-val">0.00</span></label>
+          <label><span class="m" data-tex="\Delta r = r(x, y_w) - r(x, y_l)"></span> = <span id="sig-dr-val">0.00</span></label>
           <input type="range" id="sig-dr" min="-6" max="6" step="0.1" value="0">
-          <p class="hint">Δr = 0 → toss-up (P = 0.5). Large positive Δr → near-certain preference for y_w.</p>
+          <p class="hint"><span class="m" data-tex="\Delta r = 0"></span> → toss-up (<span class="m" data-tex="P = 0.5"></span>). Large positive <span class="m" data-tex="\Delta r"></span> → near-certain preference for <span class="m" data-tex="y_w"></span>.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 200" id="sig-plot"></svg>
@@ -567,7 +597,14 @@
 
     <article class="concept" id="objective">
       <h3>The goal of RL: sparse, delayed reward</h3>
-      <p class="concept-desc"><code>J(θ) = E_{y~π_θ}[R(x,y)]</code> — maximize expected reward. A preference label is one scalar at the <i>end</i> of a response: sparse, delayed, with no token-level target. The policy gradient distributes that one number's credit across every token's log-probability.</p>
+      <p class="concept-desc">Maximize expected reward. A preference label is one scalar at the <i>end</i> of a response: sparse, delayed, with no token-level target. The policy gradient distributes that one number's credit across every token's log-probability.</p>
+      <div class="eq" data-tex="J(\theta) = \mathbb{E}_{y \sim \pi_\theta}\!\big[R(x,y)\big], \qquad \nabla_\theta J \approx R(x,y)\,\sum_{t} \nabla_\theta \log \pi_\theta\!\left(y_t \mid x, y_{<t}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="J(\theta)"></span><span class="def">the RL <b>objective</b> — the expected reward we want to maximize</span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}_{y\sim\pi_\theta}"></span><span class="def"><b>expectation</b> over responses <span class="m" data-tex="y"></span> sampled from the policy <span class="m" data-tex="\pi_\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="R(x,y)"></span><span class="def">the (usually terminal) scalar <b>reward</b> for response <span class="m" data-tex="y"></span> to prompt <span class="m" data-tex="x"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\nabla_\theta\log\pi_\theta"></span><span class="def">the per-token <b>score function</b>; the one reward weights every token's log-prob gradient</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <button id="rl-resample">Sample new rollout</button>
@@ -586,20 +623,27 @@
 
     <article class="concept" id="ppo">
       <h3>PPO: the clipped policy update</h3>
-      <p class="concept-desc">The bare policy gradient above is high-variance and unstable — one big step off the data you sampled can wreck the policy. <b>PPO</b> works off the probability ratio <code>r = π_θ(a) / π_old(a)</code> and <b>clips</b> it so a single update can't move too far. The surrogate is <code>min( r·A , clip(r, 1−ε, 1+ε)·A )</code>, where <code>A</code> is the <b>advantage</b> (how much better than the baseline). Drag the ratio and watch the objective flatten the moment you leave the trust region.</p>
+      <p class="concept-desc">The bare policy gradient above is high-variance and unstable — one big step off the data you sampled can wreck the policy. <b>PPO</b> works off the probability ratio <span class="m" data-tex="r = \pi_\theta(a)/\pi_{\text{old}}(a)"></span> and <b>clips</b> it so a single update can't move too far. Drag the ratio and watch the objective flatten the moment you leave the trust region.</p>
+      <div class="eq" data-tex="L^{\mathrm{PPO}} = \min\!\Big( r\,A,\;\; \mathrm{clip}(r,\,1-\epsilon,\,1+\epsilon)\,A \Big)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r"></span><span class="def">the <b>probability ratio</b> <span class="m" data-tex="\pi_\theta(a)/\pi_{\text{old}}(a)"></span> — how much more likely this action is under the new policy</span></div>
+        <div class="row"><span class="sym" data-tex="A"></span><span class="def">the <b>advantage</b> — how much better than the baseline this action turned out (sign sets the push direction)</span></div>
+        <div class="row"><span class="sym" data-tex="\epsilon"></span><span class="def">the <b>clip</b> width; <span class="m" data-tex="[1-\epsilon,\,1+\epsilon]"></span> is the trust region the update may not exceed</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Probability ratio r = π_θ/π_old = <span id="ppo-r-val">1.00</span></label>
+          <label>Probability ratio <span class="m" data-tex="r = \pi_\theta/\pi_{\text{old}}"></span> = <span id="ppo-r-val">1.00</span></label>
           <input type="range" id="ppo-r" min="0.1" max="2.5" step="0.01" value="1">
-          <label>Advantage A = <span id="ppo-a-val">1.00</span></label>
+          <label>Advantage <span class="m" data-tex="A"></span> = <span id="ppo-a-val">1.00</span></label>
           <input type="range" id="ppo-a" min="-2" max="2" step="0.1" value="1">
-          <label>Clip ε = <span id="ppo-eps-val">0.20</span></label>
+          <label>Clip <span class="m" data-tex="\epsilon"></span> = <span id="ppo-eps-val">0.20</span></label>
           <input type="range" id="ppo-eps" min="0.05" max="0.5" step="0.01" value="0.2">
           <p class="hint" id="ppo-hint"></p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 220" id="ppo-plot"></svg>
-          <div class="formula-display" id="ppo-formula"></div>
+          <div class="eq" id="ppo-formula"></div>
+          <div class="eq-readout" id="ppo-readout"></div>
         </div>
       </div>
     </article>
@@ -612,12 +656,18 @@
 
     <article class="concept" id="compute-budget">
       <h3>A fixed compute budget: model size vs. samples per query</h3>
-      <p class="concept-desc">Toy model: a bigger model has a higher per-sample accuracy ceiling but costs more per inference call. Under a <b>fixed total compute budget C</b>, spending more of it on model size <code>s</code> leaves fewer affordable samples-per-query <code>n = ⌊C/s⌋</code> (best-of-<i>n</i>), and vice versa. Drag the model-size slider and watch accuracy rise, peak, then fall as you overspend on size at the expense of samples.</p>
+      <p class="concept-desc">Toy model: a bigger model has a higher per-sample accuracy ceiling but costs more per inference call. Under a <b>fixed total compute budget <span class="m" data-tex="C"></span></b>, spending more of it on model size <span class="m" data-tex="s"></span> leaves fewer affordable samples-per-query <span class="m" data-tex="n = \lfloor C/s \rfloor"></span> (best-of-<span class="m" data-tex="n"></span>), and vice versa. Drag the model-size slider and watch accuracy rise, peak, then fall as you overspend on size at the expense of samples.</p>
+      <div class="eq" data-tex="n = \lfloor C/s \rfloor, \qquad \mathrm{acc}(s) = \mathrm{ceil}(s) - \dfrac{\mathrm{ceil}(s) - \mathrm{base}(s)}{n}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="C"></span><span class="def">the fixed total <b>compute budget</b> shared between training a bigger model and sampling more per query</span></div>
+        <div class="row"><span class="sym" data-tex="s"></span><span class="def"><b>model size</b> (train-time compute); larger <span class="m" data-tex="s"></span> raises the accuracy ceiling but costs more per call</span></div>
+        <div class="row"><span class="sym" data-tex="n=\lfloor C/s\rfloor"></span><span class="def">affordable <b>samples per query</b> (best-of-<span class="m" data-tex="n"></span>) — what is left of the budget after paying for size</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Total compute budget C = <span id="cb-budget-val">256</span> units</label>
+          <label>Total compute budget <span class="m" data-tex="C"></span> = <span id="cb-budget-val">256</span> units</label>
           <input type="range" id="cb-budget" min="32" max="1024" step="32" value="256">
-          <label>Model size s (train-time compute) = <span id="cb-size-val">4.0</span></label>
+          <label>Model size <span class="m" data-tex="s"></span> (train-time compute) = <span id="cb-size-val">4.0</span></label>
           <input type="range" id="cb-size" min="0.5" max="20" step="0.1" value="4">
           <p class="hint" id="cb-hint"></p>
         </div>
@@ -737,6 +787,7 @@
         '<input type="range" min="-5" max="5" step="0.1" value="' + v + '" id="sm-z-' + i + '">';
       slidersEl.appendChild(row);
     });
+    renderStaticMath();  // render the [data-tex] labels just added above
 
     function render(){
       var T = parseFloat(tempSlider.value);
@@ -747,11 +798,13 @@
         var col = document.createElement('div');
         col.className = 'bar-col';
         col.innerHTML = '<div class="bar-track"><div class="bar-fill" style="height:' + (p*100).toFixed(1) + '%"></div></div>' +
-          '<div class="bar-label">x<sub>' + (i+1) + '</sub><br>' + (p*100).toFixed(1) + '%</div>';
+          '<div class="bar-label">x' + (i+1) + '<br>' + (p*100).toFixed(1) + '%</div>';
         barsEl.appendChild(col);
       });
       var maxI = probs.indexOf(Math.max.apply(null, probs));
-      formulaEl.innerHTML = 'softmax(z/T)<sub>' + (maxI+1) + '</sub> = e<sup>' + (logits[maxI]/T).toFixed(2) + '</sup> / &Sigma;<sub>j</sub> e<sup>z<sub>j</sub>/T</sup> = <b>' + probs[maxI].toFixed(3) + '</b>';
+      tex(formulaEl,
+        '\\mathrm{softmax}(z/T)_{' + (maxI+1) + '} = \\dfrac{e^{' + (logits[maxI]/T).toFixed(2) + '}}{\\sum_j e^{z_j/T}} = ' + probs[maxI].toFixed(3),
+        true);
     }
     defaultLogits.forEach(function(_, i){
       document.getElementById('sm-z-' + i).addEventListener('input', function(e){
@@ -905,7 +958,9 @@
         '<circle class="plot-marker" cx="' + cx + '" cy="' + cy + '" r="5"></circle>' +
         '<text x="14" y="32" fill="var(--text-dim)" font-size="10">loss</text>' +
         '<text x="270" y="186" fill="var(--text-dim)" font-size="10">p=1</text>';
-      formulaEl.innerHTML = 'Loss = &minus;log(p) = &minus;log(' + p.toFixed(2) + ') = <b>' + loss.toFixed(3) + '</b> nats';
+      tex(formulaEl,
+        '\\mathcal{L} = -\\log p = -\\log(' + p.toFixed(2) + ') = ' + loss.toFixed(3) + '\\ \\text{nats}',
+        true);
     }
     slider.addEventListener('input', render);
     render();
@@ -964,7 +1019,11 @@
         '<line class="plot-tangent" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"></line>' +
         '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="6"></circle>';
 
-      readout.innerHTML = '&theta; = ' + theta.toFixed(3) + ' &nbsp;|&nbsp; L(&theta;) = ' + L(theta).toFixed(3) + ' &nbsp;|&nbsp; &nabla;L = ' + g.toFixed(3);
+      tex(readout,
+        '\\theta = ' + theta.toFixed(3) + ' \\quad ' +
+        '\\mathcal{L}(\\theta) = ' + L(theta).toFixed(3) + ' \\quad ' +
+        '\\nabla_\\theta\\mathcal{L} = ' + g.toFixed(3),
+        false);
     }
 
     svg.addEventListener('click', function(e){
@@ -1037,17 +1096,18 @@
     var barsEl = document.getElementById('kl-bars');
     var formulaEl = document.getElementById('kl-formula');
 
-    function buildSliders(container, weights, prefix){
+    function buildSliders(container, weights, prefix, sym){
       weights.forEach(function(v, i){
         var row = document.createElement('div');
         row.className = 'slider-row';
-        row.innerHTML = '<label>' + prefix + '<sub>' + (i+1) + '</sub> = <span id="' + prefix + '-val-' + i + '">' + v.toFixed(2) + '</span></label>' +
+        row.innerHTML = '<label><span class="m" data-tex="' + sym + '_{' + (i+1) + '}"></span> = <span id="' + prefix + '-val-' + i + '">' + v.toFixed(2) + '</span></label>' +
           '<input type="range" min="0.05" max="3" step="0.05" value="' + v + '" id="' + prefix + '-' + i + '">';
         container.appendChild(row);
       });
     }
-    buildSliders(pSlidersEl, pw, 'kl-p');
-    buildSliders(qSlidersEl, qw, 'kl-q');
+    buildSliders(pSlidersEl, pw, 'kl-p', 'p');
+    buildSliders(qSlidersEl, qw, 'kl-q', 'q');
+    renderStaticMath();  // render the [data-tex] slider labels just added
 
     function render(){
       var p = normalize(pw);
@@ -1068,9 +1128,15 @@
           '<div class="bar-label">x' + (i+1) + '</div>';
         barsEl.appendChild(col);
       }
-      formulaEl.innerHTML =
-        'H(p) = ' + Hp.toFixed(3) + ' nats &nbsp;|&nbsp; H(p,q) = ' + Hpq.toFixed(3) + ' &nbsp;|&nbsp; D<sub>KL</sub>(p&Vert;q) = ' + KL.toFixed(3) + '<br>' +
-        '<span style="color:var(--text-dim)">check identity:</span> ' + Hpq.toFixed(3) + ' = ' + Hp.toFixed(3) + ' + ' + KL.toFixed(3);
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'H(p) &= ' + Hp.toFixed(3) + '\\ \\text{nats} \\quad ' +
+        'H(p,q) = ' + Hpq.toFixed(3) + ' \\quad ' +
+        'D_{\\mathrm{KL}}(p\\|q) = ' + KL.toFixed(3) + ' \\\\[2pt] ' +
+        '\\text{(identity)}\\;\\; H(p,q) &= H(p) + D_{\\mathrm{KL}} = ' +
+        Hp.toFixed(3) + ' + ' + KL.toFixed(3) + ' = ' + Hpq.toFixed(3) +
+        '\\end{aligned}',
+        true);
     }
     for(var i=0;i<n;i++){
       (function(i){
@@ -1141,7 +1207,7 @@
       var k3Means = runningMean(k3Samples);
       var N = k1Samples.length;
       if(N === 0){
-        readout.textContent = 'True KL(p‖q) = ' + trueKL.toFixed(3) + ' nats. Draw samples to see k1 (naive) vs k3 (low-variance) estimators converge.';
+        tex(readout, 'D_{\\mathrm{KL}}(p\\|q) = ' + trueKL.toFixed(3) + '\\ \\text{nats}.\\ \\text{Draw samples to watch } k_1 \\text{ (naive) and } k_3 \\text{ (low-variance) converge.}', false);
         return;
       }
       var allVals = k1Means.concat(k3Means).concat([trueKL, 0]);
@@ -1170,7 +1236,11 @@
       ctx.fillStyle = '#84A98C'; ctx.fillText('k1 (naive)', W-110, 18);
       ctx.fillStyle = '#e0a458'; ctx.fillText('k3 (low-var)', W-110, 32);
 
-      readout.innerHTML = 'N = ' + N + ' &nbsp;|&nbsp; k1 estimate = ' + k1Means[N-1].toFixed(3) + ' &nbsp;|&nbsp; k3 estimate = ' + k3Means[N-1].toFixed(3) + ' &nbsp;|&nbsp; true KL = ' + trueKL.toFixed(3);
+      tex(readout,
+        'N = ' + N + ' \\quad k_1 = ' + k1Means[N-1].toFixed(3) +
+        ' \\quad k_3 = ' + k3Means[N-1].toFixed(3) +
+        ' \\quad D_{\\mathrm{KL}} = ' + trueKL.toFixed(3),
+        false);
     }
     document.getElementById('mc-draw1').addEventListener('click', function(){ drawSample(); render(); });
     document.getElementById('mc-draw50').addEventListener('click', function(){ for(var i=0;i<50;i++) drawSample(); render(); });
@@ -1211,7 +1281,12 @@
         '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
         '<text x="14" y="32" fill="var(--text-dim)" font-size="10">P=1</text>' +
         '<text x="14" y="186" fill="var(--text-dim)" font-size="10">P=0</text>';
-      formulaEl.innerHTML = '&sigma;(' + dr.toFixed(2) + ') = P(y_w &#8227; y_l) = <b>' + p.toFixed(3) + '</b> &nbsp;|&nbsp; &minus;log&sigma;(&Delta;r) = ' + loss.toFixed(3);
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'P(y_w \\succ y_l) &= \\sigma(' + dr.toFixed(2) + ') = ' + p.toFixed(3) + ' \\\\ ' +
+        '\\mathcal{L} &= -\\log\\sigma(\\Delta r) = ' + loss.toFixed(3) +
+        '\\end{aligned}',
+        true);
     }
     slider.addEventListener('input', render);
     render();
@@ -1220,12 +1295,12 @@
   /* ---------------- D1: MDP table ---------------- */
   function initMDP(){
     var rows = [
-      { concept:'State sₜ', lm:'Prompt + tokens so far: (x, y&lt;ₜ)', detail:'Everything the model has seen up to this point — the conditioning context.' },
-      { concept:'Action aₜ', lm:'Next token yₜ', detail:'Choosing a token from the vocabulary is the "action" the policy takes.' },
-      { concept:'Transition P', lm:'Deterministic: append the token', detail:'Unlike most RL environments, the dynamics here are trivial — no environment uncertainty, just concatenation.' },
-      { concept:'Policy π_θ(aₜ|sₜ)', lm:'LM next-token distribution', detail:'The softmax output of the LM head is literally the RL policy.' },
-      { concept:'Reward r', lm:'Usually terminal: RM score or verifier output', detail:'Most RLHF setups score only the full completion, not each token.' },
-      { concept:'Discount γ', lm:'Typically 1.0 (no discounting)', detail:'Responses are short enough that discounting future tokens is unnecessary.' }
+      { concept:'State <span class="m" data-tex="s_t"></span>', lm:'Prompt + tokens so far: <span class="m" data-tex="(x,\\,y_{<t})"></span>', detail:'Everything the model has seen up to this point — the conditioning context.' },
+      { concept:'Action <span class="m" data-tex="a_t"></span>', lm:'Next token <span class="m" data-tex="y_t"></span>', detail:'Choosing a token from the vocabulary is the "action" the policy takes.' },
+      { concept:'Transition <span class="m" data-tex="P"></span>', lm:'Deterministic: append the token', detail:'Unlike most RL environments, the dynamics here are trivial — no environment uncertainty, just concatenation.' },
+      { concept:'Policy <span class="m" data-tex="\\pi_\\theta(a_t\\mid s_t)"></span>', lm:'LM next-token distribution', detail:'The softmax output of the LM head is literally the RL policy.' },
+      { concept:'Reward <span class="m" data-tex="r"></span>', lm:'Usually terminal: RM score or verifier output', detail:'Most RLHF setups score only the full completion, not each token.' },
+      { concept:'Discount <span class="m" data-tex="\\gamma"></span>', lm:'Typically 1.0 (no discounting)', detail:'Responses are short enough that discounting future tokens is unnecessary.' }
     ];
     var tbody = document.querySelector('#mdp-table tbody');
     rows.forEach(function(r, i){
@@ -1239,6 +1314,7 @@
       tbody.appendChild(tr);
       tbody.appendChild(detailTr);
     });
+    renderStaticMath();  // render the [data-tex] cells just added
   }
 
   /* ---------------- D2: RL objective / sparse reward ---------------- */
@@ -1274,7 +1350,10 @@
       rewardBadge.textContent = 'R = ' + reward.toFixed(2);
       tokensEl.appendChild(rewardBadge);
 
-      formulaEl.innerHTML = 'J(&theta;) = E[R(x,y)] &nbsp;|&nbsp; &nabla;J &asymp; R &middot; &Sigma;ₜ &nabla;log&pi;_&theta;(yₜ|x,y&lt;ₜ) &nbsp;|&nbsp; one scalar reward (R=' + reward.toFixed(2) + ') weights every per-token gradient above.';
+      tex(formulaEl,
+        '\\nabla_\\theta J \\approx R\\,\\sum_t \\nabla_\\theta\\log\\pi_\\theta(y_t\\mid x,y_{<t}), \\quad R = ' + reward.toFixed(2) +
+        '\\;\\;(\\text{one scalar weights every per-token gradient})',
+        true);
 
       drawArrows();
     }
@@ -1319,6 +1398,7 @@
     var epsVal = document.getElementById('ppo-eps-val');
     var hintEl = document.getElementById('ppo-hint');
     var formulaEl = document.getElementById('ppo-formula');
+    var readoutEl = document.getElementById('ppo-readout');
     var svg = document.getElementById('ppo-plot');
 
     var W = 360, H = 220, PAD = 30;
@@ -1375,10 +1455,12 @@
       hintEl.innerHTML = 'Green curve = PPO surrogate (the min). Dashed grey = unclipped r·A. Shaded band = [1−ε, 1+ε]. ' +
         'Notice the asymmetry: when A&gt;0 the cap is on the <i>up</i> side; when A&lt;0 it is on the <i>down</i> side. A KL penalty to π_ref (the probability section) does the same job more softly.';
 
-      formulaEl.innerHTML =
-        'r·A = ' + lu.toFixed(2) + ' &nbsp;|&nbsp; clip(r,1&minus;&epsilon;,1+&epsilon;)·A = ' + clipped(r, A, eps).toFixed(2) +
-        ' &nbsp;|&nbsp; L<sup>PPO</sup> = min = <b>' + lp.toFixed(2) + '</b>' + (clippedNow ? ' &nbsp;<span style="color:var(--orange)">[clipped]</span>' : '') +
-        '<br><span style="color:var(--text-dim)">' + region + '</span>';
+      tex(formulaEl,
+        'L^{\\mathrm{PPO}} = \\min\\big(' + lu.toFixed(2) + ',\\; ' + clipped(r, A, eps).toFixed(2) + '\\big) = ' + lp.toFixed(2) +
+        (clippedNow ? '\\;\\;\\textsf{[clipped]}' : ''),
+        true);
+      readoutEl.innerHTML =
+        '<span style="color:' + (clippedNow ? 'var(--orange)' : 'var(--accent-bright)') + '">' + region + '</span>';
     }
     rSlider.addEventListener('input', render);
     aSlider.addEventListener('input', render);
@@ -1456,10 +1538,13 @@
       }
       hintEl.textContent = hint;
 
-      formulaEl.innerHTML =
-        'n = &lfloor;C/s&rfloor; = &lfloor;' + budget.toFixed(0) + '/' + s.toFixed(1) + '&rfloor; = <b>' + n + '</b> samples/query<br>' +
-        'ceiling(s) = ' + ceiling(s).toFixed(3) + ' &nbsp;|&nbsp; base(s), n=1 = ' + base(s).toFixed(3) + ' &nbsp;|&nbsp; ' +
-        'accuracy = ceiling &minus; (ceiling&minus;base)/n = <b>' + acc.toFixed(3) + '</b>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'n &= \\lfloor C/s \\rfloor = \\lfloor ' + budget.toFixed(0) + '/' + s.toFixed(1) + ' \\rfloor = ' + n + '\\ \\text{samples/query} \\\\ ' +
+        '\\mathrm{acc} &= \\mathrm{ceil}(s) - \\tfrac{\\mathrm{ceil}(s)-\\mathrm{base}(s)}{n} = ' +
+        ceiling(s).toFixed(3) + ' - \\tfrac{' + ceiling(s).toFixed(3) + ' - ' + base(s).toFixed(3) + '}{' + n + '} = ' + acc.toFixed(3) +
+        '\\end{aligned}',
+        true);
     }
     budgetSlider.addEventListener('input', render);
     sizeSlider.addEventListener('input', render);

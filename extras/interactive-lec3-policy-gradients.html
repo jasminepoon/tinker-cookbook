@@ -384,23 +384,30 @@
   <!-- ============ SECTION 2: THE POLICY GRADIENT ============ -->
   <section class="group" id="pg">
     <div class="group-header"><span class="group-index">02</span><h2>The policy gradient equation</h2></div>
-    <p class="group-intro">Every algorithm in this lecture is the same update with a different learning signal:
-      <code>∇_θ J(θ) = E[ Σ_t ∇_θ log π_θ(a_t|s_t) · Ψ_t ]</code>.
-      The log-prob gradient answers <i>which action?</i>; the scalar Ψ<sub>t</sub> answers <i>how good was it?</i> Multiply them per token and sum.</p>
+    <p class="group-intro">Every algorithm in this lecture is the same update with a different learning signal. The log-prob gradient answers <i>which action?</i>; the scalar <span class="m" data-tex="\Psi_t"></span> answers <i>how good was it?</i> Multiply them per token and sum.</p>
+    <div class="eq" data-tex="\nabla_\theta J(\theta) = \mathbb{E}_{\tau\sim\pi_\theta}\!\left[\, \sum_{t} \nabla_\theta \log \pi_\theta(a_t \mid s_t)\, \cdot\, \Psi_t \,\right]"></div>
+    <div class="symbol-key">
+      <div class="row"><span class="sym" data-tex="J(\theta)"></span><span class="def">the objective being <b>maximized</b>: expected return <span class="m" data-tex="\mathbb{E}_{\tau\sim\pi_\theta}[R(\tau)]"></span></span></div>
+      <div class="row"><span class="sym" data-tex="\nabla_\theta"></span><span class="def">the <b>gradient</b> with respect to the policy parameters <span class="m" data-tex="\theta"></span> — the direction to step</span></div>
+      <div class="row"><span class="sym" data-tex="\mathbb{E}"></span><span class="def"><b>expectation</b> over trajectories sampled from the current policy — estimated by averaging over rollouts</span></div>
+      <div class="row"><span class="sym" data-tex="\log\pi_\theta(a_t\mid s_t)"></span><span class="def">the <b>log-probability</b> the policy assigns the token it actually took; its gradient says <i>which</i> action</span></div>
+      <div class="row"><span class="sym" data-tex="\Psi_t"></span><span class="def">the scalar <b>learning signal</b> — return, reward-to-go, or advantage — saying <i>how good</i> that action was (Section 05)</span></div>
+    </div>
 
     <article class="concept" id="pg-pertoken">
-      <h3>Per-token: ∇log π scaled by Ψ<sub>t</sub></h3>
-      <p class="concept-desc">Each completion token contributes one term <code>∇_θ log π_θ(a_t|s_t) · Ψ_t</code>. Set a uniform learning signal Ψ for the whole sequence, or click a token to inspect its term. Positive Ψ pushes that token's probability <span style="color:var(--accent-bright)">up</span>; negative pushes it <span style="color:var(--red)">down</span>; the magnitude of <code>∇log π</code> is larger for tokens the policy was <i>uncertain</i> about.</p>
+      <h3>Per-token: <span class="m" data-tex="\nabla\log\pi"></span> scaled by <span class="m" data-tex="\Psi_t"></span></h3>
+      <p class="concept-desc">Each completion token contributes one term <span class="m" data-tex="\nabla_\theta \log \pi_\theta(a_t\mid s_t)\cdot\Psi_t"></span>. Set a uniform learning signal <span class="m" data-tex="\Psi"></span> for the whole sequence, or click a token to inspect its term. Positive <span class="m" data-tex="\Psi"></span> pushes that token's probability <span style="color:var(--accent-bright)">up</span>; negative pushes it <span style="color:var(--red)">down</span>; the magnitude of <span class="m" data-tex="\nabla\log\pi"></span> is larger for tokens the policy was <i>uncertain</i> about.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>Learning signal Ψ = <span id="pg-psi-val">+1.0</span></label>
+          <label>Learning signal <span class="m" data-tex="\Psi"></span> = <span id="pg-psi-val">+1.0</span></label>
           <input type="range" id="pg-psi" min="-2" max="2" step="0.1" value="1">
           <button id="pg-resample">Resample log-probs</button>
-          <p class="hint">Bar height = |∇log π| ≈ how much room the token has to move (small for near-1 probabilities, large for uncertain ones). Bar color = sign of the update Ψ·∇log π. Click a token for its exact term.</p>
+          <p class="hint">Bar height = <span class="m" data-tex="|\nabla\log\pi|"></span> ≈ how much room the token has to move (small for near-1 probabilities, large for uncertain ones). Bar color = sign of the update <span class="m" data-tex="\Psi\cdot\nabla\log\pi"></span>. Click a token for its exact term.</p>
         </div>
         <div class="panel-viz">
           <div class="token-row" id="pg-tokens" style="align-items:flex-end;"></div>
-          <div class="formula-display" id="pg-formula"></div>
+          <div class="eq" id="pg-formula"></div>
+          <div class="eq-readout" id="pg-readout"></div>
         </div>
       </div>
     </article>
@@ -409,22 +416,23 @@
   <!-- ============ SECTION 3: LOG-DERIVATIVE TRICK ============ -->
   <section class="group" id="logderiv">
     <div class="group-header"><span class="group-index">03</span><h2>The log-derivative (REINFORCE) trick</h2></div>
-    <p class="group-intro">We want <code>∇_θ E_{τ~π_θ}[R(τ)]</code>, but the sampling distribution itself depends on θ, and <code>∇_θ p_θ(τ)</code> is not a distribution we can sample from. The identity <code>∇_θ log p_θ = ∇_θ p_θ / p_θ</code> rewrites the troublesome gradient as an expectation we <i>can</i> Monte-Carlo estimate.</p>
+    <p class="group-intro">We want <span class="m" data-tex="\nabla_\theta\, \mathbb{E}_{\tau\sim\pi_\theta}[R(\tau)]"></span>, but the sampling distribution itself depends on <span class="m" data-tex="\theta"></span>, and <span class="m" data-tex="\nabla_\theta\, p_\theta(\tau)"></span> is not a distribution we can sample from. The identity <span class="m" data-tex="\nabla_\theta \log p_\theta = \nabla_\theta p_\theta / p_\theta"></span> rewrites the troublesome gradient as an expectation we <i>can</i> Monte-Carlo estimate.</p>
 
     <article class="concept" id="ld-identity">
-      <h3>Why ∇log π = ∇π / π lets us sample</h3>
-      <p class="concept-desc">Pick a token probability <code>π</code> and a parameter sensitivity <code>∇_θ π</code> (how much π changes per unit θ). The identity says <code>∇_θ log π = ∇_θ π / π</code>. Multiplying the integrand by <code>p/p</code> turns <code>∫ ∇p · R dτ</code> (not samplable) into <code>∫ p · (∇log p · R) dτ = E[∇log p · R]</code> (samplable). Watch both sides match.</p>
+      <h3>Why <span class="m" data-tex="\nabla\log\pi = \nabla\pi / \pi"></span> lets us sample</h3>
+      <p class="concept-desc">Pick a token probability <span class="m" data-tex="\pi"></span> and a parameter sensitivity <span class="m" data-tex="\nabla_\theta \pi"></span> (how much <span class="m" data-tex="\pi"></span> changes per unit <span class="m" data-tex="\theta"></span>). The identity says <span class="m" data-tex="\nabla_\theta \log \pi = \nabla_\theta \pi / \pi"></span>. Multiplying the integrand by <span class="m" data-tex="p/p"></span> turns <span class="m" data-tex="\int \nabla p \cdot R\, d\tau"></span> (not samplable) into <span class="m" data-tex="\int p\,(\nabla\log p\cdot R)\, d\tau = \mathbb{E}[\nabla\log p\cdot R]"></span> (samplable). Watch both sides match.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>π_θ(a|s) = <span id="ld-pi-val">0.40</span></label>
+          <label><span class="m" data-tex="\pi_\theta(a\mid s)"></span> = <span id="ld-pi-val">0.40</span></label>
           <input type="range" id="ld-pi" min="0.02" max="0.98" step="0.01" value="0.4">
-          <label>∇_θ π_θ(a|s) = <span id="ld-grad-val">0.20</span></label>
+          <label><span class="m" data-tex="\nabla_\theta\, \pi_\theta(a\mid s)"></span> = <span id="ld-grad-val">0.20</span></label>
           <input type="range" id="ld-grad" min="-0.5" max="0.5" step="0.01" value="0.2">
-          <p class="hint">The same gradient, two ways. Small π (rare action) magnifies the log-prob gradient — the <code>1/π</code> factor is why low-probability sampled actions get amplified credit.</p>
+          <p class="hint">The same gradient, two ways. Small <span class="m" data-tex="\pi"></span> (rare action) magnifies the log-prob gradient — the <span class="m" data-tex="1/\pi"></span> factor is why low-probability sampled actions get amplified credit.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 200" id="ld-plot"></svg>
-          <div class="formula-display" id="ld-formula"></div>
+          <div class="eq" id="ld-formula"></div>
+          <div class="eq-readout" id="ld-readout"></div>
         </div>
       </div>
     </article>
@@ -440,7 +448,7 @@
           <p class="hint" id="ld-step-note"></p>
         </div>
         <div class="panel-viz">
-          <div class="formula-display" id="ld-deriv-display" style="font-size:1.0em; line-height:2.0;"></div>
+          <div id="ld-deriv-display" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
       </div>
     </article>
@@ -449,23 +457,30 @@
   <!-- ============ SECTION 4: BASELINES & VARIANCE ============ -->
   <section class="group" id="baseline">
     <div class="group-header"><span class="group-index">04</span><h2>Baselines reduce variance (the payoff)</h2></div>
-    <p class="group-intro">Raw returns are noisy: the same action shows up in trajectories with wildly different totals. A baseline <code>b(s_t)</code> centers the signal — "was the return higher or lower than expected?" — and because <code>b</code> doesn't depend on the sampled action, <code>E[∇log π · b] = b · ∇Σ_a π = b · ∇1 = 0</code>: the expected gradient is <b>unchanged</b>, only the variance drops.</p>
+    <p class="group-intro">Raw returns are noisy: the same action shows up in trajectories with wildly different totals. A baseline <span class="m" data-tex="b(s_t)"></span> centers the signal — "was the return higher or lower than expected?" — and because <span class="m" data-tex="b"></span> doesn't depend on the sampled action, the expected gradient is <b>unchanged</b>, only the variance drops.</p>
+    <div class="eq" data-tex="\mathbb{E}\!\left[\nabla_\theta\log\pi_\theta\cdot b\right] = b\cdot\nabla_\theta\sum_a \pi_\theta(a\mid s) = b\cdot\nabla_\theta 1 = 0"></div>
+    <div class="symbol-key">
+      <div class="row"><span class="sym" data-tex="b(s_t)"></span><span class="def">the <b>baseline</b>: a state-only reference value (often <span class="m" data-tex="\approx \mathbb{E}[G_t]"></span>) subtracted from the return</span></div>
+      <div class="row"><span class="sym" data-tex="\Psi_t = G_t - b(s_t)"></span><span class="def">the <b>centered</b> learning signal — positive when this action beat the baseline, negative when worse</span></div>
+      <div class="row"><span class="sym" data-tex="\sum_a \pi_\theta(a\mid s)=1"></span><span class="def">probabilities sum to one, so its gradient is zero — that's why subtracting <span class="m" data-tex="b"></span> adds <b>no bias</b></span></div>
+    </div>
 
     <article class="concept" id="bl-mc">
       <h3>Monte-Carlo estimator: with vs. without a baseline</h3>
-      <p class="concept-desc">A toy single-state policy over 4 actions. The true gradient is fixed; we estimate it by sampling actions and weighting <code>g(a)·Ψ</code>, where Ψ is either the raw return <code>G</code> or the centered return <code>G − b</code> (with <code>b</code> = mean return). Draw batches and watch the cloud of estimates: both center on the same true value (unbiased), but the baselined cloud is far <b>tighter</b> (lower variance).</p>
+      <p class="concept-desc">A toy single-state policy over 4 actions. The true gradient is fixed; we estimate it by sampling actions and weighting <span class="m" data-tex="g(a)\cdot\Psi"></span>, where <span class="m" data-tex="\Psi"></span> is either the raw return <span class="m" data-tex="G"></span> or the centered return <span class="m" data-tex="G - b"></span> (with <span class="m" data-tex="b"></span> = mean return). Draw batches and watch the cloud of estimates: both center on the same true value (unbiased), but the baselined cloud is far <b>tighter</b> (lower variance).</p>
       <div class="panel">
         <div class="panel-controls">
           <button id="bl-draw">Draw 1 batch</button>
           <button id="bl-draw20">Draw 20 batches</button>
           <button id="bl-reset">Reset</button>
-          <label>Batch size N = <span id="bl-n-val">8</span></label>
+          <label>Batch size <span class="m" data-tex="N"></span> = <span id="bl-n-val">8</span></label>
           <input type="range" id="bl-n" min="2" max="32" step="1" value="8">
           <p class="hint" id="bl-readout"></p>
         </div>
         <div class="panel-viz">
           <canvas id="bl-canvas" width="600" height="240" style="width:100%;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;"></canvas>
-          <div class="formula-display" id="bl-formula"></div>
+          <div class="eq" id="bl-eq" data-tex="\hat{g} = \frac{1}{N}\sum_{i=1}^{N} g(a_i)\,\big(G - b\big)"></div>
+          <div class="eq-readout" id="bl-formula"></div>
         </div>
       </div>
     </article>
@@ -474,37 +489,50 @@
   <!-- ============ SECTION 5: CHOICES OF PSI ============ -->
   <section class="group" id="psi">
     <div class="group-header"><span class="group-index">05</span><h2>Choices of the learning signal Ψ<sub>t</sub></h2></div>
-    <p class="group-intro">The same gradient, six different Ψ<sub>t</sub>. Each later choice trims variance by removing signal the action couldn't have caused (past rewards) or by centering against a learned expectation (the value function). Toggle between them on a worked rollout.</p>
+    <p class="group-intro">The same gradient, six different <span class="m" data-tex="\Psi_t"></span>. Each later choice trims variance by removing signal the action couldn't have caused (past rewards) or by centering against a learned expectation (the value function). Toggle between them on a worked rollout.</p>
+    <div class="symbol-key">
+      <div class="row"><span class="sym" data-tex="R(\tau)=\sum_t r_t"></span><span class="def">total trajectory <b>return</b> — same number on every token (highest variance)</span></div>
+      <div class="row"><span class="sym" data-tex="G_t=\sum_{t'\ge t} r_{t'}"></span><span class="def"><b>reward-to-go</b>: drop rewards before <span class="m" data-tex="t"></span>, which this action could not have caused</span></div>
+      <div class="row"><span class="sym" data-tex="V(s_t)"></span><span class="def">the <b>value</b> function: expected return from state <span class="m" data-tex="s_t"></span>, used as a learned baseline</span></div>
+      <div class="row"><span class="sym" data-tex="A_t = Q(s_t,a_t)-V(s_t)"></span><span class="def">the <b>advantage</b>: how much better <span class="m" data-tex="a_t"></span> is than average from <span class="m" data-tex="s_t"></span> — lowest-variance unbiased choice</span></div>
+    </div>
 
     <article class="concept" id="psi-toggle">
       <h3>Full return → reward-to-go → advantage</h3>
-      <p class="concept-desc">A 5-step rollout with per-step rewards <code>r_t</code> and a (toy) value function <code>V(s_t)</code>. Pick a Ψ<sub>t</sub> definition and a timestep <code>t</code>; the panel shows exactly which rewards feed Ψ<sub>t</sub> and how the choice shrinks variance. <code>γ = 1</code> throughout (no discounting), as is typical for LMs.</p>
+      <p class="concept-desc">A 5-step rollout with per-step rewards <span class="m" data-tex="r_t"></span> and a (toy) value function <span class="m" data-tex="V(s_t)"></span>. Pick a <span class="m" data-tex="\Psi_t"></span> definition and a timestep <span class="m" data-tex="t"></span>; the panel shows exactly which rewards feed <span class="m" data-tex="\Psi_t"></span> and how the choice shrinks variance. <span class="m" data-tex="\gamma = 1"></span> throughout (no discounting), as is typical for LMs.</p>
       <div class="panel">
         <div class="panel-controls">
           <div class="tabs" id="psi-tabs">
-            <button data-mode="ret" class="active">R(τ)</button>
-            <button data-mode="rtg">G_t</button>
-            <button data-mode="base">G_t − b</button>
-            <button data-mode="q">Q(s,a)</button>
-            <button data-mode="adv">A = Q − V</button>
+            <button data-mode="ret" class="active"><span class="m" data-tex="R(\tau)"></span></button>
+            <button data-mode="rtg"><span class="m" data-tex="G_t"></span></button>
+            <button data-mode="base"><span class="m" data-tex="G_t-b"></span></button>
+            <button data-mode="q"><span class="m" data-tex="Q(s,a)"></span></button>
+            <button data-mode="adv"><span class="m" data-tex="A=Q-V"></span></button>
             <button data-mode="td">TD residual</button>
           </div>
-          <label>Timestep t = <span id="psi-t-val">2</span></label>
+          <label>Timestep <span class="m" data-tex="t"></span> = <span id="psi-t-val">2</span></label>
           <input type="range" id="psi-t" min="0" max="4" step="1" value="2">
           <button id="psi-reroll">New rewards</button>
           <p class="hint" id="psi-hint"></p>
         </div>
         <div class="panel-viz">
           <div class="token-row" id="psi-steps"></div>
-          <div class="formula-display" id="psi-formula"></div>
-          <div class="formula-display" id="psi-variance"></div>
+          <div class="eq" id="psi-formula"></div>
+          <div class="eq-readout" id="psi-variance"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="rloo">
       <h3>RLOO: the leave-one-out baseline</h3>
-      <p class="concept-desc">Generate <code>K</code> completions for one prompt; for completion <code>k</code> use the mean of the <i>other</i> <code>K−1</code> rewards as its baseline: <code>b_k = (1/(K−1)) Σ_{i≠k} R_i</code>, so <code>Â_k = R_k − b_k</code>. This per-prompt baseline captures prompt difficulty for free and is the bridge to GRPO. Drag the rewards.</p>
+      <p class="concept-desc">Generate <span class="m" data-tex="K"></span> completions for one prompt; for completion <span class="m" data-tex="k"></span> use the mean of the <i>other</i> <span class="m" data-tex="K-1"></span> rewards as its baseline, so <span class="m" data-tex="\hat{A}_k = R_k - b_k"></span>. This per-prompt baseline captures prompt difficulty for free and is the bridge to GRPO. Drag the rewards.</p>
+      <div class="eq" data-tex="b_k = \frac{1}{K-1}\sum_{i\neq k} R_i \qquad \hat{A}_k = R_k - b_k"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="K"></span><span class="def">number of <b>completions</b> sampled for the one prompt (the group size)</span></div>
+        <div class="row"><span class="sym" data-tex="R_k"></span><span class="def">the scalar <b>reward</b> of completion <span class="m" data-tex="k"></span></span></div>
+        <div class="row"><span class="sym" data-tex="b_k"></span><span class="def">the <b>leave-one-out baseline</b>: mean reward of the other <span class="m" data-tex="K-1"></span> completions</span></div>
+        <div class="row"><span class="sym" data-tex="\hat{A}_k"></span><span class="def">the <b>advantage</b> for completion <span class="m" data-tex="k"></span>; positive ⇒ reinforce, negative ⇒ suppress. They sum to ~0.</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div id="rloo-sliders"></div>
@@ -513,10 +541,11 @@
         </div>
         <div class="panel-viz">
           <table class="mdp" id="rloo-table">
-            <thead><tr><th>k</th><th>R_k</th><th>baseline b_k</th><th>Â_k = R_k − b_k</th></tr></thead>
+            <thead><tr><th><span class="m" data-tex="k"></span></th><th><span class="m" data-tex="R_k"></span></th><th>baseline <span class="m" data-tex="b_k"></span></th><th><span class="m" data-tex="\hat{A}_k = R_k - b_k"></span></th></tr></thead>
             <tbody></tbody>
           </table>
-          <div class="formula-display" id="rloo-formula"></div>
+          <div class="eq" id="rloo-formula"></div>
+          <div class="eq-readout" id="rloo-readout"></div>
         </div>
       </div>
     </article>
@@ -525,12 +554,19 @@
   <!-- ============ SECTION 6: KL REGULARIZATION ============ -->
   <section class="group" id="kl">
     <div class="group-header"><span class="group-index">06</span><h2>KL as regularization</h2></div>
-    <p class="group-intro">The reference policy <code>π_ref</code> is a frozen copy of the SFT checkpoint. The KL penalty <code>−β·KL_t</code> pulls the trained policy <code>π_θ</code> back toward it, so the policy can't drift into reward-hacking territory.
-      <b>Don't confuse the two "old" policies:</b> <code>π_old</code> is the <i>sampling</i> policy (last rollout, used for the importance ratio); <code>π_ref</code> is the <i>frozen</i> SFT anchor (used for KL). They serve different jobs.</p>
+    <p class="group-intro">The reference policy <span class="m" data-tex="\pi_\mathrm{ref}"></span> is a frozen copy of the SFT checkpoint. The KL penalty <span class="m" data-tex="-\beta\cdot\mathrm{KL}_t"></span> pulls the trained policy <span class="m" data-tex="\pi_\theta"></span> back toward it, so the policy can't drift into reward-hacking territory.
+      <b>Don't confuse the two "old" policies:</b> <span class="m" data-tex="\pi_\mathrm{old}"></span> is the <i>sampling</i> policy (last rollout, used for the importance ratio); <span class="m" data-tex="\pi_\mathrm{ref}"></span> is the <i>frozen</i> SFT anchor (used for KL). They serve different jobs.</p>
 
     <article class="concept" id="kl-penalty">
-      <h3>The β slider: KL penalty and the shaped objective</h3>
-      <p class="concept-desc">Per token, <code>KL_t = log π_θ(a_t|s_t) − log π_ref(a_t|s_t)</code>. The shaped reward is <code>r̃_t = −β·KL_t</code> for intermediate tokens, and <code>r̃_T = R(τ) − β·KL_T</code> at the end. Drag <code>β</code> and the policy's drift, and watch the penalty eat into the reward.</p>
+      <h3>The <span class="m" data-tex="\beta"></span> slider: KL penalty and the shaped objective</h3>
+      <p class="concept-desc">Per token, the KL term and the shaped reward are defined below. Drag <span class="m" data-tex="\beta"></span> and the policy's drift, and watch the penalty eat into the reward.</p>
+      <div class="eq" data-tex="\mathrm{KL}_t = \log \pi_\theta(a_t\mid s_t) - \log \pi_\mathrm{ref}(a_t\mid s_t) \qquad \tilde{r}_t = -\beta\cdot\mathrm{KL}_t,\quad \tilde{r}_T = R(\tau) - \beta\cdot\mathrm{KL}_T"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\mathrm{KL}_t"></span><span class="def">per-token <b>KL divergence</b> from the reference: the log-prob gap <span class="m" data-tex="\log\pi_\theta-\log\pi_\mathrm{ref}"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">the <b>KL coefficient</b> — the single knob trading reward against staying near <span class="m" data-tex="\pi_\mathrm{ref}"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\pi_\mathrm{ref}"></span><span class="def">the <b>reference</b> (frozen SFT) policy — the anchor the penalty pulls back toward</span></div>
+        <div class="row"><span class="sym" data-tex="\tilde{r}_t"></span><span class="def">the <b>shaped</b> per-token reward: just <span class="m" data-tex="-\beta\,\mathrm{KL}_t"></span> mid-sequence; the terminal token also carries <span class="m" data-tex="R(\tau)"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>KL coefficient β = <span id="kl-beta-val">0.10</span></label>
@@ -615,7 +651,6 @@
     var formulaEl = document.getElementById('mdp-formula');
     var noteEl = document.getElementById('mdp-note2');
     var dotsEl = document.getElementById('mdp-dots');
-    function texEsc(s){ return String(s).replace(/[\\{}$&#%_~^]/g, function(c){ return '\\' + c; }); }
     // t goes 0..completion.length ; t = number of tokens generated so far
     var t = 0;
 
@@ -647,17 +682,22 @@
       var stateStr = prompt.join(' ') + (t>0 ? ' ' + completion.slice(0,t).join(' ') : '');
       if(t < completion.length){
         var act = completion[t];
-        formulaEl.innerHTML =
-          '<b>s<sub>' + t + '</sub></b> = (x, y<sub>&lt;' + t + '</sub>) = "' + escapeHtml(stateStr) + '"<br>' +
-          'action a<sub>' + t + '</sub> ~ &pi;<sub>&theta;</sub>(&middot; | s<sub>' + t + '</sub>) &rarr; <b>"' + escapeHtml(act) + '"</b><br>' +
-          'transition: append &rarr; s<sub>' + (t+1) + '</sub> (deterministic) &nbsp;|&nbsp; reward so far r<sub>' + t + '</sub> = 0';
+        tex(formulaEl,
+          '\\begin{aligned}' +
+          's_{' + t + '} &= (x,\\, y_{<' + t + '}) \\\\ ' +
+          'a_{' + t + '} &\\sim \\pi_\\theta(\\cdot \\mid s_{' + t + '}) \\\\ ' +
+          's_{' + (t+1) + '} &= \\mathrm{append}(s_{' + t + '}, a_{' + t + '}) \\quad (\\text{deterministic})' +
+          '\\end{aligned}', true);
+        noteEl.innerHTML =
+          's<sub>' + t + '</sub> = "' + escapeHtml(stateStr) + '" &nbsp;|&nbsp; chosen a<sub>' + t + '</sub> = <b>"' + escapeHtml(act) + '"</b> &nbsp;|&nbsp; reward so far r<sub>' + t + '</sub> = 0';
         stepBtn.disabled = false;
         stepBtn.textContent = 'Step ▶';
       } else {
-        formulaEl.innerHTML =
-          '<b>Terminal.</b> Full episode &tau; = "' + escapeHtml(stateStr) + '"<br>' +
-          'single terminal reward <b>R(&tau;)</b> = RM score / verifier output (e.g. correct &rarr; +1)<br>' +
-          '&gamma; = 1: no discounting, the unit of optimization is the whole completion.';
+        tex(formulaEl,
+          '\\tau = (s_0, a_0, s_1, a_1, \\dots) \\qquad R(\\tau) \\in \\mathbb{R},\\quad \\gamma = 1',
+          true);
+        noteEl.innerHTML =
+          '<b>Terminal.</b> &tau; = "' + escapeHtml(stateStr) + '" &nbsp;|&nbsp; single terminal reward R(&tau;) = RM score / verifier (e.g. correct &rarr; +1). &gamma;=1: the unit of optimization is the whole completion.';
         stepBtn.disabled = true;
         stepBtn.textContent = 'Episode done';
       }
@@ -707,6 +747,7 @@
     var psiVal = document.getElementById('pg-psi-val');
     var tokensEl = document.getElementById('pg-tokens');
     var formulaEl = document.getElementById('pg-formula');
+    var readoutEl = document.getElementById('pg-readout');
 
     // surrogate magnitude of ∇log π: larger when probability is low (more room to move).
     function gradMag(p){ return (1 - p); }
@@ -737,23 +778,26 @@
       });
 
       if(selected < 0){
-        var terms = probs.map(function(p, i){
+        var terms = probs.map(function(p){
           var u = psi * gradMag(p);
-          return '<span class="' + signClass(u) + '">' + (u>=0?'+':'') + u.toFixed(2) + '</span>';
+          return (u>=0?'+':'') + u.toFixed(2);
         });
         var total = sum(probs.map(function(p){ return psi*gradMag(p); }));
-        formulaEl.innerHTML =
-          'Per-token Ψ&middot;|&nabla;log&pi;|: ' + terms.join(' &nbsp; ') + '<br>' +
-          'sequence sum &Sigma;<sub>t</sub> &nabla;<sub>&theta;</sub> log &pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>)&middot;&Psi; &asymp; <b>' + (total>=0?'+':'') + total.toFixed(2) + '</b>' +
+        tex(formulaEl,
+          '\\sum_{t} \\nabla_\\theta \\log \\pi_\\theta(a_t \\mid s_t)\\cdot\\Psi \\;\\approx\\; ' +
+          (total>=0?'+':'') + total.toFixed(2), true);
+        readoutEl.innerHTML =
+          'per-token &Psi;&middot;|&nabla;log&pi;|: ' +
+          terms.map(function(s){ return '<b>' + s + '</b>'; }).join(' &nbsp; ') +
           ' &nbsp;<span style="color:var(--text-dim)">(' + (psi>=0?'reinforce whole completion':'suppress whole completion') + ')</span>';
       } else {
         var p = probs[selected], mag = gradMag(p), u = psi*mag;
-        formulaEl.innerHTML =
-          'Token <b>"' + escapeHtml(tokens[selected]) + '"</b> at t=' + selected + ': &pi;<sub>&theta;</sub>(a|s) = ' + p.toFixed(2) +
-          ' &nbsp;|&nbsp; |&nabla;<sub>&theta;</sub> log &pi;| &asymp; ' + mag.toFixed(2) + '<br>' +
-          'update &prop; &Psi;&middot;&nabla;log&pi; = ' + psi.toFixed(1) + ' &times; ' + mag.toFixed(2) +
-          ' = <b class="' + signClass(u) + '">' + (u>=0?'+':'') + u.toFixed(2) + '</b> &rarr; ' +
-          (u>=0 ? 'push P(this token) <b>up</b>' : 'push P(this token) <b>down</b>');
+        tex(formulaEl,
+          '\\underbrace{\\Psi}_{' + psi.toFixed(1) + '}\\cdot\\underbrace{\\nabla_\\theta\\log\\pi_\\theta(a\\mid s)}_{' + mag.toFixed(2) + '} \\;=\\; ' +
+          (u>=0?'+':'') + u.toFixed(2), true);
+        readoutEl.innerHTML =
+          'token <b>"' + escapeHtml(tokens[selected]) + '"</b> at t=' + selected + ': &pi;<sub>&theta;</sub>(a|s) = ' + p.toFixed(2) +
+          ' &rarr; ' + (u>=0 ? 'push P(this token) <b>up</b>' : 'push P(this token) <b>down</b>');
       }
     }
     psiSlider.addEventListener('input', render);
@@ -773,6 +817,7 @@
     var gradVal = document.getElementById('ld-grad-val');
     var svg = document.getElementById('ld-plot');
     var formulaEl = document.getElementById('ld-formula');
+    var readoutEl = document.getElementById('ld-readout');
 
     function render(){
       var pi = parseFloat(piSlider.value);
@@ -808,11 +853,13 @@
         '<text x="' + (W-PAD-18) + '" y="' + (H-PAD+14) + '" fill="var(--text-dim)" font-size="10">&pi;</text>' +
         '<text x="' + (mx+6).toFixed(1) + '" y="' + (my-6).toFixed(1) + '" fill="var(--orange)" font-size="10">slope = 1/&pi;</text>';
 
-      formulaEl.innerHTML =
-        '&nabla;<sub>&theta;</sub> log &pi; = &nabla;<sub>&theta;</sub>&pi; / &pi; = ' + gp.toFixed(2) + ' / ' + pi.toFixed(2) +
-          ' = <b>' + dlog.toFixed(3) + '</b><br>' +
-        '<span style="color:var(--text-dim)">turns &nabla;&pi; (not samplable) into &pi;&middot;&nabla;log&pi;, so</span> ' +
-        '&int;&nabla;p&middot;R d&tau; = E<sub>&tau;~p</sub>[ &nabla;log p &middot; R ]';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\nabla_\\theta \\log \\pi &= \\frac{\\nabla_\\theta \\pi}{\\pi} = \\frac{' + gp.toFixed(2) + '}{' + pi.toFixed(2) + '} = ' + dlog.toFixed(3) + ' \\\\[2pt] ' +
+        '\\int \\nabla p\\cdot R\\, d\\tau &= \\mathbb{E}_{\\tau\\sim p}\\!\\left[\\nabla\\log p\\cdot R\\right]' +
+        '\\end{aligned}', true);
+      readoutEl.innerHTML =
+        '<span style="color:var(--text-dim)">multiplying by p/p turns &nabla;&pi; (not samplable) into &pi;&middot;&nabla;log&pi; — an expectation you can Monte-Carlo.</span>';
     }
     piSlider.addEventListener('input', render);
     gradSlider.addEventListener('input', render);
@@ -822,13 +869,13 @@
   /* ---------------- 3B: Derivation step-through ---------------- */
   function initLogDerivSteps(){
     var steps = [
-      { tex:'J(&theta;) = E<sub>&tau;~&pi;<sub>&theta;</sub></sub>[R(&tau;)] = &int;<sub>&tau;</sub> p<sub>&theta;</sub>(&tau;) R(&tau;) d&tau;',
+      { tex:'J(\\theta) = \\mathbb{E}_{\\tau\\sim\\pi_\\theta}[R(\\tau)] = \\int_\\tau p_\\theta(\\tau)\\, R(\\tau)\\, d\\tau',
         note:'The objective: expected return, written as an integral over trajectories.' },
-      { tex:'&nabla;<sub>&theta;</sub> J(&theta;) = &int;<sub>&tau;</sub> <b>&nabla;<sub>&theta;</sub> p<sub>&theta;</sub>(&tau;)</b> R(&tau;) d&tau;',
+      { tex:'\\nabla_\\theta J(\\theta) = \\int_\\tau \\nabla_\\theta p_\\theta(\\tau)\\, R(\\tau)\\, d\\tau',
         note:'Differentiate. Problem: ∇p_θ(τ) is NOT a distribution — we cannot sample from it.' },
-      { tex:'= &int;<sub>&tau;</sub> p<sub>&theta;</sub>(&tau;) <b>&nabla;<sub>&theta;</sub> log p<sub>&theta;</sub>(&tau;)</b> R(&tau;) d&tau;',
+      { tex:'= \\int_\\tau p_\\theta(\\tau)\\, \\nabla_\\theta \\log p_\\theta(\\tau)\\, R(\\tau)\\, d\\tau',
         note:'Log-derivative identity: ∇p = p·∇log p. Now p_θ(τ) is back as a sampling weight.' },
-      { tex:'= E<sub>&tau;~&pi;<sub>&theta;</sub></sub>[ &Sigma;<sub>t</sub> &nabla;<sub>&theta;</sub> log &pi;<sub>&theta;</sub>(a<sub>t</sub>|s<sub>t</sub>) &middot; &Psi;<sub>t</sub> ]',
+      { tex:'= \\mathbb{E}_{\\tau\\sim\\pi_\\theta}\\!\\left[\\, \\sum_{t} \\nabla_\\theta \\log \\pi_\\theta(a_t \\mid s_t)\\cdot\\Psi_t \\,\\right]',
         note:'Expectation form + expand log p_θ(τ): only the policy terms survive (∇log p(s₀)=0, ∇log p(s_{t+1}|s_t,a_t)=0). Monte-Carlo estimate it by sampling rollouts.' }
     ];
     var idx = 0;
@@ -839,12 +886,15 @@
     var next = document.getElementById('ld-next');
 
     function render(){
-      var html = steps.map(function(s, i){
-        var op = i <= idx ? 1 : 0.25;
-        var color = i === idx ? 'var(--accent-bright)' : 'var(--text-dim)';
-        return '<div style="opacity:' + op + ';color:' + color + ';">' + s.tex + '</div>';
-      }).join('');
-      display.innerHTML = html;
+      display.innerHTML = '';
+      steps.forEach(function(s, i){
+        var row = document.createElement('div');
+        row.className = 'eq';
+        row.style.opacity = i <= idx ? '1' : '0.3';
+        if(i === idx) row.style.borderColor = 'var(--accent)';
+        display.appendChild(row);
+        tex(row, s.tex, true);
+      });
       note.textContent = steps[idx].note;
       dots.innerHTML = steps.map(function(_, i){
         return '<span class="dot' + (i===idx?' on':'') + '"></span>';
@@ -990,12 +1040,12 @@
     var mode = 'ret';
 
     var modeInfo = {
-      ret:  { label:'R(τ) = Σ r_t', vrank:'Highest', bias:'None', hint:'Total trajectory reward. Every token weighted by the SAME number — even rewards from before t, which this action could not have influenced. Maximum noise.' },
-      rtg:  { label:'G_t = Σ_{t\'≥t} r_t\'', vrank:'High', bias:'None', hint:'Reward-to-go: drop rewards before t (an action can\'t affect the past). Same expected gradient, less noise.' },
-      base: { label:'G_t − b(s_t)', vrank:'Lower', bias:'None', hint:'Subtract a state-only baseline (here b = mean return). Centers the signal without changing the expected gradient.' },
-      q:    { label:'Q(s_t,a_t)', vrank:'Med', bias:'Depends', hint:'State-action value: expected return after taking a_t in s_t. Here approximated by G_t. Needs a model/estimate of Q.' },
-      adv:  { label:'A(s_t,a_t) = Q − V', vrank:'Lowest', bias:'None', hint:'Advantage: how much better than average from this state. With a good V this is the lowest-variance unbiased choice — the workhorse of PPO/GRPO.' },
-      td:   { label:'δ_t = r_t + γV(s_{t+1}) − V(s_t)', vrank:'Low', bias:'Some', hint:'TD residual: one-step advantage. Low variance (uses learned V) but biased if V is inaccurate. γ = 1 here.' }
+      ret:  { label:'\\Psi_t = R(\\tau) = \\sum_t r_t', vrank:'Highest', bias:'None', hint:'Total trajectory reward. Every token weighted by the SAME number — even rewards from before t, which this action could not have influenced. Maximum noise.' },
+      rtg:  { label:'\\Psi_t = G_t = \\sum_{t\'\\ge t} r_{t\'}', vrank:'High', bias:'None', hint:'Reward-to-go: drop rewards before t (an action can\'t affect the past). Same expected gradient, less noise.' },
+      base: { label:'\\Psi_t = G_t - b(s_t)', vrank:'Lower', bias:'None', hint:'Subtract a state-only baseline (here b = mean return). Centers the signal without changing the expected gradient.' },
+      q:    { label:'\\Psi_t = Q(s_t,a_t)', vrank:'Med', bias:'Depends', hint:'State-action value: expected return after taking a_t in s_t. Here approximated by G_t. Needs a model/estimate of Q.' },
+      adv:  { label:'\\Psi_t = A(s_t,a_t) = Q - V', vrank:'Lowest', bias:'None', hint:'Advantage: how much better than average from this state. With a good V this is the lowest-variance unbiased choice — the workhorse of PPO/GRPO.' },
+      td:   { label:'\\Psi_t = \\delta_t = r_t + \\gamma V(s_{t+1}) - V(s_t)', vrank:'Low', bias:'Some', hint:'TD residual: one-step advantage. Low variance (uses learned V) but biased if V is inaccurate. γ = 1 here.' }
     };
 
     function G(t){ // reward-to-go from t
@@ -1046,16 +1096,16 @@
       var val = psiAt(t);
       var detail;
       switch(mode){
-        case 'ret':  detail = 'R(&tau;) = &Sigma; r = ' + Rtau().toFixed(2); break;
-        case 'rtg':  detail = 'G<sub>' + t + '</sub> = &Sigma;<sub>k&ge;' + t + '</sub> r<sub>k</sub> = ' + G(t).toFixed(2); break;
-        case 'base': detail = 'G<sub>' + t + '</sub> &minus; b = ' + G(t).toFixed(2) + ' &minus; ' + baseline().toFixed(2) + ' = ' + (G(t)-baseline()).toFixed(2); break;
-        case 'q':    detail = 'Q(s<sub>' + t + '</sub>,a<sub>' + t + '</sub>) &asymp; G<sub>' + t + '</sub> = ' + G(t).toFixed(2); break;
-        case 'adv':  detail = 'A = Q &minus; V = ' + G(t).toFixed(2) + ' &minus; ' + values[t].toFixed(2) + ' = ' + (G(t)-values[t]).toFixed(2); break;
-        case 'td':   detail = '&delta;<sub>' + t + '</sub> = r<sub>' + t + '</sub> + V(s<sub>' + (t+1) + '</sub>) &minus; V(s<sub>' + t + '</sub>) = ' +
-                       rewards[t].toFixed(1) + ' + ' + (t+1<values.length?values[t+1].toFixed(1):'0.0') + ' &minus; ' + values[t].toFixed(1) +
+        case 'ret':  detail = '\\Psi_{' + t + '} = R(\\tau) = \\sum_t r_t = ' + Rtau().toFixed(2); break;
+        case 'rtg':  detail = '\\Psi_{' + t + '} = G_{' + t + '} = \\sum_{k\\ge ' + t + '} r_k = ' + G(t).toFixed(2); break;
+        case 'base': detail = '\\Psi_{' + t + '} = G_{' + t + '} - b = ' + G(t).toFixed(2) + ' - ' + baseline().toFixed(2) + ' = ' + (G(t)-baseline()).toFixed(2); break;
+        case 'q':    detail = '\\Psi_{' + t + '} = Q(s_{' + t + '},a_{' + t + '}) \\approx G_{' + t + '} = ' + G(t).toFixed(2); break;
+        case 'adv':  detail = '\\Psi_{' + t + '} = Q - V = ' + G(t).toFixed(2) + ' - ' + values[t].toFixed(2) + ' = ' + (G(t)-values[t]).toFixed(2); break;
+        case 'td':   detail = '\\Psi_{' + t + '} = \\delta_{' + t + '} = r_{' + t + '} + V(s_{' + (t+1) + '}) - V(s_{' + t + '}) = ' +
+                       rewards[t].toFixed(1) + ' + ' + (t+1<values.length?values[t+1].toFixed(1):'0.0') + ' - ' + values[t].toFixed(1) +
                        ' = ' + val.toFixed(2); break;
       }
-      formulaEl.innerHTML = '&Psi;<sub>t</sub> = ' + info.label + '<br><b>&Psi;<sub>' + t + '</sub> = ' + detail + '</b>';
+      tex(formulaEl, '\\begin{aligned}' + info.label + ' \\\\[2pt] ' + detail + '\\end{aligned}', true);
       varEl.innerHTML =
         'variance rank: <b>' + info.vrank + '</b> &nbsp;|&nbsp; bias: <b>' + info.bias + '</b><br>' +
         '<span style="color:var(--text-dim)">spread of &Psi; across timesteps (this rollout): </span>' + psiSpread().toFixed(3);
@@ -1087,6 +1137,7 @@
     var slidersEl = document.getElementById('rloo-sliders');
     var tbody = document.querySelector('#rloo-table tbody');
     var formulaEl = document.getElementById('rloo-formula');
+    var readoutEl = document.getElementById('rloo-readout');
 
     rewards.forEach(function(v, i){
       var row = document.createElement('div');
@@ -1113,10 +1164,11 @@
           '<td class="num" style="color:' + (adv>=0?'var(--accent-bright)':'var(--red)') + '">' + (adv>=0?'+':'') + adv.toFixed(3) + '</td>';
         tbody.appendChild(tr);
       });
-      formulaEl.innerHTML =
-        'b<sub>k</sub> = (1/(K&minus;1)) &Sigma;<sub>i&ne;k</sub> R<sub>i</sub> &nbsp;|&nbsp; &Acirc;<sub>k</sub> = R<sub>k</sub> &minus; b<sub>k</sub><br>' +
-        '&Sigma;<sub>k</sub> &Acirc;<sub>k</sub> = <b>' + sum(advs).toFixed(3) + '</b> ' +
-        '<span style="color:var(--text-dim)">(advantages sum to ~0 across the group)</span>';
+      tex(formulaEl,
+        'b_k = \\frac{1}{K-1}\\sum_{i\\neq k} R_i \\qquad \\hat{A}_k = R_k - b_k \\qquad \\sum_k \\hat{A}_k = ' + sum(advs).toFixed(3),
+        true);
+      readoutEl.innerHTML =
+        '<span style="color:var(--text-dim)">advantages sum to ~0 across the group (best reinforced, worst suppressed).</span>';
     }
     rewards.forEach(function(_, i){
       document.getElementById('rloo-' + i).addEventListener('input', function(e){

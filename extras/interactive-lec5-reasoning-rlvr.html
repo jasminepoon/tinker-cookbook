@@ -429,7 +429,8 @@
         </div>
         <div class="panel-viz">
           <div class="token-row" id="think-tokens"></div>
-          <div class="formula-display" id="think-formula"></div>
+          <div class="eq" id="think-formula"></div>
+          <div class="eq-readout" id="think-readout"></div>
         </div>
       </div>
     </article>
@@ -447,22 +448,30 @@
         <div class="panel-controls">
           <label>Thinking-token budget = <span id="tt-budget-val">512</span> tokens</label>
           <input type="range" id="tt-budget" min="32" max="8192" step="32" value="512">
-          <label>Model competence ceiling A<sub>max</sub> = <span id="tt-ceil-val">0.85</span></label>
+          <label>Model competence ceiling <span class="m" data-tex="A_{\max}"></span> = <span id="tt-ceil-val">0.85</span></label>
           <input type="range" id="tt-ceil" min="0.3" max="0.98" step="0.01" value="0.85">
-          <label>How fast thinking pays off (rate k) = <span id="tt-rate-val">600</span></label>
+          <label>How fast thinking pays off (rate <span class="m" data-tex="k"></span>) = <span id="tt-rate-val">600</span></label>
           <input type="range" id="tt-rate" min="100" max="2500" step="50" value="600">
           <p class="hint" id="tt-hint"></p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="tt-plot"></svg>
-          <div class="formula-display" id="tt-formula"></div>
+          <div class="eq" id="tt-formula"></div>
+          <div class="eq-readout" id="tt-readout"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="passk">
       <h3>pass@1 vs pass@k: the coverage headroom</h3>
-      <p class="concept-desc">Test-time scaling also includes sampling many answers. <b>pass@1</b> is single-shot accuracy; <b>pass@k</b> asks whether <i>any</i> of k samples is correct. The unbiased estimator from <code>n</code> samples with <code>c</code> correct is <code>1 − C(n−c, k)/C(n, k)</code>. The gap between pass@1 and pass@k is the headroom a selector or majority vote can chase.</p>
+      <p class="concept-desc">Test-time scaling also includes sampling many answers. <b>pass@1</b> is single-shot accuracy; <b>pass@k</b> asks whether <i>any</i> of <span class="m" data-tex="k"></span> samples is correct. The gap between pass@1 and pass@k is the headroom a selector or majority vote can chase.</p>
+      <div class="eq" data-tex="\text{pass@}k = 1 - (1-p)^k \qquad\qquad \widehat{\text{pass@}k} = 1 - \frac{\binom{n-c}{k}}{\binom{n}{k}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="p"></span><span class="def">per-sample success probability (pass@1) — the chance a single sampled answer is correct</span></div>
+        <div class="row"><span class="sym" data-tex="k"></span><span class="def">number of attempts drawn; pass@<span class="m" data-tex="k"></span> succeeds if <i>any</i> of the <span class="m" data-tex="k"></span> is correct</span></div>
+        <div class="row"><span class="sym" data-tex="n,\ c"></span><span class="def">in the unbiased estimator: <span class="m" data-tex="n"></span> total samples drawn, of which <span class="m" data-tex="c"></span> were correct</span></div>
+        <div class="row"><span class="sym" data-tex="\binom{n}{k}"></span><span class="def">binomial coefficient — the number of ways to choose <span class="m" data-tex="k"></span> samples from <span class="m" data-tex="n"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>Per-sample accuracy p = <span id="pk-p-val">0.30</span></label>
@@ -473,7 +482,8 @@
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="pk-plot"></svg>
-          <div class="formula-display" id="pk-formula"></div>
+          <div class="eq" id="pk-formula"></div>
+          <div class="eq-readout" id="pk-readout"></div>
         </div>
       </div>
     </article>
@@ -525,7 +535,7 @@
             </div>
           </div>
           <div class="decision-block">
-            <div class="dlabel">KL penalty β</div>
+            <div class="dlabel">KL penalty <span class="m" data-tex="\beta"></span></div>
             <div class="choice-row" id="rc-kl">
               <button data-v="zero" class="active">β = 0</button>
               <button data-v="on">KL / reference</button>
@@ -547,22 +557,30 @@
 
     <article class="concept" id="cispo">
       <h3>Ratio clipping vs CISPO weight clipping</h3>
-      <p class="concept-desc">The probability ratio is <code>r = π<sub>θ</sub>(a)/π<sub>old</sub>(a)</code>. PPO's surrogate <code>min(r·A, clip(r,1−ε,1+ε)·A)</code> kills the gradient outside the trust region (flat → zero slope). CISPO keeps the policy-gradient term <code>A·∇logπ</code> but only clips the IS weight as a multiplier — so high-update tokens still learn. Widen the upper clip to mimic DAPO's relaxed clipping.</p>
+      <p class="concept-desc">The probability ratio is <span class="m" data-tex="r=\pi_\theta(a)/\pi_{\mathrm{old}}(a)"></span>. PPO's surrogate kills the gradient outside the trust region (flat <span class="m" data-tex="\to"></span> zero slope). CISPO keeps the policy-gradient term <span class="m" data-tex="A\,\nabla\log\pi"></span> but only clips the importance-sampling weight as a multiplier — so high-update tokens still learn. Widen the upper clip to mimic DAPO's relaxed clipping.</p>
+      <div class="eq" data-tex="\underbrace{\min\!\left(r\,A,\ \mathrm{clip}(r,\,1-\varepsilon_{\mathrm{lo}},\,1+\varepsilon_{\mathrm{hi}})\,A\right)}_{\text{PPO / GRPO surrogate}} \qquad\text{vs}\qquad \underbrace{\mathrm{clip}(r,\,1-\varepsilon_{\mathrm{lo}},\,1+\varepsilon_{\mathrm{hi}})\cdot A\cdot\nabla_\theta\log\pi_\theta}_{\text{CISPO: clip the IS weight, keep the gradient}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r"></span><span class="def">probability ratio <span class="m" data-tex="\pi_\theta(a)/\pi_{\mathrm{old}}(a)"></span> — how much the updated policy has moved on this token</span></div>
+        <div class="row"><span class="sym" data-tex="A"></span><span class="def">the advantage (group-centered in GRPO); sign says whether to push the token up or down</span></div>
+        <div class="row"><span class="sym" data-tex="\varepsilon_{\mathrm{lo}},\,\varepsilon_{\mathrm{hi}}"></span><span class="def">lower / upper clip widths defining the trust region <span class="m" data-tex="[1-\varepsilon_{\mathrm{lo}},\,1+\varepsilon_{\mathrm{hi}}]"></span>; DAPO widens <span class="m" data-tex="\varepsilon_{\mathrm{hi}}"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\nabla_\theta\log\pi_\theta"></span><span class="def">the policy-gradient term CISPO keeps alive for every token, even when PPO would clip it to a dead zero gradient</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Probability ratio r = <span id="ci-r-val">1.00</span></label>
+          <label>Probability ratio <span class="m" data-tex="r"></span> = <span id="ci-r-val">1.00</span></label>
           <input type="range" id="ci-r" min="0.1" max="2.6" step="0.01" value="1">
-          <label>Advantage A = <span id="ci-a-val">1.00</span></label>
+          <label>Advantage <span class="m" data-tex="A"></span> = <span id="ci-a-val">1.00</span></label>
           <input type="range" id="ci-a" min="-2" max="2" step="0.1" value="1">
-          <label>Lower clip ε<sub>low</sub> = <span id="ci-lo-val">0.20</span></label>
+          <label>Lower clip <span class="m" data-tex="\varepsilon_{\mathrm{lo}}"></span> = <span id="ci-lo-val">0.20</span></label>
           <input type="range" id="ci-lo" min="0.05" max="0.5" step="0.01" value="0.2">
-          <label>Upper clip ε<sub>high</sub> (DAPO widens this) = <span id="ci-hi-val">0.20</span></label>
+          <label>Upper clip <span class="m" data-tex="\varepsilon_{\mathrm{hi}}"></span> (DAPO widens this) = <span id="ci-hi-val">0.20</span></label>
           <input type="range" id="ci-hi" min="0.05" max="0.8" step="0.01" value="0.2">
           <p class="hint" id="ci-hint"></p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 380 220" id="ci-plot"></svg>
-          <div class="formula-display" id="ci-formula"></div>
+          <div class="eq" id="ci-formula"></div>
+          <div class="eq-readout" id="ci-readout"></div>
         </div>
       </div>
     </article>
@@ -704,6 +722,7 @@
     var tabs = document.querySelectorAll('#think-tabs button');
     var tokensEl = document.getElementById('think-tokens');
     var formula = document.getElementById('think-formula');
+    var readout = document.getElementById('think-readout');
     var hint = document.getElementById('think-hint');
     var stepBtn = document.getElementById('think-step');
     var allBtn = document.getElementById('think-all');
@@ -727,12 +746,17 @@
       });
       var thinkCount = s.filter(function(x){ return x.k==='think'; }).length;
       var ansShown = revealed >= s.length;
-      formula.innerHTML =
+      tex(formula,
+        '\\nabla_\\theta J \\;\\approx\\; R \\cdot \\sum_{t} \\nabla_\\theta \\log \\pi_\\theta(y_t \\mid y_{<t}, x)',
+        true);
+      readout.innerHTML =
         'tokens revealed: <b>' + Math.min(revealed, s.length) + '/' + s.length + '</b>' +
         ' &nbsp;|&nbsp; thinking tokens: <b>' + thinkCount + '</b>' +
-        ' &nbsp;|&nbsp; reward = ' + (ansShown ? '<b>verify(\\boxed{77}) → 1</b>' : '<span style="color:var(--text-dim)">pending (only computed on the final boxed answer)</span>');
+        ' &nbsp;|&nbsp; reward ' + (ansShown ? '= <b>verify(boxed 77) → 1</b>' : '<span style="color:var(--text-dim)">pending (only computed on the final boxed answer)</span>');
       if(mode === 'reasoning'){
-        hint.innerHTML = 'Orange = <code>&lt;think&gt;</code> chain-of-thought; green = the scored answer. The verifier reward fires <b>only</b> on <code>\\boxed{77}</code>, yet &nabla;J &asymp; R&middot;&Sigma;<sub>t</sub>&nabla;log&pi;(y<sub>t</sub>) spreads that one scalar across <b>all</b> ' + thinkCount + ' thinking tokens. Correct outcome ⇒ this whole reasoning path is reinforced. Hard problems can need thousands of these tokens.';
+        hint.innerHTML = 'Orange = <code>&lt;think&gt;</code> chain-of-thought; green = the scored answer. The verifier reward fires <b>only</b> on the boxed answer, yet the single scalar reward <span class="m" id="think-hint-R"></span> weights the log-prob gradient <span class="m" id="think-hint-grad"></span> of <b>all</b> ' + thinkCount + ' thinking tokens. Correct outcome ⇒ this whole reasoning path is reinforced. Hard problems can need thousands of these tokens.';
+        tex(document.getElementById('think-hint-R'), 'R', false);
+        tex(document.getElementById('think-hint-grad'), '\\nabla_\\theta\\log\\pi_\\theta', false);
       } else {
         hint.innerHTML = 'A standard model answers directly — no <code>&lt;think&gt;</code> block. Switch to the reasoning model to see the chain-of-thought that gets generated before the boxed answer.';
       }
@@ -760,6 +784,7 @@
     var ceilVal = document.getElementById('tt-ceil-val');
     var rateVal = document.getElementById('tt-rate-val');
     var formula = document.getElementById('tt-formula');
+    var readout = document.getElementById('tt-readout');
     var hint = document.getElementById('tt-hint');
     var svg = document.getElementById('tt-plot');
 
@@ -810,10 +835,13 @@
 
       // marginal accuracy per doubling of budget at current point
       var marg = acc(budget*2, ceil, k) - a;
-      formula.innerHTML =
-        'acc(b) = floor + (A<sub>max</sub>&minus;floor)(1 &minus; e<sup>&minus;b/k</sup>)<br>' +
+      tex(formula,
+        '\\mathrm{acc}(b) = \\mathrm{floor} + (A_{\\max} - \\mathrm{floor})\\left(1 - e^{-b/k}\\right)',
+        true);
+      readout.innerHTML =
         'acc(' + budget.toFixed(0) + ') = <b>' + a.toFixed(3) + '</b> &nbsp;|&nbsp; gain from doubling budget: <b>+' + marg.toFixed(3) + '</b>';
-      hint.innerHTML = 'This is <b>test-time</b> scaling: fixed weights, more compute per query. The curve is concave — early thinking tokens buy a lot of accuracy, later ones almost none (diminishing returns), and it saturates at the trained ceiling A<sub>max</sub>. <b>Train-time</b> scaling (more RL) is what raises that ceiling — the dashed weak model can never reach the green one by thinking harder.';
+      hint.innerHTML = 'This is <b>test-time</b> scaling: fixed weights, more compute per query. The curve is concave — early thinking tokens buy a lot of accuracy, later ones almost none (diminishing returns), and it saturates at the trained ceiling <span class="m" id="tt-hint-amax"></span>. <b>Train-time</b> scaling (more RL) is what raises that ceiling — the dashed weak model can never reach the green one by thinking harder.';
+      tex(document.getElementById('tt-hint-amax'), 'A_{\\max}', false);
     }
     budgetSlider.addEventListener('input', render);
     ceilSlider.addEventListener('input', render);
@@ -828,6 +856,7 @@
     var pVal = document.getElementById('pk-p-val');
     var kVal = document.getElementById('pk-k-val');
     var formula = document.getElementById('pk-formula');
+    var readout = document.getElementById('pk-readout');
     var hint = document.getElementById('pk-hint');
     var svg = document.getElementById('pk-plot');
 
@@ -867,9 +896,14 @@
       // also show the unbiased estimator form from the deck for a concrete n,c
       var n = 64, c = Math.round(p*n);
       var est = (k > n) ? NaN : 1 - Math.exp(logChoose(n-c, k) - logChoose(n, k));
-      formula.innerHTML =
-        'pass@k (i.i.d.) = 1 &minus; (1&minus;p)<sup>k</sup> = 1 &minus; (' + (1-p).toFixed(2) + ')<sup>' + k + '</sup> = <b>' + pk.toFixed(3) + '</b><br>' +
-        'unbiased est. 1 &minus; C(n&minus;c,k)/C(n,k) with n=64, c=' + c + ': <b>' + (isNaN(est)?'—':est.toFixed(3)) + '</b>';
+      tex(formula,
+        '\\begin{aligned}'
+        + '\\text{pass@}k &= 1 - (1-p)^k = 1 - (' + (1-p).toFixed(2) + ')^{' + k + '} = ' + pk.toFixed(3) + ' \\\\ '
+        + '\\widehat{\\text{pass@}k} &= 1 - \\frac{\\binom{n-c}{k}}{\\binom{n}{k}}\\Big|_{n=64,\\,c=' + c + '} = ' + (isNaN(est)?'\\text{—}':est.toFixed(3))
+        + '\\end{aligned}',
+        true);
+      readout.innerHTML =
+        'pass@1 = <b>' + p1.toFixed(2) + '</b>, pass@' + k + ' = <b>' + pk.toFixed(2) + '</b> — headroom <b>' + (pk-p1).toFixed(2) + '</b>.';
       hint.innerHTML = 'pass@1 = <b>' + p1.toFixed(2) + '</b>, pass@' + k + ' = <b>' + pk.toFixed(2) + '</b> — a headroom of <b>' + (pk-p1).toFixed(2) + '</b>. That gap is the coverage a majority vote (R1, Phi-4) or a selector model (DeepSeek-GRM) tries to convert into single-shot accuracy.';
     }
     pSlider.addEventListener('input', render);
@@ -1021,6 +1055,7 @@
     var loVal = document.getElementById('ci-lo-val');
     var hiVal = document.getElementById('ci-hi-val');
     var formula = document.getElementById('ci-formula');
+    var readout = document.getElementById('ci-readout');
     var hint = document.getElementById('ci-hint');
     var svg = document.getElementById('ci-plot');
 
@@ -1071,14 +1106,20 @@
 
       var lPpo = ppoObj(r, A, lo, hi);
       var dead = (A >= 0 && r > 1+hi) || (A < 0 && r < 1-lo);
-      formula.innerHTML =
-        'PPO: min(r·A, clip(r,1&minus;&epsilon;<sub>lo</sub>,1+&epsilon;<sub>hi</sub>)·A) = <b>' + lPpo.toFixed(2) + '</b>' +
-        (dead ? ' &nbsp;<span style="color:var(--red)">[gradient killed]</span>' : '') + '<br>' +
-        'CISPO: weight = clip(r) = ' + cispoWeight(r, lo, hi).toFixed(2) + ', keeps A·&nabla;log&pi; alive everywhere.';
+      tex(formula,
+        '\\begin{aligned}'
+        + '\\text{PPO} &= \\min\\!\\left(r A,\\ \\mathrm{clip}(r,1-\\varepsilon_{\\mathrm{lo}},1+\\varepsilon_{\\mathrm{hi}})A\\right) = ' + lPpo.toFixed(2) + ' \\\\ '
+        + '\\text{CISPO weight} &= \\mathrm{clip}(r) = ' + cispoWeight(r, lo, hi).toFixed(2)
+        + '\\end{aligned}',
+        true);
+      readout.innerHTML =
+        (dead ? '<span style="color:var(--red)">PPO gradient killed (clipped flat).</span> '
+              : '<span style="color:var(--text-dim)">Inside the trust region — both move with r.</span> ') +
+        'CISPO keeps <b>A·∇logπ</b> alive everywhere.';
       if(dead){
-        hint.innerHTML = 'Here PPO is <b>clipped</b>: the surrogate is flat, so &part;/&part;&theta; = 0 and this token contributes <b>no gradient</b> — even though it may be a high-update token. <b>CISPO</b> keeps the gradient by clipping only the IS weight as a multiplier. DAPO instead <i>widens</i> &epsilon;<sub>hi</sub> so fewer exploratory updates die.';
+        hint.innerHTML = 'Here PPO is <b>clipped</b>: the surrogate is flat, so the gradient is 0 and this token contributes <b>no update</b> — even though it may be a high-update token. <b>CISPO</b> keeps the gradient by clipping only the IS weight as a multiplier. DAPO instead <i>widens</i> the upper clip so fewer exploratory updates die.';
       } else {
-        hint.innerHTML = 'Inside the trust region [1&minus;&epsilon;<sub>lo</sub>, 1+&epsilon;<sub>hi</sub>] both objectives move with r. Push r past 1+&epsilon;<sub>hi</sub> (with A&gt;0) and watch PPO flatten to a dead gradient while CISPO keeps learning. Raise &epsilon;<sub>hi</sub> to mimic DAPO.';
+        hint.innerHTML = 'Inside the trust region both objectives move with r. Push r past the upper clip (with A&gt;0) and watch PPO flatten to a dead gradient while CISPO keeps learning. Raise the upper clip to mimic DAPO.';
       }
     }
     rSlider.addEventListener('input', render);

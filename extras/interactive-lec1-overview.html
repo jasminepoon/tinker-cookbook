@@ -422,7 +422,8 @@
         </div>
         <div class="panel-viz">
           <div class="token-row" id="ar-tokens"></div>
-          <div class="formula-display" id="ar-formula"></div>
+          <div class="eq" id="ar-formula"></div>
+          <div class="eq-readout" id="ar-status"></div>
         </div>
       </div>
     </article>
@@ -475,11 +476,16 @@
   <!-- ============ SECTION 3: CLASSICAL RL ============ -->
   <section class="group" id="classical">
     <div class="group-header"><span class="group-index">03</span><h2>Classical Reinforcement Learning</h2></div>
-    <p class="group-intro">RLHF inherits its language from classical RL, written as a Markov Decision Process <code>(𝒮, 𝒜, P, r, γ)</code>. The agent observes a <b>state</b>, its <b>policy</b> picks an <b>action</b>, the environment returns a <b>reward</b> and a <b>next state</b>; the goal is to maximize cumulative return <code>J(π) = E[Σₜ γᵗ r(sₜ,aₜ)]</code>.</p>
+    <p class="group-intro">RLHF inherits its language from classical RL, written as a Markov Decision Process <span class="m" data-tex="(\mathcal{S}, \mathcal{A}, P, r, \gamma)"></span>. The agent observes a <b>state</b>, its <b>policy</b> picks an <b>action</b>, the environment returns a <b>reward</b> and a <b>next state</b>; the goal is to maximize cumulative return <span class="m" data-tex="J(\pi)=\mathbb{E}\!\left[\sum_t \gamma^t\, r(s_t,a_t)\right]"></span>.</p>
 
     <article class="concept" id="thermostat">
       <h3>The agent–environment loop (Thermostat)</h3>
       <p class="concept-desc">The deck's thermostat example. <b>State</b> = room temperature; <b>action</b> = heater on/off; <b>reward</b> = high when near the target. The policy here is: heater <code>on</code> if temperature &lt; 70°F, else <code>off</code>. Step the loop and watch state → policy → action → reward → next state with live numbers, and the return accumulate.</p>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\pi"></span><span class="def">the <b>policy</b> — the rule mapping a state to an action, here <span class="m" data-tex="\pi(\text{on}\mid s)=1"></span> if <span class="m" data-tex="s<70^\circ\!F"></span> else 0</span></div>
+        <div class="row"><span class="sym" data-tex="r(s)"></span><span class="def">the <b>reward</b>, <span class="m" data-tex="\max\!\left(0,\,1-|s-\text{target}|/10\right)"></span> — peaks at the target temperature</span></div>
+        <div class="row"><span class="sym" data-tex="\gamma"></span><span class="def">the <b>discount</b> in <span class="m" data-tex="(0,1]"></span> — how much future reward is worth now</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>Target temperature = <span id="th-target-val">70</span>°F</label>
@@ -488,12 +494,13 @@
           <input type="range" id="th-gamma" min="0.5" max="1" step="0.01" value="0.9">
           <button id="th-step">Step ▶</button>
           <button id="th-reset">Reset</button>
-          <p class="hint">Policy: π(on | s) = 1 if s &lt; 70°F else 0. Reward r(s) = max(0, 1 − |s − target|/10). The heater warms the room ~+3°F when on; it cools ~−2°F when off.</p>
+          <p class="hint">Policy: <span class="m" data-tex="\pi(\text{on}\mid s)=1"></span> if <span class="m" data-tex="s<70^\circ\!F"></span> else 0. Reward <span class="m" data-tex="r(s)=\max(0,\,1-|s-\text{target}|/10)"></span>. The heater warms the room ~+3°F when on; it cools ~−2°F when off.</p>
         </div>
         <div class="panel-viz">
           <div class="loop-stage" id="th-loop"></div>
           <svg class="plot" viewBox="0 0 360 150" id="th-plot"></svg>
-          <div class="formula-display" id="th-formula"></div>
+          <div class="eq" id="th-formula"></div>
+          <div class="eq-readout" id="th-status"></div>
         </div>
       </div>
     </article>
@@ -511,7 +518,8 @@
         </div>
         <div class="panel-viz">
           <div class="loop-stage" id="bf-clips"></div>
-          <div class="formula-display" id="bf-formula"></div>
+          <div class="eq" id="bf-formula"></div>
+          <div class="eq-readout" id="bf-status"></div>
         </div>
       </div>
     </article>
@@ -534,18 +542,26 @@
 
     <article class="concept" id="rm">
       <h3>Reward modeling &amp; the Bradley–Terry preview</h3>
-      <p class="concept-desc">An annotator sees two responses to a prompt and picks the winner. The reward model <code>r_φ</code> is trained so the chosen response scores higher: <code>P(y_w ≻ y_l) = σ(r_φ(x,y_w) − r_φ(x,y_l))</code>, minimizing <code>−log σ(Δr)</code>. The reward is literally the model's predicted probability that a piece of text is the "winning" completion. Drag the reward gap Δr and watch the preference probability and loss respond.</p>
+      <p class="concept-desc">An annotator sees two responses to a prompt and picks the winner. The reward model <span class="m" data-tex="r_\varphi"></span> is trained so the chosen response scores higher, minimizing the negative log-likelihood of the preference. The reward is literally the model's predicted probability that a piece of text is the "winning" completion. Drag the reward gap <span class="m" data-tex="\Delta r"></span> and watch the preference probability and loss respond.</p>
+      <div class="eq" data-tex="P(y_w \succ y_l)=\sigma\!\left(r_\varphi(x,y_w)-r_\varphi(x,y_l)\right) \qquad\qquad \mathcal{L}=-\log\sigma(\Delta r)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_\varphi"></span><span class="def">the reward model (parameters <span class="m" data-tex="\varphi"></span>) scoring a prompt–completion pair <span class="m" data-tex="(x,y)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="y_w,\ y_l"></span><span class="def">the <b>w</b>inning (chosen) and <b>l</b>osing (rejected) completions; <span class="m" data-tex="\Delta r=r_\varphi(x,y_w)-r_\varphi(x,y_l)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic sigmoid <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span>, mapping the score gap to a probability</span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the loss minimized in reward-model training — small when the pair is ordered correctly</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>r_φ(x, y_w) = <span id="bt-rw-val">1.20</span></label>
+          <label><span class="m" data-tex="r_\varphi(x, y_w)"></span> = <span id="bt-rw-val">1.20</span></label>
           <input type="range" id="bt-rw" min="-3" max="3" step="0.05" value="1.2">
-          <label>r_φ(x, y_l) = <span id="bt-rl-val">0.30</span></label>
+          <label><span class="m" data-tex="r_\varphi(x, y_l)"></span> = <span id="bt-rl-val">0.30</span></label>
           <input type="range" id="bt-rl" min="-3" max="3" step="0.05" value="0.3">
-          <p class="hint">Only the difference Δr = r_w − r_l matters. Δr = 0 → toss-up (P = 0.5). Large positive Δr → near-certain preference for the winner, and the RM loss → 0.</p>
+          <p class="hint">Only the difference <span class="m" data-tex="\Delta r = r_w - r_l"></span> matters. <span class="m" data-tex="\Delta r = 0"></span> → toss-up (<span class="m" data-tex="P=0.5"></span>). Large positive <span class="m" data-tex="\Delta r"></span> → near-certain preference for the winner, and the RM loss → 0.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 200" id="bt-plot"></svg>
-          <div class="formula-display" id="bt-formula"></div>
+          <div class="eq" id="bt-formula"></div>
+          <div class="eq-readout" id="bt-status"></div>
         </div>
       </div>
     </article>
@@ -557,22 +573,30 @@
     <p class="group-intro">Step 3 brings it together: sample prompts, generate completions, score them with the reward model, and update the policy — but with a <b>KL penalty</b> keeping the policy close to the reference (SFT) model. The whole thing is one objective with a knob, β, controlling the tradeoff.</p>
 
     <article class="concept" id="jtheta">
-      <h3>J(θ) = E[ r(x,y) ] − β · D_KL(π‖π_ref)</h3>
-      <p class="concept-desc">The tug-of-war: the first term pulls the policy toward high reward; the second pulls it back toward the reference model. Drag the policy's chosen reward and the KL distance from the reference, then turn β to see who wins. The deck's annotation: "maximize the reward, but don't change the model too much."</p>
+      <h3>The RLHF objective <span class="m" data-tex="J(\theta)"></span></h3>
+      <p class="concept-desc">The tug-of-war: the first term pulls the policy toward high reward; the second pulls it back toward the reference model. Drag the policy's chosen reward and the KL distance from the reference, then turn <span class="m" data-tex="\beta"></span> to see who wins. The deck's annotation: "maximize the reward, but don't change the model too much."</p>
+      <div class="eq" data-tex="J(\theta)=\mathbb{E}_{x\sim\mathcal{D},\,y\sim\pi_\theta}\!\left[r(x,y)\right]-\beta\,\mathrm{D}_{\mathrm{KL}}\!\left(\pi_\theta \,\|\, \pi_{\mathrm{ref}}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="J(\theta)"></span><span class="def">the objective being <b>maximized</b> over the policy parameters <span class="m" data-tex="\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}"></span><span class="def">the <b>expectation</b> (average) over prompts <span class="m" data-tex="x"></span> and completions <span class="m" data-tex="y"></span> the policy samples</span></div>
+        <div class="row"><span class="sym" data-tex="r(x,y)"></span><span class="def">the reward (from the reward model) for the policy's response</span></div>
+        <div class="row"><span class="sym" data-tex="\mathrm{D}_{\mathrm{KL}}"></span><span class="def">the <b>KL divergence</b> — how far the policy <span class="m" data-tex="\pi_\theta"></span> has drifted from the reference <span class="m" data-tex="\pi_{\mathrm{ref}}"></span> (the SFT model), in nats</span></div>
+        <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">the KL <b>penalty strength</b> — the leash holding the policy near the reference</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Reward of policy's response, r(x,y) = <span id="jt-r-val">2.00</span></label>
+          <label>Reward of policy's response, <span class="m" data-tex="r(x,y)"></span> = <span id="jt-r-val">2.00</span></label>
           <input type="range" id="jt-r" min="-1" max="5" step="0.05" value="2">
-          <label>KL from reference, D_KL(π‖π_ref) = <span id="jt-kl-val">3.00</span> nats</label>
+          <label>KL from reference, <span class="m" data-tex="\mathrm{D}_{\mathrm{KL}}(\pi_\theta\|\pi_{\mathrm{ref}})"></span> = <span id="jt-kl-val">3.00</span> nats</label>
           <input type="range" id="jt-kl" min="0" max="10" step="0.1" value="3">
-          <label>β (KL strength) = <span id="jt-beta-val">0.20</span></label>
+          <label><span class="m" data-tex="\beta"></span> (KL strength) = <span id="jt-beta-val">0.20</span></label>
           <input type="range" id="jt-beta" min="0" max="1" step="0.01" value="0.2">
           <p class="hint" id="jt-hint"></p>
         </div>
         <div class="panel-viz">
           <div class="tug" id="jt-tug"></div>
           <svg class="plot" viewBox="0 0 360 200" id="jt-plot"></svg>
-          <div class="formula-display" id="jt-formula"></div>
+          <div class="eq" id="jt-formula"></div>
         </div>
       </div>
     </article>
@@ -601,20 +625,22 @@
 
     <article class="concept" id="dpo">
       <h3>DPO: skip the reward model</h3>
-      <p class="concept-desc">DPO derives the gradient toward the optimal policy directly, training on preferred (y_w) vs. rejected (y_l) pairs. Its loss reuses the same Bradley–Terry sigmoid, but on a <i>policy-vs-reference log-ratio</i>: <code>−log σ( β·log[π_θ(y_w)/π_ref(y_w)] − β·log[π_θ(y_l)/π_ref(y_l)] )</code>. Drag the policy's log-probs and watch the implicit reward margin and loss.</p>
+      <p class="concept-desc">DPO derives the gradient toward the optimal policy directly, training on preferred (<span class="m" data-tex="y_w"></span>) vs. rejected (<span class="m" data-tex="y_l"></span>) pairs. Its loss reuses the same Bradley–Terry sigmoid, but on a <i>policy-vs-reference log-ratio</i>. Drag the policy's log-probs and watch the implicit reward margin and loss.</p>
+      <div class="eq" data-tex="\mathcal{L}_{\mathrm{DPO}}=-\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w)}{\pi_{\mathrm{ref}}(y_w)}-\beta\log\frac{\pi_\theta(y_l)}{\pi_{\mathrm{ref}}(y_l)}\right)"></div>
       <div class="panel">
         <div class="panel-controls">
-          <label>log π_θ(y_w)/π_ref(y_w) = <span id="dpo-w-val">0.80</span></label>
+          <label><span class="m" data-tex="\log\,\pi_\theta(y_w)/\pi_{\mathrm{ref}}(y_w)"></span> = <span id="dpo-w-val">0.80</span></label>
           <input type="range" id="dpo-w" min="-2" max="2" step="0.05" value="0.8">
-          <label>log π_θ(y_l)/π_ref(y_l) = <span id="dpo-l-val">-0.40</span></label>
+          <label><span class="m" data-tex="\log\,\pi_\theta(y_l)/\pi_{\mathrm{ref}}(y_l)"></span> = <span id="dpo-l-val">-0.40</span></label>
           <input type="range" id="dpo-l" min="-2" max="2" step="0.05" value="-0.4">
-          <label>β = <span id="dpo-beta-val">0.10</span></label>
+          <label><span class="m" data-tex="\beta"></span> = <span id="dpo-beta-val">0.10</span></label>
           <input type="range" id="dpo-beta" min="0.01" max="0.5" step="0.01" value="0.1">
-          <p class="hint">The implicit reward is β·log[π_θ/π_ref]. Raising y_w's log-ratio above y_l's drives the loss down — exactly the contrastive push of preference tuning, no reward model required.</p>
+          <p class="hint">The implicit reward is <span class="m" data-tex="\beta\log[\pi_\theta/\pi_{\mathrm{ref}}]"></span>. Raising <span class="m" data-tex="y_w"></span>'s log-ratio above <span class="m" data-tex="y_l"></span>'s drives the loss down — exactly the contrastive push of preference tuning, no reward model required.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 320 200" id="dpo-plot"></svg>
-          <div class="formula-display" id="dpo-formula"></div>
+          <div class="eq" id="dpo-formula"></div>
+          <div class="eq-readout" id="dpo-status"></div>
         </div>
       </div>
     </article>
@@ -714,6 +740,7 @@
     ];
     var tokensEl = document.getElementById('ar-tokens');
     var formulaEl = document.getElementById('ar-formula');
+    var statusEl = document.getElementById('ar-status');
     var prevBtn = document.getElementById('ar-prev');
     var nextBtn = document.getElementById('ar-next');
     var resetBtn = document.getElementById('ar-reset');
@@ -746,11 +773,17 @@
       var logp = 0;
       for(var i=0;i<nGen;i++){ logp += Math.log(gen[i].p); }
       if(nGen === 0){
-        formulaEl.innerHTML = 'Context (green) = prompt. Click <b>Generate next</b> to sample tokens one at a time. Each step computes P<sub>&theta;</sub>(x<sub>t</sub> | x<sub>&lt;t</sub>).';
+        tex(formulaEl, 'P_\\theta(x_t \\mid x_{<t})', true);
+        statusEl.innerHTML = 'Context (green) = prompt. Click <b>Generate next</b> to sample tokens one at a time.';
       } else {
         var last = gen[nGen-1];
-        formulaEl.innerHTML = 'Predicted <b>"' + escapeHtml(last.tok) + '"</b> with P<sub>&theta;</sub>(x<sub>t</sub> | x<sub>&lt;t</sub>) = <b>' + last.p.toFixed(2) + '</b>' +
-          ' &nbsp;|&nbsp; running &Sigma; log P = <b>' + logp.toFixed(3) + '</b> &nbsp;|&nbsp; seq. prob &approx; ' + Math.exp(logp).toFixed(4);
+        tex(formulaEl,
+          '\\begin{aligned}' +
+          'P_\\theta(x_t \\mid x_{<t}) &= ' + last.p.toFixed(2) + ' \\\\ ' +
+          '\\textstyle\\sum_t \\log P_\\theta &= ' + logp.toFixed(3) +
+          ' \\quad\\Rightarrow\\quad P_\\theta(x)\\approx ' + Math.exp(logp).toFixed(4) +
+          '\\end{aligned}', true);
+        statusEl.innerHTML = 'Predicted <b>"' + escapeHtml(last.tok) + '"</b> &nbsp;|&nbsp; running &Sigma; log P = <b>' + logp.toFixed(3) + '</b>';
       }
       prevBtn.disabled = nGen === 0;
       nextBtn.disabled = nGen === gen.length;
@@ -837,6 +870,7 @@
     var gammaVal = document.getElementById('th-gamma-val');
     var loopEl = document.getElementById('th-loop');
     var formulaEl = document.getElementById('th-formula');
+    var statusEl = document.getElementById('th-status');
     var svg = document.getElementById('th-plot');
     var stepBtn = document.getElementById('th-step');
     var resetBtn = document.getElementById('th-reset');
@@ -883,9 +917,10 @@
       var lastLine = lastAction === null
         ? 'Step the loop to take an action and accumulate return.'
         : 'Last step: chose <b>' + lastAction + '</b>, got reward ' + lastReward.toFixed(2) + '.';
-      formulaEl.innerHTML =
-        'J = &Sigma;ₜ &gamma;ᵗ r(sₜ) &nbsp;|&nbsp; t = <b>' + t + '</b> &nbsp;|&nbsp; discounted return = <b>' + ret.toFixed(3) + '</b><br>' +
-        '<span style="color:var(--text-dim)">' + lastLine + '</span>';
+      tex(formulaEl,
+        'J=\\sum_t \\gamma^t\\, r(s_t) \\qquad t=' + t + ' \\qquad J=' + ret.toFixed(3),
+        true);
+      statusEl.innerHTML = '<span style="color:var(--text-dim)">' + lastLine + '</span>';
     }
 
     function step(){
@@ -920,6 +955,7 @@
     var bVal = document.getElementById('bf-b-val');
     var clipsEl = document.getElementById('bf-clips');
     var formulaEl = document.getElementById('bf-formula');
+    var statusEl = document.getElementById('bf-status');
 
     function render(){
       var a = parseFloat(aSlider.value);
@@ -932,8 +968,11 @@
       clipsEl.innerHTML =
         '<div class="loop-box' + (winner==='A'?' lit':'') + '"><div class="lk">Backflip A' + (winner==='A'?' ✓':'') + '</div><div class="lv">quality ' + a.toFixed(2) + '</div></div>' +
         '<div class="loop-box' + (winner==='B'?' lit':'') + '"><div class="lk">Backflip B' + (winner==='B'?' ✓':'') + '</div><div class="lv">quality ' + b.toFixed(2) + '</div></div>';
-      formulaEl.innerHTML =
-        'Human picks <b>' + winner + '</b> &nbsp;|&nbsp; P(human prefers A) = &sigma;(quality gap) = <b>' + pA.toFixed(3) + '</b><br>' +
+      tex(formulaEl,
+        'P(\\text{human prefers }A)=\\sigma\\!\\big(q_A-q_B\\big)=' + pA.toFixed(3),
+        true);
+      statusEl.innerHTML =
+        'Human picks <b>' + winner + '</b> &nbsp;|&nbsp; ' +
         '<span style="color:var(--text-dim)">No formula scored these clips — a person just judged them. That preference is the reward signal.</span>';
     }
     aSlider.addEventListener('input', render);
@@ -944,9 +983,9 @@
   /* ---------------- 4A: InstructGPT pipeline ---------------- */
   function initPipeline(){
     var steps = [
-      {n:'1', t:'Instruction fine-tuning (IFT / SFT)', body:'Start from a pretrained model and train with standard supervised learning on <b>demonstrations of desired assistant behavior</b> — prompt–response pairs. The model can now answer questions. Loss: −Σ log π<sub>θ</sub>(y*<sub>t</sub> | x, y*<sub>&lt;t</sub>).', data:'Data needed: ~thousands of human-written demonstrations'},
-      {n:'2', t:'Reward modeling', body:'Collect <b>comparisons</b> between two model outputs for the same prompt and train a reward model r<sub>φ</sub>(x,y) to score the preferred completion higher. The reward is the model\'s predicted probability that a text is the "winning" completion. Loss: −log σ(r<sub>φ</sub>(x,y<sub>w</sub>) − r<sub>φ</sub>(x,y<sub>l</sub>)).', data:'Data needed: preference pairs (human or AI feedback)'},
-      {n:'3', t:'RL against the reward model', body:'Sample prompts, generate completions y ∼ π<sub>θ</sub>, score them with r<sub>φ</sub>, and update the policy with a policy-gradient algorithm (<b>PPO</b> in InstructGPT/ChatGPT) — plus a <b>KL penalty</b> to stay near the SFT/reference model. Objective: J = E[r<sub>φ</sub>(x,y)] − β·D<sub>KL</sub>(π‖π<sub>ref</sub>).', data:'Data needed: prompts + the trained reward model'}
+      {n:'1', t:'Instruction fine-tuning (IFT / SFT)', body:'Start from a pretrained model and train with standard supervised learning on <b>demonstrations of desired assistant behavior</b> — prompt–response pairs. The model can now answer questions. Loss: <span class="m" data-tex="\\mathcal{L}=-\\sum_t \\log \\pi_\\theta(y^*_t \\mid x, y^*_{<t})"></span>.', data:'Data needed: ~thousands of human-written demonstrations'},
+      {n:'2', t:'Reward modeling', body:'Collect <b>comparisons</b> between two model outputs for the same prompt and train a reward model <span class="m" data-tex="r_\\varphi(x,y)"></span> to score the preferred completion higher. The reward is the model\'s predicted probability that a text is the "winning" completion. Loss: <span class="m" data-tex="-\\log\\sigma(r_\\varphi(x,y_w)-r_\\varphi(x,y_l))"></span>.', data:'Data needed: preference pairs (human or AI feedback)'},
+      {n:'3', t:'RL against the reward model', body:'Sample prompts, generate completions <span class="m" data-tex="y\\sim\\pi_\\theta"></span>, score them with <span class="m" data-tex="r_\\varphi"></span>, and update the policy with a policy-gradient algorithm (<b>PPO</b> in InstructGPT/ChatGPT) — plus a <b>KL penalty</b> to stay near the SFT/reference model. Objective: <span class="m" data-tex="J=\\mathbb{E}[r_\\varphi(x,y)]-\\beta\\,\\mathrm{D}_{\\mathrm{KL}}(\\pi_\\theta\\|\\pi_{\\mathrm{ref}})"></span>.', data:'Data needed: prompts + the trained reward model'}
     ];
     var pipeEl = document.getElementById('ig-pipe');
     var open = 0;
@@ -962,6 +1001,10 @@
         div.addEventListener('click', function(){ open = (open===i ? -1 : i); render(); });
         pipeEl.appendChild(div);
       });
+      // re-render KaTeX inside the freshly-injected pipeline markup
+      pipeEl.querySelectorAll('[data-tex]').forEach(function(el){
+        tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+      });
     }
     render();
   }
@@ -973,6 +1016,7 @@
     var rwVal = document.getElementById('bt-rw-val');
     var rlVal = document.getElementById('bt-rl-val');
     var formulaEl = document.getElementById('bt-formula');
+    var statusEl = document.getElementById('bt-status');
     var svg = document.getElementById('bt-plot');
 
     var domain = [-6, 6];
@@ -1004,10 +1048,14 @@
         '<text x="14" y="32" fill="var(--text-dim)" font-size="10">P=1</text>' +
         '<text x="14" y="186" fill="var(--text-dim)" font-size="10">P=0</text>' +
         '<text x="150" y="200" fill="var(--text-dim)" font-size="9">&Delta;r=0</text>';
-      formulaEl.innerHTML =
-        '&Delta;r = ' + rw.toFixed(2) + ' &minus; ' + rl.toFixed(2) + ' = <b>' + dr.toFixed(2) + '</b> &nbsp;|&nbsp; ' +
-        'P(y_w &#8827; y_l) = &sigma;(&Delta;r) = <b>' + p.toFixed(3) + '</b><br>' +
-        '<span style="color:var(--text-dim)">RM loss = &minus;log &sigma;(&Delta;r) = <b>' + loss.toFixed(3) + '</b></span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\Delta r &= ' + rw.toFixed(2) + ' - (' + rl.toFixed(2) + ') = ' + dr.toFixed(2) + ' \\\\ ' +
+        'P(y_w \\succ y_l) &= \\sigma(\\Delta r) = ' + p.toFixed(3) +
+        ' \\qquad \\mathcal{L} = -\\log\\sigma(\\Delta r) = ' + loss.toFixed(3) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML = '<span style="color:' + (dr>0?'var(--accent-bright)':'var(--rose)') + '">' +
+        (dr>0 ? 'winner scored higher — low loss' : 'winner scored lower — high loss, big gradient') + '</span>';
     }
     rwSlider.addEventListener('input', render);
     rlSlider.addEventListener('input', render);
@@ -1073,9 +1121,12 @@
       else { hint = 'Balanced: positive J. The policy improves reward while the βKL term keeps it anchored near the reference model.'; }
       hintEl.textContent = hint;
 
-      formulaEl.innerHTML =
-        'J(θ) = E[r(x,y)] &minus; β·D<sub>KL</sub>(π‖π<sub>ref</sub>)<br>' +
-        '= ' + r.toFixed(2) + ' &minus; ' + beta.toFixed(2) + '·' + kl.toFixed(2) + ' = ' + r.toFixed(2) + ' &minus; ' + penalty.toFixed(2) + ' = <b>' + J.toFixed(3) + '</b>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'J(\\theta) &= \\mathbb{E}[r(x,y)] - \\beta\\,\\mathrm{D}_{\\mathrm{KL}}(\\pi_\\theta\\|\\pi_{\\mathrm{ref}}) \\\\ ' +
+        '&= ' + r.toFixed(2) + ' - ' + beta.toFixed(2) + '\\cdot' + kl.toFixed(2) +
+        ' = ' + r.toFixed(2) + ' - ' + penalty.toFixed(2) + ' = ' + J.toFixed(3) +
+        '\\end{aligned}', true);
     }
     rSlider.addEventListener('input', render);
     klSlider.addEventListener('input', render);
@@ -1147,6 +1198,7 @@
     var lVal = document.getElementById('dpo-l-val');
     var betaVal = document.getElementById('dpo-beta-val');
     var formulaEl = document.getElementById('dpo-formula');
+    var statusEl = document.getElementById('dpo-status');
     var svg = document.getElementById('dpo-plot');
 
     var domain = [-6, 6];
@@ -1184,9 +1236,13 @@
         '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
         '<text x="14" y="32" fill="var(--text-dim)" font-size="10">loss</text>' +
         '<text x="150" y="200" fill="var(--text-dim)" font-size="9">margin=0</text>';
-      formulaEl.innerHTML =
-        'implicit reward margin = β(log-ratio<sub>w</sub> &minus; log-ratio<sub>l</sub>) = ' + beta.toFixed(2) + '(' + lw.toFixed(2) + ' &minus; ' + ll.toFixed(2) + ') = <b>' + margin.toFixed(3) + '</b><br>' +
-        '<span style="color:var(--text-dim)">L<sub>DPO</sub> = &minus;log σ(margin) = <b>' + loss.toFixed(3) + '</b> &nbsp;|&nbsp; P(prefer y_w) = ' + sigmoid(margin).toFixed(3) + '</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\text{margin} &= \\beta(\\rho_w-\\rho_l) = ' + beta.toFixed(2) + '(' + lw.toFixed(2) + ' - (' + ll.toFixed(2) + ')) = ' + margin.toFixed(3) + ' \\\\ ' +
+        '\\mathcal{L}_{\\mathrm{DPO}} &= -\\log\\sigma(\\text{margin}) = ' + loss.toFixed(3) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        '<span style="color:var(--text-dim)">' + String.fromCharCode(961) + ' = log-ratio &nbsp;|&nbsp; P(prefer y_w) = <b>' + sigmoid(margin).toFixed(3) + '</b></span>';
     }
     wSlider.addEventListener('input', render);
     lSlider.addEventListener('input', render);

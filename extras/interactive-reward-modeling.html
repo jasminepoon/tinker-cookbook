@@ -524,35 +524,49 @@
 
     <article class="concept" id="margin">
       <h3>Preference margin loss</h3>
-      <p class="concept-desc">When annotators give Likert scores, the gap encodes how much better the chosen response is. Llama 2 subtracts a margin: <code>−log σ(r_c − r_r − m)</code>, forcing the model to separate scores by at least <code>m</code> before the loss relaxes. Drag the margin and the score gap; watch the loss curve shift right.</p>
+      <p class="concept-desc">When annotators give Likert scores, the gap encodes how much better the chosen response is. Llama 2 subtracts a margin <span class="m" data-tex="m"></span>, forcing the model to separate scores by at least <span class="m" data-tex="m"></span> before the loss relaxes. Drag the margin and the score gap; watch the loss curve shift right.</p>
+      <div class="eq" data-tex="\mathcal{L} = -\log\sigma\!\left(r_c - r_r - m\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_c - r_r"></span><span class="def">the score gap <span class="m" data-tex="\Delta r"></span> between the chosen and rejected responses</span></div>
+        <div class="row"><span class="sym" data-tex="m"></span><span class="def">the margin, derived from the Likert-score gap (e.g. a 5 vs a 2 gives <span class="m" data-tex="m=3"></span>); <span class="m" data-tex="m=0"></span> recovers plain Bradley–Terry</span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the loss; it only relaxes once <span class="m" data-tex="\Delta r > m"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Score gap Δr = r<sub>c</sub> − r<sub>r</sub> = <span id="mg-dr-val">1.00</span></label>
+          <label>Score gap <span class="m" data-tex="\Delta r = r_c - r_r"></span> = <span id="mg-dr-val">1.00</span></label>
           <input type="range" id="mg-dr" min="-3" max="6" step="0.05" value="1">
-          <label>Margin m (from Likert gap, e.g. 5−2 = 3) = <span id="mg-m-val">1.50</span></label>
+          <label>Margin <span class="m" data-tex="m"></span> (from Likert gap, e.g. 5−2 = 3) = <span id="mg-m-val">1.50</span></label>
           <input type="range" id="mg-m" min="0" max="4" step="0.05" value="1.5">
-          <p class="hint">m=0 recovers the plain BT loss (grey dashed). A larger m shifts the whole loss curve right: the model must build a bigger score gap before it's "satisfied." Llama 3 later dropped the margin as gains flattened with scale.</p>
+          <p class="hint"><span class="m" data-tex="m=0"></span> recovers the plain BT loss (grey dashed). A larger <span class="m" data-tex="m"></span> shifts the whole loss curve right: the model must build a bigger score gap before it's "satisfied." Llama 3 later dropped the margin as gains flattened with scale.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 340 200" id="mg-plot"></svg>
-          <div class="formula-display" id="mg-formula"></div>
+          <div class="eq" id="mg-formula"></div>
+          <div class="eq-readout" id="mg-status"></div>
         </div>
       </div>
     </article>
 
     <article class="concept" id="kwise">
       <h3>K-wise: comparisons per prompt</h3>
-      <p class="concept-desc">InstructGPT samples K completions per prompt and ranks them, yielding <code>C(K,2)</code> correlated pairs. Naively shuffling them lets prompts with more completions dominate the loss and invites overfitting; the fix is to average all C(K,2) pairs into one grouped update per prompt. Drag K and watch the pair count grow combinatorially while the per-pair weight shrinks to keep each prompt's contribution balanced.</p>
+      <p class="concept-desc">InstructGPT samples <span class="m" data-tex="K"></span> completions per prompt and ranks them, yielding <span class="m" data-tex="\binom{K}{2}"></span> correlated pairs. Naively shuffling them lets prompts with more completions dominate the loss and invites overfitting; the fix is to average all <span class="m" data-tex="\binom{K}{2}"></span> pairs into one grouped update per prompt. Drag <span class="m" data-tex="K"></span> and watch the pair count grow combinatorially while the per-pair weight shrinks to keep each prompt's contribution balanced.</p>
+      <div class="eq" data-tex="\mathcal{L} = -\frac{1}{\binom{K}{2}} \sum_{(c,r)} \log\sigma\!\left(r_c - r_r\right), \qquad \binom{K}{2} = \frac{K(K-1)}{2}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="K"></span><span class="def">number of completions sampled and ranked for a single prompt</span></div>
+        <div class="row"><span class="sym" data-tex="\binom{K}{2}"></span><span class="def">number of chosen/rejected pairs that one <span class="m" data-tex="K"></span>-way ranking produces</span></div>
+        <div class="row"><span class="sym" data-tex="\tfrac{1}{\binom{K}{2}}"></span><span class="def">per-pair weight that averages a prompt's pairs into one grouped update, so high-<span class="m" data-tex="K"></span> prompts don't dominate</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Completions per prompt, K = <span id="kw-k-val">4</span></label>
+          <label>Completions per prompt, <span class="m" data-tex="K"></span> = <span id="kw-k-val">4</span></label>
           <input type="range" id="kw-k" min="2" max="9" step="1" value="4">
-          <p class="hint">Pairs per prompt = C(K,2) = K(K−1)/2. The grouped loss multiplies by 1/C(K,2) so a prompt with K=9 (36 pairs) doesn't outvote a prompt with K=2 (1 pair).</p>
+          <p class="hint">Pairs per prompt <span class="m" data-tex="=\binom{K}{2}=\tfrac{K(K-1)}{2}"></span>. The grouped loss multiplies by <span class="m" data-tex="1/\binom{K}{2}"></span> so a prompt with K=9 (36 pairs) doesn't outvote a prompt with K=2 (1 pair).</p>
           <div class="in-practice"><b>In practice</b> · more completions per prompt is cheap signal — but only if you weight it so a few verbose prompts don't quietly become your whole reward model.</div>
         </div>
         <div class="panel-viz">
           <div class="bar-chart" id="kw-bars"></div>
-          <div class="formula-display" id="kw-formula"></div>
+          <div class="eq" id="kw-formula"></div>
+          <div class="eq-readout" id="kw-status"></div>
         </div>
       </div>
     </article>
@@ -566,6 +580,14 @@
     <article class="concept" id="proxy-gap">
       <h3>True reward vs. a biased proxy</h3>
       <p class="concept-desc">Suppose true quality rises with answer correctness, but the RM has a length bias — it adds spurious reward for verbosity. The policy maximizes the <i>proxy</i> (orange), so it drifts toward whatever the proxy over-rewards. Add bias and noise and watch where the policy's optimum lands relative to the true optimum.</p>
+      <div class="eq" data-tex="\hat{R}(x) = R^\star(x) + b\cdot x + \varepsilon, \qquad \pi^\star = \arg\max_x \hat{R}(x)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="R^\star(x)"></span><span class="def">the true reward as a function of output length <span class="m" data-tex="x"></span> — what we actually want maximized</span></div>
+        <div class="row"><span class="sym" data-tex="\hat{R}(x)"></span><span class="def">the proxy reward the RM emits: true reward plus a length bias plus noise</span></div>
+        <div class="row"><span class="sym" data-tex="b"></span><span class="def">length-bias strength — spurious reward per unit verbosity</span></div>
+        <div class="row"><span class="sym" data-tex="\varepsilon"></span><span class="def">noise from imperfect inter-rater agreement</span></div>
+        <div class="row"><span class="sym" data-tex="\pi^\star"></span><span class="def">where the policy lands — it maximizes the proxy <span class="m" data-tex="\hat{R}"></span>, not the truth <span class="m" data-tex="R^\star"></span></span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>RM length-bias strength = <span id="pg-bias-val">0.50</span></label>
@@ -578,7 +600,8 @@
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 220" id="pg-plot"></svg>
-          <div class="formula-display" id="pg-formula"></div>
+          <div class="eq" id="pg-formula"></div>
+          <div class="eq-readout" id="pg-status"></div>
         </div>
       </div>
     </article>
@@ -979,6 +1002,7 @@
     var mV = document.getElementById('mg-m-val');
     var svg = document.getElementById('mg-plot');
     var formulaEl = document.getElementById('mg-formula');
+    var statusEl = document.getElementById('mg-status');
 
     var dom = [-3, 6], maxY = 6, W = 340;
     function xToPx(d){ return (d - dom[0])/(dom[1]-dom[0])*(W-20) + 10; }
@@ -1016,8 +1040,10 @@
         '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
         '<text x="14" y="46" fill="var(--text-dim)" font-size="10">loss</text>' +
         '<text x="' + (W-70) + '" y="186" fill="var(--text-dim)" font-size="9">grey = m&hairsp;=&hairsp;0</text>';
-      formulaEl.innerHTML =
-        '&#8466; = &minus;log &sigma;(&Delta;r &minus; m) = &minus;log &sigma;(' + dr.toFixed(2) + ' &minus; ' + m.toFixed(2) + ') = <b>' + loss.toFixed(3) + '</b><br>' +
+      tex(formulaEl,
+        '\\mathcal{L} = -\\log\\sigma(\\Delta r - m) = -\\log\\sigma(' +
+        dr.toFixed(2) + ' - ' + m.toFixed(2) + ') = ' + loss.toFixed(3), true);
+      statusEl.innerHTML =
         '<span style="color:var(--text-dim)">vs plain BT (m=0): ' + baseLoss.toFixed(3) + '. The margin demands &Delta;r &gt; m before the loss eases &mdash; effective zero-loss point shifts to &Delta;r = m.</span>';
     }
     drS.addEventListener('input', render);
@@ -1031,6 +1057,7 @@
     var kV = document.getElementById('kw-k-val');
     var barsEl = document.getElementById('kw-bars');
     var formulaEl = document.getElementById('kw-formula');
+    var statusEl = document.getElementById('kw-status');
 
     function choose2(k){ return k*(k-1)/2; }
 
@@ -1053,10 +1080,13 @@
       }
       var pairs = choose2(k);
       var w = 1 / pairs;
-      formulaEl.innerHTML =
-        'pairs per prompt = C(K,2) = K(K&minus;1)/2 = <b>' + pairs + '</b><br>' +
-        'per-pair weight = 1 / C(K,2) = <b>' + w.toFixed(4) + '</b> &nbsp; (so each prompt contributes one balanced grouped update)<br>' +
-        '<span style="color:var(--text-dim)">&#8466; = &minus;(1/C(K,2)) &Sigma; log &sigma;(r<sub>c</sub> &minus; r<sub>r</sub>) over all ' + pairs + ' pairs.</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\binom{K}{2} &= \\frac{K(K-1)}{2} = ' + pairs + ' \\\\ ' +
+        '\\frac{1}{\\binom{K}{2}} &= ' + w.toFixed(4) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        '<span style="color:var(--text-dim)">Each prompt contributes one balanced grouped update averaged over all ' + pairs + ' pairs.</span>';
     }
     kS.addEventListener('input', render);
     render();
@@ -1071,6 +1101,7 @@
     var reseed = document.getElementById('pg-reseed');
     var svg = document.getElementById('pg-plot');
     var formulaEl = document.getElementById('pg-formula');
+    var statusEl = document.getElementById('pg-status');
     var hintEl = document.getElementById('pg-hint');
 
     var W = 360, H = 220, PAD = 34;
@@ -1128,11 +1159,15 @@
         ? 'No bias: the policy optimizing the proxy lands on the true optimum. Add length bias to pull it away.'
         : 'The policy chases the orange proxy optimum, drifting toward longer outputs the true reward does not value — reward hacking in miniature.';
 
-      formulaEl.innerHTML =
-        'true optimum at length = <b>' + bestTrueX.toFixed(2) + '</b> &nbsp;|&nbsp; proxy optimum at length = <b style="color:var(--orange)">' + bestProxyX.toFixed(2) + '</b><br>' +
-        'true reward the policy actually earns there = <b>' + trueAtProxyOpt.toFixed(3) + '</b> ' +
-        '(vs ' + bestTrueV.toFixed(3) + ' achievable) &nbsp; gap = <b style="color:' + (Math.abs(gap)>0.1?'var(--red)':'var(--accent-bright)') + '">' + gap.toFixed(2) + '</b><br>' +
-        '<span style="color:var(--text-dim)">proxy = true + bias&middot;length + noise. The optimizer maximizes the proxy, not the truth.</span>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'x^\\star_{\\text{true}} &= ' + bestTrueX.toFixed(2) + ' \\qquad x^\\star_{\\text{proxy}} = ' + bestProxyX.toFixed(2) + ' \\\\ ' +
+        'R^\\star(x^\\star_{\\text{proxy}}) &= ' + trueAtProxyOpt.toFixed(3) + '\\ (\\text{vs } ' + bestTrueV.toFixed(3) + ') \\\\ ' +
+        '\\text{gap} &= x^\\star_{\\text{proxy}} - x^\\star_{\\text{true}} = ' + gap.toFixed(2) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        'gap = <b style="color:' + (Math.abs(gap)>0.1?'var(--red)':'var(--accent-bright)') + '">' + gap.toFixed(2) + '</b>' +
+        '<br><span style="color:var(--text-dim)">Proxy = true + bias&middot;length + noise. The optimizer maximizes the proxy, not the truth.</span>';
     }
     reseed.addEventListener('click', function(){ reseedNoise(); render(); });
     biasS.addEventListener('input', render);

@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Over-Optimization & Reward Hacking — Interactive Lecture</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
 <style>
   :root{
     --bg:#0b0f0e;
@@ -203,6 +205,30 @@
   }
   .formula-display b{ color:#fff; }
 
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
   /* "in practice" styled callout (shared across course pages) */
   .in-practice{
     border-left:3px solid var(--orange);
@@ -315,24 +341,32 @@
   <!-- ============ SECTION A: THE OBJECTIVE SPINE ============ -->
   <section class="group" id="spine">
     <div class="group-header"><span class="group-index">01</span><h2>The Objective Spine</h2></div>
-    <p class="group-intro">Every RLHF run optimizes one thing: a learned <b>proxy</b> reward <code>r<sub>φ</sub>(x,y)</code> minus a <b>KL leash</b> back to the reference model. The whole over-optimization story lives in the tension between those two terms — push reward harder, and you drift further from <code>π<sub>ref</sub></code>, into regions where the proxy and the truth diverge.</p>
+    <p class="group-intro">Every RLHF run optimizes one thing: a learned <b>proxy</b> reward <span class="m" data-tex="r_\phi(x,y)"></span> minus a <b>KL leash</b> back to the reference model. The whole over-optimization story lives in the tension between those two terms — push reward harder, and you drift further from <span class="m" data-tex="\pi_{\text{ref}}"></span>, into regions where the proxy and the truth diverge.</p>
 
     <article class="concept" id="objective">
-      <h3>maximize <code>r<sub>φ</sub>(x,y)</code> &minus; β·D<sub>KL</sub>(π<sub>θ</sub>‖π<sub>ref</sub>)</h3>
-      <p class="concept-desc">This is the KL-regularized RLHF objective (Chapter 3). The reward model <code>r<sub>φ</sub></code> is a <em>proxy</em> — only correlated with true human preference. The KL penalty <code>β</code> is a leash: a larger <code>β</code> keeps the policy near its starting point; a smaller <code>β</code> hands the optimizer freedom to chase reward (and to over-optimize). Drag the two knobs and watch the objective trade proxy gain against the distance penalty.</p>
+      <h3><span class="m" data-tex="\max_\theta\ \mathbb{E}\!\left[r_\phi(x,y)\right] - \beta\, \mathrm{KL}\!\left(\pi_\theta \,\|\, \pi_{\text{ref}}\right)"></span></h3>
+      <p class="concept-desc">This is the KL-regularized RLHF objective (Chapter 3). The reward model <span class="m" data-tex="r_\phi"></span> is a <em>proxy</em> — only correlated with true human preference. The KL penalty <span class="m" data-tex="\beta"></span> is a leash: a larger <span class="m" data-tex="\beta"></span> keeps the policy near its starting point; a smaller <span class="m" data-tex="\beta"></span> hands the optimizer freedom to chase reward (and to over-optimize). Drag the two knobs and watch the objective trade proxy gain against the distance penalty.</p>
+      <div class="eq" data-tex="J(\theta) = \mathbb{E}_{x,\,y\sim\pi_\theta}\!\left[r_\phi(x,y)\right] - \beta\, \mathrm{KL}\!\left(\pi_\theta(\cdot\mid x) \,\|\, \pi_{\text{ref}}(\cdot\mid x)\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="J(\theta)"></span><span class="def">the objective the optimizer maximizes over policy parameters <span class="m" data-tex="\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}"></span><span class="def">expectation over prompts <span class="m" data-tex="x"></span> and completions <span class="m" data-tex="y"></span> sampled from the policy <span class="m" data-tex="\pi_\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="r_\phi(x,y)"></span><span class="def">the learned <em>proxy</em> reward (parameters <span class="m" data-tex="\phi"></span>) — only correlated with the true objective</span></div>
+        <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">KL penalty / leash strength — how hard the policy is pulled back toward the reference</span></div>
+        <div class="row"><span class="sym" data-tex="\mathrm{KL}(\pi_\theta\|\pi_{\text{ref}})"></span><span class="def">KL divergence: how far the trained policy <span class="m" data-tex="\pi_\theta"></span> has drifted from the starting model <span class="m" data-tex="\pi_{\text{ref}}"></span>, in nats</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
-          <label>Proxy reward pursued, r<sub>φ</sub> = <span id="sp-r-val">2.00</span></label>
+          <label>Proxy reward pursued, <span class="m" data-tex="r_\phi"></span> = <span id="sp-r-val">2.00</span></label>
           <input type="range" id="sp-r" min="0" max="5" step="0.05" value="2">
-          <label>Distance from reference, D<sub>KL</sub> = <span id="sp-kl-val">3.00</span> nats</label>
+          <label>Distance from reference, <span class="m" data-tex="\mathrm{KL}"></span> = <span id="sp-kl-val">3.00</span> nats</label>
           <input type="range" id="sp-kl" min="0" max="12" step="0.1" value="3">
-          <label>KL penalty β (leash strength) = <span id="sp-beta-val">0.20</span></label>
+          <label>KL penalty <span class="m" data-tex="\beta"></span> (leash strength) = <span id="sp-beta-val">0.20</span></label>
           <input type="range" id="sp-beta" min="0" max="1" step="0.01" value="0.2">
-          <p class="hint">The optimizer maximizes the green objective. A bigger r<sub>φ</sub> usually <em>costs</em> KL — the next panel makes that trade concrete with real scaling-law curves.</p>
+          <p class="hint">The optimizer maximizes the green objective. A bigger <span class="m" data-tex="r_\phi"></span> usually <em>costs</em> KL — the next panel makes that trade concrete with real scaling-law curves.</p>
         </div>
         <div class="panel-viz">
           <svg class="plot" viewBox="0 0 360 200" id="sp-plot"></svg>
-          <div class="formula-display" id="sp-formula"></div>
+          <div class="eq" id="sp-formula"></div>
           <div class="in-practice"><b>In practice</b> · <span id="sp-practice"></span></div>
         </div>
       </div>
@@ -342,22 +376,29 @@
   <!-- ============ SECTION B: THE FLAGSHIP ============ -->
   <section class="group" id="scaling">
     <div class="group-header"><span class="group-index">02</span><h2>Proxy vs Gold: the Over-Optimization Curve</h2></div>
-    <p class="group-intro">This is the heart of the chapter. Plot reward against the <b>optimization distance</b> <code>d = √(KL)</code> — how far the policy has drifted from the reference. The <span style="color:var(--accent-bright)">proxy</span> reward (what the optimizer sees) keeps climbing. The <span style="color:var(--orange)">gold</span> reward (true quality) rises, peaks, then <em>falls</em>. That growing gap <b>is</b> reward hacking. Gao et al. 2023 found the gold curve follows clean functional forms that differ between best-of-N sampling and RL.</p>
+    <p class="group-intro">This is the heart of the chapter. Plot reward against the <b>optimization distance</b> <span class="m" data-tex="d=\sqrt{\mathrm{KL}}"></span> — how far the policy has drifted from the reference. The <span style="color:var(--accent-bright)">proxy</span> reward (what the optimizer sees) keeps climbing. The <span style="color:var(--orange)">gold</span> reward (true quality) rises, peaks, then <em>falls</em>. That growing gap <b>is</b> reward hacking. Gao et al. 2023 found the gold curve follows clean functional forms that differ between best-of-N sampling and RL.</p>
 
     <article class="concept" id="gao">
-      <h3>The flagship: R<sub>gold</sub>(d) for Best-of-N vs RL</h3>
-      <p class="concept-desc">Drag the marker along <code>d = √(KL)</code> and watch the proxy keep climbing while the gold reward rises to a peak and then declines into the <span style="color:var(--red)">over-optimized region</span>. Toggle the regime: <b>Best-of-N</b> uses <code>R<sub>bon</sub>(d) = d·(α<sub>bon</sub> − β<sub>bon</sub>·d)</code>, a parabola in <code>d</code>; <b>RL</b> uses <code>R<sub>rl</sub>(d) = d·(α<sub>rl</sub> − β<sub>rl</sub>·log d)</code>, which decays more slowly. The dashed vertical line is the <b>gold-optimal stopping point</b> — the moment to stop optimizing.</p>
+      <h3>The flagship: <span class="m" data-tex="R_{\text{gold}}(d)"></span> for Best-of-N vs RL</h3>
+      <p class="concept-desc">Drag the marker along <span class="m" data-tex="d=\sqrt{\mathrm{KL}}"></span> and watch the proxy keep climbing while the gold reward rises to a peak and then declines into the <span style="color:var(--red)">over-optimized region</span>. Toggle the regime: <b>Best-of-N</b> uses a parabola in <span class="m" data-tex="d"></span>; <b>RL</b> uses a slower <span class="m" data-tex="-\log d"></span> decay. The dashed vertical line is the <b>gold-optimal stopping point</b> — the moment to stop optimizing.</p>
+      <div class="eq" data-tex="R_{\text{bon}}(d) = d\,(\alpha - \beta d) \qquad\qquad R_{\text{rl}}(d) = d\,(\alpha - \beta \log d)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="d=\sqrt{\mathrm{KL}}"></span><span class="def">optimization distance — square root of the KL drift from the reference policy</span></div>
+        <div class="row"><span class="sym" data-tex="\alpha"></span><span class="def">initial reward-per-distance — the slope at which gold reward rises from the start</span></div>
+        <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">over-optimization decay rate — how fast the gold reward turns over (here a fitted coefficient, distinct from the KL-penalty <span class="m" data-tex="\beta"></span> in §01)</span></div>
+        <div class="row"><span class="sym" data-tex="R_{\text{bon}},\,R_{\text{rl}}"></span><span class="def">gold-reward scaling-law forms for best-of-N sampling vs. RL (Gao et al. 2023)</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <div class="tabs" id="gao-tabs">
             <button data-mode="bon" class="active">Best-of-N</button>
             <button data-mode="rl">RL</button>
           </div>
-          <label>Optimization distance d = √(KL) = <span id="gao-d-val">2.0</span></label>
+          <label>Optimization distance <span class="m" data-tex="d=\sqrt{\mathrm{KL}}"></span> = <span id="gao-d-val">2.0</span></label>
           <input type="range" id="gao-d" min="0.05" max="10" step="0.05" value="2">
-          <label>α (initial reward-per-distance) = <span id="gao-alpha-val">1.00</span></label>
+          <label><span class="m" data-tex="\alpha"></span> (initial reward-per-distance) = <span id="gao-alpha-val">1.00</span></label>
           <input type="range" id="gao-alpha" min="0.3" max="2" step="0.01" value="1">
-          <label>β (over-optimization decay) = <span id="gao-beta-val">0.12</span></label>
+          <label><span class="m" data-tex="\beta"></span> (over-optimization decay) = <span id="gao-beta-val">0.12</span></label>
           <input type="range" id="gao-beta" min="0.02" max="0.4" step="0.005" value="0.12">
           <p class="hint" id="gao-hint"></p>
         </div>
@@ -368,7 +409,8 @@
             <span><i style="background:var(--red);height:0;border-top:2px dashed var(--red)"></i>gold-optimal stop</span>
           </div>
           <svg class="plot" viewBox="0 0 420 240" id="gao-plot"></svg>
-          <div class="formula-display" id="gao-formula"></div>
+          <div class="eq" id="gao-formula"></div>
+          <div class="eq-readout" id="gao-status"></div>
           <div class="in-practice"><b>In practice</b> · <span id="gao-practice"></span></div>
         </div>
       </div>
@@ -378,14 +420,14 @@
   <!-- ============ SECTION C: KL AS THE BRAKE ============ -->
   <section class="group" id="brake">
     <div class="group-header"><span class="group-index">03</span><h2>The KL Penalty as a Brake</h2></div>
-    <p class="group-intro">Over-optimization is fundamental — RLHF can never fully solve it — but it can be <em>controlled</em>. The chapter's key lever: with RL training, a higher KL penalty <code>β</code> reduces over-optimization at a given KL distance, but it takes more training steps to get there. And different methods spend KL at different rates: online RL (PPO) spends far <em>more</em> KL than inference-time best-of-N.</p>
+    <p class="group-intro">Over-optimization is fundamental — RLHF can never fully solve it — but it can be <em>controlled</em>. The chapter's key lever: with RL training, a higher KL penalty <span class="m" data-tex="\beta"></span> reduces over-optimization at a given KL distance, but it takes more training steps to get there. And different methods spend KL at different rates: online RL (PPO) spends far <em>more</em> KL than inference-time best-of-N.</p>
 
     <article class="concept" id="brake-panel">
-      <h3>Higher β: less drift per step, more steps needed</h3>
-      <p class="concept-desc">A toy training trajectory: each step the optimizer takes a reward gradient, but the KL penalty <code>β</code> pulls back proportionally to current drift, so the policy settles at a distance roughly <code>∝ 1/β</code>. Raise <code>β</code> and the run lands at a <em>smaller</em> KL distance (less over-optimization, higher gold reward at convergence) — but needs more steps to get there. Watch where the run lands on the gold curve from the flagship panel.</p>
+      <h3>Higher <span class="m" data-tex="\beta"></span>: less drift per step, more steps needed</h3>
+      <p class="concept-desc">A toy training trajectory: each step the optimizer takes a reward gradient <span class="m" data-tex="g"></span>, but the KL penalty <span class="m" data-tex="\beta"></span> pulls back proportionally to current drift, so the policy settles at a distance <span class="m" data-tex="d_{\text{eq}} \approx g/\beta"></span>. Raise <span class="m" data-tex="\beta"></span> and the run lands at a <em>smaller</em> KL distance (less over-optimization, higher gold reward at convergence) — but needs more steps to get there. Watch where the run lands on the gold curve from the flagship panel.</p>
       <div class="panel">
         <div class="panel-controls">
-          <label>KL penalty β = <span id="br-beta-val">0.20</span></label>
+          <label>KL penalty <span class="m" data-tex="\beta"></span> = <span id="br-beta-val">0.20</span></label>
           <input type="range" id="br-beta" min="0.03" max="1" step="0.01" value="0.2">
           <button id="br-step">Train 5 steps ▶</button>
           <button id="br-run">Run to convergence ⏩</button>
@@ -398,7 +440,8 @@
             <span><i style="background:var(--accent-bright);border-radius:50%;width:8px;height:8px"></i>current policy</span>
           </div>
           <svg class="plot" viewBox="0 0 420 220" id="br-plot"></svg>
-          <div class="formula-display" id="br-formula"></div>
+          <div class="eq" id="br-formula"></div>
+          <div class="eq-readout" id="br-status"></div>
           <div class="in-practice"><b>In practice</b> · <span id="br-practice"></span></div>
         </div>
       </div>
@@ -413,6 +456,12 @@
     <article class="concept" id="bai">
       <h3>The divergence you watch for</h3>
       <p class="concept-desc">Drag the <b>training progress</b> slider. Early on, both the train RM and the held-out RM rise together — real improvement. Past the divergence point the train RM keeps climbing while the held-out RM <em>stalls and then drops</em>. The gap between the two curves is over-optimization made measurable. The shaded region marks where you're past the held-out peak — and should have stopped.</p>
+      <div class="eq" data-tex="\text{divergence gap}(t) = R_{\text{train}}(t) - R_{\text{held}}(t)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="t"></span><span class="def">training progress, in thousands of preference samples consumed</span></div>
+        <div class="row"><span class="sym" data-tex="R_{\text{train}}(t)"></span><span class="def">score on the reward model the optimizer trains against — keeps climbing</span></div>
+        <div class="row"><span class="sym" data-tex="R_{\text{held}}(t)"></span><span class="def">score on a held-out / gold RM trained on the other data half — the proxy for true quality</span></div>
+      </div>
       <div class="panel">
         <div class="panel-controls">
           <label>Training progress = <span id="bai-t-val">90</span>K samples</label>
@@ -425,7 +474,8 @@
             <span><i style="background:var(--orange)"></i>held-out / gold RM score</span>
           </div>
           <svg class="plot" viewBox="0 0 420 230" id="bai-plot"></svg>
-          <div class="formula-display" id="bai-formula"></div>
+          <div class="eq" id="bai-formula"></div>
+          <div class="eq-readout" id="bai-status"></div>
           <div class="in-practice"><b>In practice</b> · <span id="bai-practice"></span></div>
         </div>
       </div>
@@ -518,6 +568,20 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
   function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, function(c){
       return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
@@ -569,9 +633,9 @@
         bar(x0+bw+gap, -penalty, 'var(--red)', '−β·KL', '−'+penalty.toFixed(2)) +
         bar(x0+2*(bw+gap), obj, obj>=0?'var(--accent)':'var(--red)', 'objective', (obj>=0?'+':'')+obj.toFixed(2));
 
-      formulaEl.innerHTML =
-        'J = r<sub>φ</sub> − β·D<sub>KL</sub> = ' + r.toFixed(2) + ' − ' + beta.toFixed(2) + '×' + kl.toFixed(1) +
-        ' = ' + r.toFixed(2) + ' − ' + penalty.toFixed(2) + ' = <b>' + obj.toFixed(2) + '</b>';
+      tex(formulaEl,
+        'J = r_\\phi - \\beta\\,\\mathrm{KL} = ' + r.toFixed(2) + ' - ' + beta.toFixed(2) + '\\times' + kl.toFixed(1) +
+        ' = ' + r.toFixed(2) + ' - ' + penalty.toFixed(2) + ' = ' + obj.toFixed(2), true);
 
       var p;
       if(beta < 0.06){
@@ -600,6 +664,7 @@
     var bV = document.getElementById('gao-beta-val');
     var hintEl = document.getElementById('gao-hint');
     var formulaEl = document.getElementById('gao-formula');
+    var statusEl = document.getElementById('gao-status');
     var practiceEl = document.getElementById('gao-practice');
     var svg = document.getElementById('gao-plot');
     var tabs = document.querySelectorAll('#gao-tabs button');
@@ -678,11 +743,13 @@
 
       var gap = pNow - gNow;
       var over = d > ds;
-      formulaEl.innerHTML =
+      tex(formulaEl,
         (mode === 'bon'
-          ? 'R<sub>bon</sub>(d) = d·(α − βd) = ' + d.toFixed(2) + '·(' + a.toFixed(2) + ' − ' + b.toFixed(3) + '×' + d.toFixed(2) + ')'
-          : 'R<sub>rl</sub>(d) = d·(α − β log d) = ' + d.toFixed(2) + '·(' + a.toFixed(2) + ' − ' + b.toFixed(3) + '×' + Math.log(d).toFixed(2) + ')') +
-        '<br>gold = <b>' + gNow.toFixed(3) + '</b> &nbsp;|&nbsp; proxy = ' + pNow.toFixed(3) +
+          ? 'R_{\\text{bon}}(d) = d\\,(\\alpha - \\beta d) = ' + d.toFixed(2) + '\\,(' + a.toFixed(2) + ' - ' + b.toFixed(3) + '\\times' + d.toFixed(2) + ') = ' + gNow.toFixed(3)
+          : 'R_{\\text{rl}}(d) = d\\,(\\alpha - \\beta \\log d) = ' + d.toFixed(2) + '\\,(' + a.toFixed(2) + ' - ' + b.toFixed(3) + '\\times' + Math.log(d).toFixed(2) + ') = ' + gNow.toFixed(3)),
+        true);
+      statusEl.innerHTML =
+        'gold = <b>' + gNow.toFixed(3) + '</b> &nbsp;|&nbsp; proxy = ' + pNow.toFixed(3) +
         ' &nbsp;|&nbsp; hacking gap = <b style="color:var(--red)">' + gap.toFixed(3) + '</b>' +
         '<br>d* (gold-optimal) = ' + dStar(a,b).toFixed(2) + (over ? ' &nbsp;<span style="color:var(--red)">[OVER-OPTIMIZED: d &gt; d*]</span>' : ' &nbsp;<span style="color:var(--accent)">[still on the way up]</span>');
 
@@ -718,6 +785,7 @@
     var resetBtn = document.getElementById('br-reset');
     var hintEl = document.getElementById('br-hint');
     var formulaEl = document.getElementById('br-formula');
+    var statusEl = document.getElementById('br-status');
     var practiceEl = document.getElementById('br-practice');
     var svg = document.getElementById('br-plot');
 
@@ -776,9 +844,10 @@
         '<text x="'+(PAD+2)+'" y="'+(PAD-6>8?PAD-6:10)+'" fill="var(--text-dim)" font-size="10">gold reward</text>' +
         '<text x="'+(W-PAD-78)+'" y="'+(H-PAD+18)+'" fill="var(--text-dim)" font-size="10">KL distance →</text>';
 
-      formulaEl.innerHTML =
-        'equilibrium distance d<sub>eq</sub> ≈ g/β = ' + g.toFixed(2) + '/' + beta.toFixed(2) + ' = <b>' + dEq.toFixed(2) + '</b>' +
-        '<br>current d = ' + d.toFixed(2) + ' nats &nbsp;|&nbsp; steps = ' + steps + ' &nbsp;|&nbsp; gold reward = <b>' + gold(d).toFixed(3) + '</b>';
+      tex(formulaEl,
+        'd_{\\text{eq}} \\approx g/\\beta = ' + g.toFixed(2) + '/' + beta.toFixed(2) + ' = ' + dEq.toFixed(2), true);
+      statusEl.innerHTML =
+        'current d = ' + d.toFixed(2) + ' nats &nbsp;|&nbsp; steps = ' + steps + ' &nbsp;|&nbsp; gold reward = <b>' + gold(d).toFixed(3) + '</b>';
 
       hintEl.innerHTML = 'Press <b>Train</b> to advance. Higher β → the run converges at a <em>smaller</em> KL distance (closer to the gold peak), but each step moves less, so it needs more steps. ' +
         (dEq <= peakD + 0.6 ? '<span style="color:var(--accent)">This β keeps you near the gold peak.</span>' : '<span style="color:var(--red)">This β lets the run drift past the gold peak — over-optimized.</span>');
@@ -799,6 +868,7 @@
     var tV = document.getElementById('bai-t-val');
     var hintEl = document.getElementById('bai-hint');
     var formulaEl = document.getElementById('bai-formula');
+    var statusEl = document.getElementById('bai-status');
     var practiceEl = document.getElementById('bai-practice');
     var svg = document.getElementById('bai-plot');
 
@@ -1033,6 +1103,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
     initSpine();
     initGao();
     initBrake();
