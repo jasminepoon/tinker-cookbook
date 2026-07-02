@@ -347,6 +347,7 @@
 </header>
 
 <nav class="toc">
+  <a href="#foundations">Foundations</a>
   <a href="#bt">Bradley–Terry</a>
   <a href="#judge">LLM-as-a-Judge</a>
   <a href="#orm-prm">ORM vs PRM</a>
@@ -355,6 +356,70 @@
 </nav>
 
 <main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">A reward model is a machine that reads a prompt-and-answer and returns <b>one number</b> — how good it is. Everything else on this page is built from three plain ideas: a <b>scalar score</b>, the <b>sigmoid</b> that turns a score gap into "probability the better one wins," and a <b>−log loss</b> that trains it. Here they are from the ground up.</p>
+
+    <article class="concept">
+      <h3>A reward is a single score</h3>
+      <p class="concept-desc">The model outputs one real number <span class="m" data-tex="r(x,y)"></span> per prompt <span class="m" data-tex="x"></span> and answer <span class="m" data-tex="y"></span>. Higher means better. The absolute value is meaningless on its own — what matters is that a good answer scores <i>higher than</i> a bad one for the same prompt.</p>
+      <div class="eq" data-tex="r(x,y) \in \mathbb{R}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 120" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <defs><marker id="arr-rm" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--text-dim)"/></marker></defs>
+          <rect x="14" y="42" width="120" height="36" rx="6" fill="var(--panel)" stroke="var(--border)"/>
+          <text x="74" y="58" fill="var(--text-dim)" font-size="9" text-anchor="middle">prompt + answer</text>
+          <text x="74" y="71" fill="var(--text-dim)" font-size="8" text-anchor="middle" font-style="italic">"…the capital is Paris"</text>
+          <line x1="134" y1="60" x2="168" y2="60" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-rm)"/>
+          <rect x="170" y="42" width="70" height="36" rx="6" fill="var(--panel)" stroke="var(--accent)"/>
+          <text x="205" y="64" fill="var(--accent-bright)" font-size="9" text-anchor="middle">reward model</text>
+          <line x1="240" y1="60" x2="274" y2="60" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-rm)"/>
+          <text x="300" y="65" fill="var(--accent-bright)" font-size="14" font-family="monospace" text-anchor="middle">r = 4.2</text>
+          <text x="14" y="106" fill="var(--text-dim)" font-size="9">one number in, one number out — that's the entire interface of a reward model</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>Sigmoid: a score gap → probability the winner wins</h3>
+      <p class="concept-desc">To train from human "A is better than B" labels, we turn the score gap into a probability with the <b>sigmoid</b>. Equal scores → 50/50; a big lead for the chosen answer → near-certain. Only the difference <span class="m" data-tex="r_{\text{chosen}} - r_{\text{rejected}}"></span> enters.</p>
+      <div class="eq" data-tex="P(\text{chosen} \succ \text{rejected}) = \sigma(r_c - r_r) = \frac{1}{1+e^{-(r_c-r_r)}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="20" x2="40" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="170" x2="312" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="95" x2="312" y2="95" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="176" y1="20" x2="176" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <path d="M44,168 L88,165 L132,150 L154,128 L176,95 L198,60 L220,38 L264,23 L300,20" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="182" y="90" fill="var(--orange)" font-size="9">gap 0 → 50/50</text>
+          <text x="46" y="32" fill="var(--text-dim)" font-size="9">P = 1</text>
+          <text x="44" y="188" fill="var(--text-dim)" font-size="9">x-axis: score gap r_chosen − r_rejected</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>The −log loss: reward being confidently wrong</h3>
+      <p class="concept-desc">Training maximizes the probability above, which means minimizing its negative log. If the model already ranks the chosen answer far above the rejected one, the loss is near zero; if it gets the pair backwards, <span class="m" data-tex="-\log"></span> blows up — a steep penalty that drags the scores back into the right order.</p>
+      <div class="eq" data-tex="\mathcal{L} = -\log\sigma(r_c - r_r)"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="170" x2="312" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="176" y1="20" x2="176" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <path d="M48,26 L92,40 L132,60 L154,80 L176,102 L198,122 L232,143 L272,158 L300,164" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="60" y="52" fill="var(--orange)" font-size="10">wrong order → big loss</text>
+          <text x="200" y="150" fill="var(--accent-bright)" font-size="10">right order → ~0</text>
+          <text x="176" y="188" fill="var(--text-dim)" font-size="9" text-anchor="middle">score gap: negative (wrong) ← 0 → positive (correct)</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_c - r_r"></span><span class="def">chosen minus rejected score; positive means the model has the pair in the right order.</span></div>
+        <div class="row"><span class="sym" data-tex="-\log\sigma"></span><span class="def">the training loss — gentle when correct, punishing when the ranking is flipped.</span></div>
+      </div>
+    </article>
+  </section>
 
   <!-- ============ SECTION 1: BRADLEY-TERRY ============ -->
   <section class="group" id="bt">

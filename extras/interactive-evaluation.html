@@ -314,6 +314,7 @@
 </header>
 
 <nav class="toc">
+  <a href="#foundations">Foundations</a>
   <a href="#format">Format Sensitivity</a>
   <a href="#ll">Log-Likelihood Scoring</a>
   <a href="#cot">CoT-Era Prompts</a>
@@ -324,6 +325,77 @@
 </nav>
 
 <main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">Evaluation is about measuring a model fairly, and the traps are mostly arithmetic. Three ideas cover this page: <b>accuracy is just a percentage</b>, models are often scored by <b>log-likelihood</b> (how much probability they gave the right answer), and long answers need <b>length normalization</b> so they aren't unfairly penalized. None of it is harder than adding fractions.</p>
+
+    <article class="concept">
+      <h3>Accuracy is a fraction, and small samples wobble</h3>
+      <p class="concept-desc"><b>Accuracy</b> = number correct ÷ number of questions, written as a percent. The catch: on a small test set that fraction is noisy. 7/10 and 70/100 both read "70%," but the first could easily have been 5/10 or 9/10 by luck — a reason to distrust tiny benchmarks.</p>
+      <div class="eq" data-tex="\text{accuracy} = \frac{\#\,\text{correct}}{\#\,\text{total}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 90" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <g font-family="monospace" font-size="12" text-anchor="middle">
+            <rect x="14" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="26" y="47" fill="#0b0f0e">✓</text>
+            <rect x="42" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="54" y="47" fill="#0b0f0e">✓</text>
+            <rect x="70" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="82" y="47" fill="#0b0f0e">✓</text>
+            <rect x="98" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="110" y="47" fill="#0b0f0e">✓</text>
+            <rect x="126" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="138" y="47" fill="#0b0f0e">✓</text>
+            <rect x="154" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="166" y="47" fill="#0b0f0e">✓</text>
+            <rect x="182" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="194" y="47" fill="#0b0f0e">✓</text>
+            <rect x="210" y="30" width="24" height="24" rx="4" fill="none" stroke="var(--border)"/><text x="222" y="47" fill="var(--text-dim)">✗</text>
+            <rect x="238" y="30" width="24" height="24" rx="4" fill="none" stroke="var(--border)"/><text x="250" y="47" fill="var(--text-dim)">✗</text>
+            <rect x="266" y="30" width="24" height="24" rx="4" fill="none" stroke="var(--border)"/><text x="278" y="47" fill="var(--text-dim)">✗</text>
+            <text x="308" y="47" fill="var(--accent-bright)">70%</text>
+          </g>
+          <text x="14" y="78" fill="var(--text-dim)" font-size="9">7 of 10 correct — but flip one box and it's 60% or 80%; big test sets steady the number</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>Log-likelihood scoring: grading without generating</h3>
+      <p class="concept-desc">For multiple choice you often don't let the model write freely — you ask, for each option, "what probability would you assign to this exact text?" and pick the highest. Because sentence probabilities are tiny products, we compare their <b>logs</b> (bigger = less negative = the model likes it more).</p>
+      <div class="eq" data-tex="\text{pick } \arg\max_{\text{option}} \; \log P_\theta(\text{option} \mid \text{question})"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 150" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="120" y1="20" x2="120" y2="130" stroke="var(--border)" stroke-width="1"/>
+          <text x="115" y="16" fill="var(--text-dim)" font-size="9" text-anchor="end">0</text>
+          <g font-family="monospace" font-size="10">
+            <rect x="120" y="28" width="150" height="20" fill="var(--accent)" rx="3"/><text x="10" y="42" fill="var(--text-dim)">(A) Paris</text><text x="278" y="42" fill="var(--accent-bright)">−0.8</text>
+            <rect x="120" y="58" width="70" height="20" fill="var(--accent)" opacity="0.6" rx="3"/><text x="10" y="72" fill="var(--text-dim)">(B) Lyon</text><text x="198" y="72" fill="var(--text-dim)">−3.1</text>
+            <rect x="120" y="88" width="40" height="20" fill="var(--accent)" opacity="0.6" rx="3"/><text x="10" y="102" fill="var(--text-dim)">(C) Rome</text><text x="168" y="102" fill="var(--text-dim)">−4.4</text>
+          </g>
+          <text x="120" y="142" fill="var(--text-dim)" font-size="9">bars grow leftward (more negative = worse); the shortest/least-negative one, A, wins</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\arg\max"></span><span class="def">"the option that maximizes this" — return the choice, not the number.</span></div>
+        <div class="row"><span class="sym" data-tex="\log P"></span><span class="def">always ≤ 0; the option closest to 0 got the most probability.</span></div>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>Length normalization: don't punish long answers</h3>
+      <p class="concept-desc">Every extra word multiplies in another probability &lt; 1, so longer sequences <i>always</i> score lower total log-prob — even when they're better. Dividing by the number of tokens gives a <b>per-token average</b>, a fair comparison across answers of different lengths.</p>
+      <div class="eq" data-tex="\text{score} = \frac{\log P_\theta(\text{answer})}{\#\,\text{tokens}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 130" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <text x="88" y="16" fill="var(--text-dim)" font-size="9" text-anchor="middle">raw total log-prob</text>
+          <line x1="20" y1="20" x2="20" y2="100" stroke="var(--border)" stroke-width="1"/>
+          <rect x="20" y="30" width="60" height="16" fill="var(--orange)" rx="2"/><text x="150" y="42" fill="var(--text-dim)" font-size="9" text-anchor="end">short</text>
+          <rect x="20" y="60" width="130" height="16" fill="var(--orange)" rx="2"/><text x="158" y="72" fill="var(--text-dim)" font-size="9" text-anchor="end">long (looks worse)</text>
+          <text x="250" y="16" fill="var(--text-dim)" font-size="9" text-anchor="middle">÷ length → per token</text>
+          <line x1="185" y1="20" x2="185" y2="100" stroke="var(--border)" stroke-width="1"/>
+          <rect x="185" y="30" width="86" height="16" fill="var(--accent)" rx="2"/><text x="315" y="42" fill="var(--text-dim)" font-size="9" text-anchor="end">short</text>
+          <rect x="185" y="60" width="92" height="16" fill="var(--accent)" rx="2"/><text x="315" y="72" fill="var(--text-dim)" font-size="9" text-anchor="end">long (now fair)</text>
+          <text x="20" y="120" fill="var(--text-dim)" font-size="9">normalizing removes the "longer = worse" artifact so quality, not length, decides</text>
+        </svg>
+      </div>
+    </article>
+  </section>
 
   <!-- ============ SECTION A: PROMPTING & SCORING ============ -->
   <section class="group" id="prompting">

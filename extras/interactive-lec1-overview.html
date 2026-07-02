@@ -373,6 +373,7 @@
 </header>
 
 <nav class="toc">
+  <a href="#foundations">Foundations</a>
   <a href="#lms">Language Models</a>
   <a href="#stages">Training Stages</a>
   <a href="#classical">Classical RL</a>
@@ -382,6 +383,62 @@
 </nav>
 
 <main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">This page tells the story of how a plain text predictor becomes a helpful chatbot. Before that story, here are the two everyday ideas it leans on: a language model is just a <b>probability distribution over the next word</b>, and reinforcement learning is just an <b>agent collecting reward by acting</b>. Nothing more exotic than "what's likely?" and "did that go well?"</p>
+
+    <article class="concept">
+      <h3>A language model is a next-word probability distribution</h3>
+      <p class="concept-desc">Given some text so far, the model doesn't output one word — it outputs a <b>probability</b> for <i>every</i> word it knows, all adding up to 100%. "Generating text" is just repeatedly sampling one word from that distribution and feeding it back in.</p>
+      <div class="eq" data-tex="P_\theta(\text{next word} \mid \text{context}), \qquad \sum_{\text{words}} P = 1"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 180" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="20" y1="150" x2="320" y2="150" stroke="var(--border)" stroke-width="1"/>
+          <rect x="26" y="53" width="40" height="97" fill="var(--accent)" rx="3"/>
+          <rect x="88" y="92" width="40" height="58" fill="var(--accent)" rx="3"/>
+          <rect x="150" y="115" width="40" height="35" fill="var(--accent)" rx="3"/>
+          <rect x="212" y="122" width="40" height="28" fill="var(--accent)" rx="3"/>
+          <rect x="274" y="136" width="40" height="14" fill="var(--accent)" rx="3"/>
+          <g font-family="monospace" font-size="9" fill="var(--text-dim)" text-anchor="middle">
+            <text x="46" y="164">"mat"</text><text x="108" y="164">"floor"</text><text x="170" y="164">"sofa"</text><text x="232" y="164">"roof"</text><text x="294" y="164">"moon"</text>
+            <text x="46" y="49">42%</text><text x="108" y="88">25%</text><text x="170" y="111">15%</text><text x="232" y="118">12%</text><text x="294" y="132">6%</text>
+          </g>
+          <text x="20" y="176" fill="var(--text-dim)" font-size="9">"The cat sat on the ___" — the model's guess is a distribution over every possible next word</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="P_\theta"></span><span class="def">the model (with parameters <span class="m" data-tex="\theta"></span>) turning context into probabilities; bigger bar = more likely word.</span></div>
+        <div class="row"><span class="sym" data-tex="\textstyle\sum P = 1"></span><span class="def">the bars always add to 100% — it's a real probability distribution, not arbitrary scores.</span></div>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>The vocabulary of reinforcement learning</h3>
+      <p class="concept-desc">RLHF borrows four words from classical RL. An <b>agent</b> takes <b>actions</b> in an <b>environment</b> and gets a <b>reward</b> telling it how well it did; it adjusts to earn more reward next time. For a chatbot, the agent is the model, an action is producing the next token, and the reward is "was this answer good?"</p>
+      <div style="margin:6px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 170" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <defs><marker id="arr-l1" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--text-dim)"/></marker></defs>
+          <rect x="22" y="58" width="116" height="54" rx="8" fill="var(--panel)" stroke="var(--accent)"/>
+          <text x="80" y="82" fill="var(--accent-bright)" font-size="12" text-anchor="middle" font-family="monospace">Agent</text>
+          <text x="80" y="99" fill="var(--text-dim)" font-size="9" text-anchor="middle">the model / policy</text>
+          <rect x="202" y="58" width="116" height="54" rx="8" fill="var(--panel)" stroke="var(--orange)"/>
+          <text x="260" y="82" fill="var(--orange)" font-size="12" text-anchor="middle" font-family="monospace">Environment</text>
+          <text x="260" y="99" fill="var(--text-dim)" font-size="9" text-anchor="middle">task / user / judge</text>
+          <line x1="138" y1="74" x2="200" y2="74" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-l1)"/>
+          <text x="170" y="66" fill="var(--text-dim)" font-size="9" text-anchor="middle">action</text>
+          <line x1="202" y1="98" x2="140" y2="98" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-l1)"/>
+          <text x="170" y="112" fill="var(--text-dim)" font-size="9" text-anchor="middle">reward + state</text>
+          <text x="22" y="140" fill="var(--text-dim)" font-size="9">the agent keeps acting and the reward steers it — that loop is all RL is</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\pi_\theta"></span><span class="def">the <b>policy</b> — the agent's rule for choosing actions. Here it's literally the next-token distribution above.</span></div>
+        <div class="row"><span class="sym" data-tex="R"></span><span class="def">the <b>reward</b> — one number scoring the outcome. RL's whole goal is to maximize it <i>on average</i>: <span class="m" data-tex="\mathbb{E}[R]"></span>, an expected (weighted-average) value.</span></div>
+      </div>
+    </article>
+  </section>
 
   <!-- ============ SECTION 1: LANGUAGE MODELS & THE TIMELINE ============ -->
   <section class="group" id="lms">

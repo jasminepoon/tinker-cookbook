@@ -340,6 +340,7 @@
 </header>
 
 <nav class="toc">
+  <a href="#foundations">Foundations</a>
   <a href="#distill">Distillation</a>
   <a href="#word-seq">Word vs Sequence KD</a>
   <a href="#fwd-rev">Forward vs Reverse KL</a>
@@ -352,6 +353,76 @@
 </nav>
 
 <main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">This page is about one model teaching another. The core math is comparing two <b>probability distributions</b> — the teacher's answer and the student's — and measuring the gap with <b>KL divergence</b>. Two intuitions carry the whole page: "soft" targets say more than a single right answer, and matching a distribution can be done from the teacher's side (forward KL) or the student's side (reverse KL).</p>
+
+    <article class="concept">
+      <h3>"Soft" targets carry more information than one right answer</h3>
+      <p class="concept-desc">A normal training label is one-hot: "the next word is <i>cat</i>, everything else is wrong." A teacher model instead hands over a full <b>distribution</b> — cat 60%, kitten 25%, dog 10%… That extra shape tells the student <i>how</i> the words relate, which is why distillation transfers so much more than plain imitation.</p>
+      <div style="margin:6px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 160" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <text x="88" y="18" fill="var(--text-dim)" font-size="9" text-anchor="middle">one-hot label</text>
+          <line x1="20" y1="120" x2="158" y2="120" stroke="var(--border)" stroke-width="1"/>
+          <rect x="34" y="40" width="26" height="80" fill="var(--text-dim)" rx="2"/>
+          <rect x="70" y="120" width="26" height="0.5" fill="var(--text-dim)"/>
+          <rect x="106" y="120" width="26" height="0.5" fill="var(--text-dim)"/>
+          <text x="47" y="134" fill="var(--text-dim)" font-size="8" text-anchor="middle">cat</text>
+          <text x="252" y="18" fill="var(--text-dim)" font-size="9" text-anchor="middle">teacher's soft target</text>
+          <line x1="184" y1="120" x2="322" y2="120" stroke="var(--border)" stroke-width="1"/>
+          <rect x="198" y="52" width="26" height="68" fill="var(--accent)" rx="2"/>
+          <rect x="234" y="86" width="26" height="34" fill="var(--accent)" rx="2"/>
+          <rect x="270" y="104" width="26" height="16" fill="var(--accent)" rx="2"/>
+          <g font-family="monospace" font-size="8" fill="var(--text-dim)" text-anchor="middle">
+            <text x="211" y="134">cat</text><text x="247" y="134">kitten</text><text x="283" y="134">dog</text>
+          </g>
+          <text x="20" y="152" fill="var(--text-dim)" font-size="9">the right graph's shape — the near-misses — is the extra signal the student learns from</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>KL divergence: the gap between two distributions</h3>
+      <p class="concept-desc"><b>KL divergence</b> is one number for "how different is distribution <span class="m" data-tex="q"></span> from distribution <span class="m" data-tex="p"></span>?" It's <span class="m" data-tex="0"></span> when they match exactly and grows as they diverge. Distillation trains the student by driving this gap toward zero.</p>
+      <div class="eq" data-tex="D_{\mathrm{KL}}(p\,\|\,q) = \sum_i p_i \log\frac{p_i}{q_i} \;\ge\; 0"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 170" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <text x="88" y="16" fill="var(--text-dim)" font-size="9" text-anchor="middle">far apart → KL large</text>
+          <line x1="20" y1="120" x2="158" y2="120" stroke="var(--border)" stroke-width="1"/>
+          <rect x="34" y="55" width="20" height="65" fill="var(--accent)" rx="2"/><rect x="58" y="95" width="20" height="25" fill="var(--accent)" rx="2"/><rect x="82" y="80" width="20" height="40" fill="var(--accent)" rx="2"/>
+          <rect x="40" y="98" width="20" height="22" fill="var(--orange)" opacity="0.7" rx="2"/><rect x="64" y="70" width="20" height="50" fill="var(--orange)" opacity="0.7" rx="2"/><rect x="88" y="60" width="20" height="60" fill="var(--orange)" opacity="0.7" rx="2"/>
+          <text x="252" y="16" fill="var(--text-dim)" font-size="9" text-anchor="middle">matched → KL = 0</text>
+          <line x1="184" y1="120" x2="322" y2="120" stroke="var(--border)" stroke-width="1"/>
+          <rect x="198" y="55" width="20" height="65" fill="var(--accent)" rx="2"/><rect x="222" y="95" width="20" height="25" fill="var(--accent)" rx="2"/><rect x="246" y="80" width="20" height="40" fill="var(--accent)" rx="2"/>
+          <rect x="204" y="58" width="20" height="62" fill="var(--orange)" opacity="0.7" rx="2"/><rect x="228" y="98" width="20" height="22" fill="var(--orange)" opacity="0.7" rx="2"/><rect x="252" y="83" width="20" height="37" fill="var(--orange)" opacity="0.7" rx="2"/>
+          <text x="20" y="150" fill="var(--text-dim)" font-size="9">green = student, orange = teacher. Training shrinks the mismatch until the bars line up.</text>
+          <text x="20" y="163" fill="var(--text-dim)" font-size="9">"≥ 0" just means the gap can never be negative.</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="p,\ q"></span><span class="def">two distributions being compared (e.g. teacher and student next-word probabilities).</span></div>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>Forward vs reverse: which side you match from</h3>
+      <p class="concept-desc">KL is <b>asymmetric</b> — <span class="m" data-tex="D_{\mathrm{KL}}(p\|q)\ne D_{\mathrm{KL}}(q\|p)"></span> — and that asymmetry has a personality. <b>Forward</b> KL (average over the teacher's data) makes the student "mass-covering": it tries to put some probability everywhere the teacher does. <b>Reverse</b> KL (average over the student's own samples) makes it "mode-seeking": it picks one good mode and commits. On-policy distillation later on is exactly the reverse-KL choice.</p>
+      <div class="eq" data-tex="\underbrace{D_{\mathrm{KL}}(p_{\text{teacher}}\,\|\,q_{\text{student}})}_{\text{forward: cover everything}} \qquad\quad \underbrace{D_{\mathrm{KL}}(q_{\text{student}}\,\|\,p_{\text{teacher}})}_{\text{reverse: commit to one mode}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 160" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <path d="M20,120 C50,120 55,60 75,60 C95,60 100,120 130,120 C150,120 155,70 170,70 C185,70 190,120 158,120" fill="none" stroke="var(--text-dim)" stroke-width="1.5"/>
+          <path d="M20,120 C55,120 58,52 88,52 C118,52 121,120 158,120" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="88" y="145" fill="var(--text-dim)" font-size="9" text-anchor="middle">forward: student spreads to cover both bumps</text>
+          <path d="M200,120 C230,120 235,60 255,60 C275,60 280,120 310,120 C325,120 328,72 342,72" fill="none" stroke="var(--text-dim)" stroke-width="1.5"/>
+          <path d="M215,120 C238,120 240,58 258,58 C276,58 278,120 300,120" fill="none" stroke="var(--orange)" stroke-width="2"/>
+          <text x="270" y="145" fill="var(--text-dim)" font-size="9" text-anchor="middle">reverse: student picks one bump, ignores the rest</text>
+          <text x="60" y="30" fill="var(--text-dim)" font-size="8">grey = teacher</text>
+        </svg>
+      </div>
+    </article>
+  </section>
 
   <!-- ============ SECTION 1: DISTILLATION ============ -->
   <section class="group" id="distill">

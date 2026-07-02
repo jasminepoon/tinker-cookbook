@@ -361,6 +361,7 @@
 </header>
 
 <nav class="toc">
+  <a href="#foundations">Foundations</a>
   <a href="#ift">Instruction Tuning</a>
   <a href="#chat">Chat Templates</a>
   <a href="#mask">Loss Masking</a>
@@ -372,6 +373,79 @@
 </nav>
 
 <main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">This page is about teaching a model to follow instructions and to prefer better answers. Three plain-math ideas make all of it work: a <b>loss</b> is one number measuring "how wrong," the <b>sigmoid</b> turns a score gap into a probability, and a <b>loss mask</b> picks which words actually get graded. Here they are from scratch.</p>
+
+    <article class="concept">
+      <h3>What "loss" means, and why we take a log</h3>
+      <p class="concept-desc">Training needs a single number to push downward. For each next word, we take the probability the model gave the <i>correct</i> word and score it with <span class="m" data-tex="-\log p"></span>. Confident and right costs almost nothing; confident and wrong costs a fortune. That asymmetry is the whole point.</p>
+      <div class="eq" data-tex="\mathcal{L} = -\log p_{\text{correct}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="170" x2="312" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="20" x2="40" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <path d="M43,20 L53,72 L66,95 L92,118 L144,140 L196,153 L248,163 L300,170" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="60" y="40" fill="var(--orange)" font-size="10">confident &amp; wrong → huge loss</text>
+          <text x="170" y="166" fill="var(--accent-bright)" font-size="10">correct → loss ≈ 0</text>
+          <text x="150" y="190" fill="var(--text-dim)" font-size="9" text-anchor="middle">x-axis: probability on the correct word (0 → 1)</text>
+          <text x="18" y="100" fill="var(--text-dim)" font-size="9" transform="rotate(-90 18 100)" text-anchor="middle">loss</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="p_{\text{correct}}"></span><span class="def">the probability the model placed on the word that actually came next.</span></div>
+        <div class="row"><span class="sym" data-tex="-\log p"></span><span class="def">small when <span class="m" data-tex="p"></span> is near 1, exploding toward <span class="m" data-tex="\infty"></span> as <span class="m" data-tex="p\to0"></span> — this is the <b>cross-entropy</b> loss used throughout the page.</span></div>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>The sigmoid: a score gap → a probability</h3>
+      <p class="concept-desc">A preference is yes/no, but a reward model outputs unbounded scores. The <b>sigmoid</b> <span class="m" data-tex="\sigma"></span> squashes any number into <span class="m" data-tex="(0,1)"></span>, so "winner scored <span class="m" data-tex="\Delta r"></span> higher than loser" becomes "probability the winner is preferred." Only the <i>gap</i> matters, not the raw scores.</p>
+      <div class="eq" data-tex="P(\text{win}) = \sigma(\Delta r) = \frac{1}{1+e^{-\Delta r}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="20" x2="40" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="170" x2="312" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="95" x2="312" y2="95" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="176" y1="20" x2="176" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <path d="M44,168 L88,165 L132,150 L154,128 L176,95 L198,60 L220,38 L264,23 L300,20" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="44" y="186" fill="var(--text-dim)" font-size="9">loser much better</text>
+          <text x="300" y="186" fill="var(--text-dim)" font-size="9" text-anchor="end">winner much better</text>
+          <text x="182" y="90" fill="var(--orange)" font-size="9">Δr = 0 → 50/50</text>
+          <text x="46" y="32" fill="var(--text-dim)" font-size="9">P = 1</text>
+          <text x="46" y="110" fill="var(--text-dim)" font-size="9">P = 0.5</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\Delta r"></span><span class="def">the reward gap between the preferred and rejected answer; the x-axis above.</span></div>
+        <div class="row"><span class="sym" data-tex="\sigma(z)"></span><span class="def">the S-curve: near 0 for very negative <span class="m" data-tex="z"></span>, 0.5 at <span class="m" data-tex="z=0"></span>, near 1 for very positive <span class="m" data-tex="z"></span>. This is the Bradley–Terry model.</span></div>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>A loss mask: which words actually get graded</h3>
+      <p class="concept-desc">A training example contains both the user's prompt and the model's reply, but you only want the model graded on <i>its own words</i>. A <b>mask</b> is a row of 1s and 0s that switches the loss on for reply tokens and off for prompt tokens.</p>
+      <div style="margin:6px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 110" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <g font-family="monospace" font-size="10" text-anchor="middle">
+            <rect x="10" y="24" width="50" height="26" rx="5" fill="none" stroke="var(--border)"/><text x="35" y="41" fill="var(--text-dim)">Summarize</text>
+            <rect x="64" y="24" width="34" height="26" rx="5" fill="none" stroke="var(--border)"/><text x="81" y="41" fill="var(--text-dim)">this</text>
+            <rect x="102" y="24" width="22" height="26" rx="5" fill="none" stroke="var(--border)"/><text x="113" y="41" fill="var(--text-dim)">:</text>
+            <rect x="128" y="24" width="40" height="26" rx="5" fill="var(--accent)" stroke="var(--accent)"/><text x="148" y="41" fill="#0b0f0e">It's</text>
+            <rect x="172" y="24" width="48" height="26" rx="5" fill="var(--accent)" stroke="var(--accent)"/><text x="196" y="41" fill="#0b0f0e">great</text>
+            <text x="35" y="66" fill="var(--text-dim)">0</text><text x="81" y="66" fill="var(--text-dim)">0</text><text x="113" y="66" fill="var(--text-dim)">0</text>
+            <text x="148" y="66" fill="var(--accent-bright)">1</text><text x="196" y="66" fill="var(--accent-bright)">1</text>
+          </g>
+          <text x="10" y="90" fill="var(--text-dim)" font-size="9">grey prompt tokens (mask 0) set the context; green reply tokens (mask 1) are the only ones the loss sees</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="m_t \in \{0,1\}"></span><span class="def">the mask value at position <span class="m" data-tex="t"></span>: multiply each token's loss by it, so 0-masked tokens contribute nothing.</span></div>
+      </div>
+    </article>
+  </section>
 
   <!-- ============ SECTION 1: INSTRUCTION TUNING ============ -->
   <section class="group" id="ift">

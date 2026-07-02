@@ -333,6 +333,7 @@
 </header>
 
 <nav class="toc">
+  <a href="#foundations">Foundations</a>
   <a href="#setup">The Promise</a>
   <a href="#deriv">The Derivation</a>
   <a href="#policy">Optimal Policy</a>
@@ -343,6 +344,74 @@
 </nav>
 
 <main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">The DPO derivation chains together three school-level tools: <b>logs and exponentials</b> (which undo each other), the <b>sigmoid</b> (a score gap → a probability), and a <b>ratio of two models' probabilities</b>. If those three feel shaky, read this first — the rest of the page is just bookkeeping with them.</p>
+
+    <article class="concept">
+      <h3>Logs and exponentials undo each other</h3>
+      <p class="concept-desc">DPO constantly flips between a probability and its log. <span class="m" data-tex="e^x"></span> turns a score into a positive number; <span class="m" data-tex="\log"></span> turns it back. They're mirror images across the line <span class="m" data-tex="y=x"></span> — that reversibility is what lets the derivation rewrite the reward in terms of the policy and back again.</p>
+      <div class="eq" data-tex="\log(e^x) = x, \qquad e^{\log x} = x, \qquad \log\tfrac{a}{b} = \log a - \log b"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 210" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="30" y1="95" x2="312" y2="95" stroke="var(--border)" stroke-width="1"/>
+          <line x1="170" y1="12" x2="170" y2="178" stroke="var(--border)" stroke-width="1"/>
+          <line x1="30" y1="178" x2="312" y2="12" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="300" y="22" fill="var(--text-dim)" font-size="9" text-anchor="end">y = x</text>
+          <path d="M32,92 L75,89 L118,82 L160,64 L185,46 L205,18 L214,4" fill="none" stroke="var(--accent-bright)" stroke-width="2"/>
+          <text x="218" y="14" fill="var(--accent-bright)" font-size="12" font-family="monospace">eˣ</text>
+          <path d="M165,168 L168,155 L182,128 L205,95 L250,74 L300,62" fill="none" stroke="var(--orange)" stroke-width="2"/>
+          <text x="284" y="54" fill="var(--orange)" font-size="12" font-family="monospace">log x</text>
+          <text x="42" y="200" fill="var(--text-dim)" font-size="9">reflecting one curve across the dashed line gives the other — that's what "inverse" means</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>The sigmoid, and the −log on top of it</h3>
+      <p class="concept-desc">The DPO loss is <span class="m" data-tex="-\log\sigma(\cdot)"></span> — exactly the same two-step move as a preference model. The <b>sigmoid</b> turns a margin into a probability between 0 and 1; the <b>−log</b> turns "probability you got the preference right" into a loss that's gentle when you're right and steep when you're wrong.</p>
+      <div class="eq" data-tex="\mathcal{L}_{\text{DPO}} = -\log\sigma(\text{margin}), \qquad \sigma(z) = \frac{1}{1+e^{-z}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="20" x2="40" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="170" x2="312" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="95" x2="312" y2="95" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="176" y1="20" x2="176" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <path d="M44,168 L88,165 L132,150 L154,128 L176,95 L198,60 L220,38 L264,23 L300,20" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="46" y="32" fill="var(--text-dim)" font-size="9">σ = 1</text>
+          <text x="46" y="110" fill="var(--text-dim)" font-size="9">0.5</text>
+          <text x="182" y="90" fill="var(--orange)" font-size="9">margin 0 → 50/50</text>
+          <text x="44" y="188" fill="var(--text-dim)" font-size="9">x-axis: margin (preferred minus rejected). Bigger margin → loss → 0.</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>A ratio of two models: how much more the policy likes an answer</h3>
+      <p class="concept-desc">DPO never uses a separate reward network. The "implicit reward" is just how much more probability the trained policy <span class="m" data-tex="\pi_\theta"></span> puts on an answer than the frozen reference <span class="m" data-tex="\pi_{\text{ref}}"></span> does. Divide the two probabilities; take the log. Above 1 (positive log) the policy prefers it more than the reference; below 1, less.</p>
+      <div class="eq" data-tex="\hat r(x,y) = \beta\,\log\frac{\pi_\theta(y\mid x)}{\pi_{\text{ref}}(y\mid x)}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 150" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="30" y1="120" x2="150" y2="120" stroke="var(--border)" stroke-width="1"/>
+          <rect x="50" y="55" width="34" height="65" fill="var(--accent)" rx="3"/>
+          <rect x="98" y="80" width="34" height="40" fill="var(--orange)" rx="3"/>
+          <text x="67" y="48" fill="var(--accent-bright)" font-size="9" text-anchor="middle">πθ</text>
+          <text x="115" y="73" fill="var(--orange)" font-size="9" text-anchor="middle">π_ref</text>
+          <text x="90" y="138" fill="var(--text-dim)" font-size="9" text-anchor="middle">prob. of the same answer y</text>
+          <text x="180" y="60" fill="var(--text)" font-size="11" font-family="monospace">ratio = πθ / π_ref &gt; 1</text>
+          <text x="180" y="82" fill="var(--accent-bright)" font-size="11" font-family="monospace">log(ratio) &gt; 0</text>
+          <text x="180" y="104" fill="var(--text-dim)" font-size="10">→ policy prefers y more</text>
+          <text x="180" y="122" fill="var(--text-dim)" font-size="10">   than the reference does</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\pi_{\text{ref}}"></span><span class="def">the frozen starting model; the ratio measures movement <i>away</i> from it.</span></div>
+        <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">a knob for how hard DPO is allowed to push the ratio (how far the policy may stray from the reference).</span></div>
+      </div>
+    </article>
+  </section>
 
   <!-- ============ SECTION A: SETUP ============ -->
   <section class="group" id="setup">
