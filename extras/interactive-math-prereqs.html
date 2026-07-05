@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Math of LLM Post-Training — Interactive Prereq Review</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .token-chip:hover{ border-color:var(--accent); }
+  .token-chip.active{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.cond{ border-color:var(--accent-bright); color:var(--accent-bright); }
+  .token-chip.hidden-tok{ opacity:0.3; }
+  .token-chip.masked-causal{ opacity:0.25; }
+  .token-chip.masked-pad{ opacity:0.3; text-decoration:line-through; }
+  .token-chip.loss-token{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.cond-token{ opacity:0.55; }
+
+  /* bar chart (softmax) */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  /* tensor pipeline */
+  .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .code-line{ opacity:0.3; padding:2px 0; white-space:pre; }
+  .code-line.active{ opacity:1; color:var(--accent-bright); }
+  .code-line.dim{ display:none; }
+  .shape-row{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .shape-box{
+    font-family:var(--mono);
+    background:rgba(132,169,140,0.15);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:8px 14px;
+    font-size:0.9em;
+  }
+  .dots{ display:flex; gap:6px; margin-top:8px; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--border); }
+  .dot.on{ background:var(--accent); }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-tangent{ stroke:var(--orange); stroke-width:1.5; stroke-dasharray:3,3; }
+  .plot-trail{ fill:var(--accent-bright); opacity:0.4; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; }
+
+  table.mdp{ width:100%; border-collapse:collapse; font-size:0.88em; }
+  table.mdp th, table.mdp td{ border:1px solid var(--border); padding:9px 12px; text-align:left; }
+  table.mdp th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.mdp tr.row{ cursor:pointer; }
+  table.mdp tr.row:hover td{ background:rgba(132,169,140,0.08); }
+  table.mdp tr.detail td{ color:var(--text-dim); font-size:0.92em; background:var(--panel-2); display:none; }
+  table.mdp tr.detail.show td{ display:table-cell; }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+
+  #rl-tokens-wrap{ position:relative; }
+  #rl-arrows{ position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+  .rl-token-bar-track{ width:18px; height:50px; display:flex; flex-direction:column-reverse; background:var(--panel-2); border-radius:3px 3px 0 0; margin:0 auto 4px; }
+  .rl-token-bar-fill{ width:100%; background:var(--accent); border-radius:3px 3px 0 0; }
+  .rl-token-col{ display:flex; flex-direction:column; align-items:center; }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
+  <div class="eyebrow">rlhfbook.com/course · lecture 0</div>
+  <h1>The Math of LLM Post-Training</h1>
+  <p class="sub">An interactive walk through the prerequisite math for RLHF: language modeling, optimization, probability, and reinforcement-learning framing — the handful of ideas the whole course builds on.</p>
+  <p class="credit">Adapted from Nathan Lambert's "Course Prereqs: The ML Foundations of LLM Post-Training" (rlhfbook.com/course). Interactive build only — original content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#foundations">Foundations</a>
+  <a href="#lm">Language Models</a>
+  <a href="#opt">Optimization</a>
+  <a href="#prob">Probability</a>
+  <a href="#rl">RL Framing</a>
+  <a href="#scaling">Scaling</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">Haven't touched this kind of math since high school? Read this section first. It decodes the symbols and refreshes the five ideas — exponents, logarithms, sums, probability, and slopes — that <em>every</em> formula further down is built from. Nothing here is past a first-year level; the rest of the page just keeps reusing these same pieces.</p>
+
+    <article class="concept" id="f-notation">
+      <h3>Reading the symbols</h3>
+      <p class="concept-desc">Equations look intimidating mostly because they pack a lot into a few marks. Almost all of it is just labelling and bookkeeping. Three things to know before anything else:</p>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="f(x)"></span><span class="def">a <b>function</b>: put a value <span class="m" data-tex="x"></span> in, get a number out. <span class="m" data-tex="P(x)"></span> is the same idea where the output happens to be a probability.</span></div>
+        <div class="row"><span class="sym" data-tex="x_t"></span><span class="def">a <b>subscript</b> is a label, not multiplication. <span class="m" data-tex="x_t"></span> means "the <span class="m" data-tex="x"></span> at position <span class="m" data-tex="t"></span>"; <span class="m" data-tex="x_{<t}"></span> means "all the <span class="m" data-tex="x"></span>'s <i>before</i> position <span class="m" data-tex="t"></span>."</span></div>
+        <div class="row"><span class="sym" data-tex="x^2"></span><span class="def">a <b>superscript</b> is a power: <span class="m" data-tex="x^2 = x\cdot x"></span>. (The one exception, <span class="m" data-tex="e^x"></span>, is the exponential below.)</span></div>
+      </div>
+      <p class="concept-desc" style="margin-top:14px;">And the Greek alphabet is just a second set of letters mathematicians reach for when they run out of Latin ones. The handful this page uses:</p>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\theta"></span><span class="def">"theta" — the model's tunable <b>parameters</b> (its weights). Training = searching for good <span class="m" data-tex="\theta"></span>.</span></div>
+        <div class="row"><span class="sym" data-tex="\pi"></span><span class="def">"pi" — here it is the <b>policy</b> (the model's next-token distribution), not the number 3.14.</span></div>
+        <div class="row"><span class="sym" data-tex="\eta,\ \sigma,\ \Delta"></span><span class="def">"eta" = the <b>learning rate</b> (step size); "sigma" = the <b>sigmoid</b> function; "delta" = a <b>change/difference</b> in something.</span></div>
+        <div class="row"><span class="sym" data-tex="\sum,\ \prod"></span><span class="def">capital "sigma" and "pi" — <b>add up</b> a list / <b>multiply</b> a list (see two cards down).</span></div>
+        <div class="row"><span class="sym" data-tex="\approx,\ \propto,\ \to"></span><span class="def">"approximately equal," "proportional to," and "approaches / goes to."</span></div>
+      </div>
+    </article>
+
+    <article class="concept" id="f-explog">
+      <h3>Exponentials and logarithms</h3>
+      <p class="concept-desc">These two are inverses — each undoes the other — and together they are the single most-used pair of tools in machine learning. <span class="m" data-tex="e\approx 2.718"></span> is just a special constant; <span class="m" data-tex="e^x"></span> means "<span class="m" data-tex="e"></span> raised to the power <span class="m" data-tex="x"></span>" and grows very fast, while <span class="m" data-tex="\log"></span> asks the reverse question: "what power do I raise <span class="m" data-tex="e"></span> to in order to get this number?"</p>
+      <div class="eq" data-tex="\log(ab) = \log a + \log b, \qquad \log\!\tfrac{a}{b} = \log a - \log b, \qquad \log(e^x) = x"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 210" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="30" y1="95" x2="312" y2="95" stroke="var(--border)" stroke-width="1"/>
+          <line x1="170" y1="12" x2="170" y2="178" stroke="var(--border)" stroke-width="1"/>
+          <line x1="30" y1="178" x2="312" y2="12" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="300" y="22" fill="var(--text-dim)" font-size="9" text-anchor="end">y = x</text>
+          <path d="M32,92 L75,89 L118,82 L160,64 L185,46 L205,18 L214,4" fill="none" stroke="var(--accent-bright)" stroke-width="2"/>
+          <text x="218" y="14" fill="var(--accent-bright)" font-size="12" font-family="monospace">eˣ</text>
+          <path d="M165,168 L168,155 L182,128 L205,95 L250,74 L300,62" fill="none" stroke="var(--orange)" stroke-width="2"/>
+          <text x="284" y="54" fill="var(--orange)" font-size="12" font-family="monospace">log x</text>
+          <circle cx="170" cy="64" r="3" fill="var(--accent-bright)"/>
+          <circle cx="205" cy="95" r="3" fill="var(--orange)"/>
+          <text x="42" y="200" fill="var(--text-dim)" font-size="9">each curve is the other one reflected across the dashed line — that's what "inverse" means</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="e^x"></span><span class="def">always <b>positive</b>, and turns adding into multiplying: <span class="m" data-tex="e^{a+b}=e^a e^b"></span>. This is how a raw score becomes a positive "weight."</span></div>
+        <div class="row"><span class="sym" data-tex="\log x"></span><span class="def">the <b>natural log</b> (base <span class="m" data-tex="e"></span> in ML). It is <span class="m" data-tex="0"></span> at <span class="m" data-tex="x=1"></span>, <b>negative</b> for <span class="m" data-tex="x<1"></span>, and dives to <span class="m" data-tex="-\infty"></span> as <span class="m" data-tex="x\to 0"></span>.</span></div>
+        <div class="row"><span class="sym" data-tex="\log(ab)=\log a+\log b"></span><span class="def">the key fact: <b>log turns products into sums</b>. A whole sentence's probability is a product of many small numbers; its log is a tidy sum you can add up without underflowing to zero.</span></div>
+      </div>
+      <p class="concept-desc" style="margin-top:14px;">Why this matters here: a probability lives between <span class="m" data-tex="0"></span> and <span class="m" data-tex="1"></span>, so its log is always <span class="m" data-tex="\le 0"></span>. The closer the model gets to saying something is impossible (<span class="m" data-tex="p\to0"></span>), the more sharply <span class="m" data-tex="-\log p"></span> shoots up — which is exactly why the training loss <span class="m" data-tex="-\log p"></span> punishes confident-but-wrong predictions so hard.</p>
+    </article>
+
+    <article class="concept" id="f-sumprod">
+      <h3>Sums (<span class="m" data-tex="\sum"></span>) and products (<span class="m" data-tex="\prod"></span>)</h3>
+      <p class="concept-desc">These two symbols just say "do this to every item in a list and combine the results." They look scary and mean almost nothing.</p>
+      <div class="eq" data-tex="\sum_{i=1}^{n} a_i = a_1 + a_2 + \dots + a_n, \qquad \prod_{i=1}^{n} a_i = a_1 \cdot a_2 \cdots a_n"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 140" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <g font-family="monospace" font-size="13" text-anchor="middle">
+            <rect x="12" y="20" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="27" y="39" fill="var(--text)">2</text>
+            <text x="52" y="39" fill="var(--text-dim)">+</text>
+            <rect x="62" y="20" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="77" y="39" fill="var(--text)">5</text>
+            <text x="102" y="39" fill="var(--text-dim)">+</text>
+            <rect x="112" y="20" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="127" y="39" fill="var(--text)">1</text>
+            <text x="152" y="39" fill="var(--text-dim)">+</text>
+            <rect x="162" y="20" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="177" y="39" fill="var(--text)">4</text>
+            <text x="212" y="39" fill="var(--accent)">→</text>
+            <rect x="232" y="18" width="96" height="32" rx="6" fill="rgba(132,169,140,0.15)" stroke="var(--accent)"/><text x="280" y="39" fill="var(--accent-bright)">∑ = 12</text>
+          </g>
+          <g font-family="monospace" font-size="13" text-anchor="middle">
+            <rect x="12" y="84" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="27" y="103" fill="var(--text)">2</text>
+            <text x="52" y="103" fill="var(--text-dim)">×</text>
+            <rect x="62" y="84" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="77" y="103" fill="var(--text)">5</text>
+            <text x="102" y="103" fill="var(--text-dim)">×</text>
+            <rect x="112" y="84" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="127" y="103" fill="var(--text)">1</text>
+            <text x="152" y="103" fill="var(--text-dim)">×</text>
+            <rect x="162" y="84" width="30" height="28" rx="5" fill="var(--panel)" stroke="var(--border)"/><text x="177" y="103" fill="var(--text)">4</text>
+            <text x="212" y="103" fill="var(--orange)">→</text>
+            <rect x="232" y="82" width="96" height="32" rx="6" fill="rgba(224,164,88,0.15)" stroke="var(--orange)"/><text x="280" y="103" fill="var(--orange)">∏ = 40</text>
+          </g>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\textstyle\sum"></span><span class="def">"add them all up." The <span class="m" data-tex="i=1"></span> underneath and <span class="m" data-tex="n"></span> on top are just where the counter starts and stops.</span></div>
+        <div class="row"><span class="sym" data-tex="\textstyle\prod"></span><span class="def">"multiply them all together" — same idea, multiplication instead of addition.</span></div>
+        <div class="row"><span class="sym" data-tex="\log\textstyle\prod_i a_i = \sum_i \log a_i"></span><span class="def">combine this with the log rule above and the autoregressive product of token probabilities (Section 01) becomes a <b>sum</b> of log-probabilities — the form training actually uses.</span></div>
+      </div>
+    </article>
+
+    <article class="concept" id="f-prob">
+      <h3>Probability in sixty seconds</h3>
+      <p class="concept-desc">Only two ideas from probability are needed for this whole course. First, a <b>distribution</b> is just a list of non-negative numbers that sum to <span class="m" data-tex="1"></span> (the model's guess of how likely each next word is). Second, an <b>expectation</b> is a weighted average — what you'd get "on average" if you sampled from that distribution many times.</p>
+      <div class="eq" data-tex="p_i \ge 0, \quad \sum_i p_i = 1, \qquad\qquad \mathbb{E}_{x\sim p}\!\big[f(x)\big] = \sum_i p_i\, f(x_i)"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="160" x2="320" y2="160" stroke="var(--border)" stroke-width="1"/>
+          <rect x="46" y="148" width="36" height="12" fill="var(--accent)" rx="3"/>
+          <rect x="100" y="123" width="36" height="37" fill="var(--accent)" rx="3"/>
+          <rect x="154" y="60" width="36" height="100" fill="var(--accent)" rx="3"/>
+          <rect x="208" y="85" width="36" height="75" fill="var(--accent)" rx="3"/>
+          <rect x="262" y="135" width="36" height="25" fill="var(--accent)" rx="3"/>
+          <g font-family="monospace" font-size="10" fill="var(--text-dim)" text-anchor="middle">
+            <text x="64" y="175">1</text><text x="118" y="175">2</text><text x="172" y="175">3</text><text x="226" y="175">4</text><text x="280" y="175">5</text>
+            <text x="64" y="142">5%</text><text x="118" y="117">15%</text><text x="172" y="54">40%</text><text x="226" y="79">30%</text><text x="280" y="129">10%</text>
+          </g>
+          <line x1="185" y1="40" x2="185" y2="160" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="189" y="48" fill="var(--orange)" font-size="10" font-family="monospace">E[x] = 3.25</text>
+          <text x="40" y="194" fill="var(--text-dim)" font-size="9">bars are a distribution (they sum to 100%); the dashed line is their weighted-average "balance point"</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="p_i"></span><span class="def">the probability of outcome <span class="m" data-tex="i"></span>; the bars in every chart on this page are exactly these numbers.</span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}_{x\sim p}"></span><span class="def">"the average over <span class="m" data-tex="x"></span> drawn from <span class="m" data-tex="p"></span>" — weight each value by how likely it is, then add. <span class="m" data-tex="x\sim p"></span> reads "<span class="m" data-tex="x"></span> sampled from <span class="m" data-tex="p"></span>."</span></div>
+        <div class="row"><span class="sym" data-tex="f(x)"></span><span class="def">whatever you're averaging — a reward, a loss, a log-probability. Loss, reward, and KL on this page are all expectations.</span></div>
+      </div>
+    </article>
+
+    <article class="concept" id="f-slope">
+      <h3>Slopes, derivatives, and the gradient</h3>
+      <p class="concept-desc">Training is just walking downhill on a loss curve, so the last idea is "how steep is the hill right here, and which way is down?" A <b>slope</b> is rise over run; a <b>derivative</b> is the slope of a curve at a single point; and the <b>gradient</b> <span class="m" data-tex="\nabla"></span> is the bundle of slopes in every direction at once when there's more than one knob to turn.</p>
+      <div class="eq" data-tex="\text{slope} = \frac{\text{rise}}{\text{run}} = \frac{\Delta y}{\Delta x}, \qquad\quad \theta \leftarrow \theta - \eta\,\nabla_\theta \mathcal{L}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <defs><marker id="ar-fnd-slope" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent-bright)"/></marker></defs>
+          <path d="M40,40 Q170,250 300,40" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <line x1="83" y1="104" x2="158" y2="157" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="3,3"/>
+          <circle cx="113" cy="125" r="6" fill="var(--orange)" stroke="#0b0f0e" stroke-width="1.5"/>
+          <line x1="122" y1="131" x2="150" y2="151" stroke="var(--accent-bright)" stroke-width="2" marker-end="url(#ar-fnd-slope)"/>
+          <circle cx="170" cy="145" r="3" fill="var(--text-dim)"/>
+          <text x="176" y="149" fill="var(--text-dim)" font-size="9">minimum</text>
+          <text x="52" y="96" fill="var(--orange)" font-size="10">slope here ↘</text>
+          <text x="40" y="190" fill="var(--text-dim)" font-size="9">the ball steps downhill — opposite the slope — until the curve flattens at the minimum</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\tfrac{\Delta y}{\Delta x}"></span><span class="def">how much the output changes per unit change of the input. A big slope = a steep curve; a flat spot has slope <span class="m" data-tex="0"></span>.</span></div>
+        <div class="row"><span class="sym" data-tex="\nabla_\theta \mathcal{L}"></span><span class="def">the <b>gradient</b>: the direction in which the loss <span class="m" data-tex="\mathcal{L}"></span> increases <i>fastest</i>. It points <b>uphill</b>.</span></div>
+        <div class="row"><span class="sym" data-tex="\theta \leftarrow \theta - \eta\nabla"></span><span class="def">so we step the <i>opposite</i> way (the minus sign) by a small amount <span class="m" data-tex="\eta"></span> to go <b>downhill</b> — this single line is the entire training loop, made interactive in Section 02.</span></div>
+      </div>
+      <p class="concept-desc" style="margin-top:14px;">That's the whole toolkit. From here on, every panel is one of these five ideas wearing a costume — a distribution being sharpened, a log-probability being summed, a slope being descended. Jump in.</p>
+    </article>
+  </section>
+
+  <!-- ============ SECTION A: LANGUAGE MODELS ============ -->
+  <section class="group" id="lm">
+    <div class="group-header"><span class="group-index">01</span><h2>Language Models</h2></div>
+    <p class="group-intro">A language model learns the joint probability of a token sequence autoregressively — each prediction depends only on the tokens before it. Everything below is what happens between "tokens in" and "loss out."</p>
+
+    <article class="concept" id="autoregressive">
+      <h3>Autoregressive factorization</h3>
+      <p class="concept-desc">Given <span class="m" data-tex="x = (x_1,\dots,x_T)"></span>, the model factorizes the sequence probability with the chain rule. Click a token to see its conditional term — and notice that later tokens are invisible to it.</p>
+      <div class="eq" data-tex="P_\theta(x) = \prod_{t=1}^{T} P_\theta\!\left(x_t \mid x_{<t}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="P_\theta"></span><span class="def">the model's probability distribution, with learnable parameters <span class="m" data-tex="\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="x_t"></span><span class="def">the token at position <span class="m" data-tex="t"></span>; <span class="m" data-tex="x_{<t}"></span> is every token before it (the context)</span></div>
+        <div class="row"><span class="sym" data-tex="\prod_{t}"></span><span class="def">product over all <span class="m" data-tex="T"></span> positions — the joint probability is the product of per-token conditionals</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Custom sentence (space-separated tokens)</label>
+          <input type="text" id="ar-input" value="The cat sat on the mat">
+          <button id="ar-reset">Reset</button>
+          <p class="hint">Green = conditioning context (already seen). Highlighted = the token being predicted. Dim = not yet visible — this is the causal constraint in action.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="ar-tokens"></div>
+          <div class="formula-display" id="ar-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="softmax">
+      <h3>Softmax &amp; temperature</h3>
+      <p class="concept-desc">The LM head produces one <b>logit</b> per vocabulary token; softmax turns logits into a probability distribution. Drag the logits or temperature and watch the distribution sharpen or flatten.</p>
+      <div class="eq" data-tex="\mathrm{softmax}(z/T)_i = \dfrac{e^{z_i/T}}{\sum_{j} e^{z_j/T}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="z_i"></span><span class="def">the raw <b>logit</b> (unnormalized score) the model assigns vocabulary token <span class="m" data-tex="i"></span></span></div>
+        <div class="row"><span class="sym" data-tex="T"></span><span class="def">the <b>temperature</b>; the denominator <span class="m" data-tex="\sum_j e^{z_j/T}"></span> normalizes the outputs so they sum to 1</span></div>
+        <div class="row"><span class="sym" data-tex="T\!\to\!0"></span><span class="def">distribution collapses to <b>argmax</b> (greedy); <span class="m" data-tex="T\!\to\!\infty"></span> flattens toward uniform</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <div id="sm-sliders"></div>
+          <label>Temperature <span class="m" data-tex="T"></span> = <span id="sm-temp-val">1.00</span></label>
+          <input type="range" id="sm-temp" min="0.1" max="3" step="0.05" value="1">
+          <p class="hint">Higher <span class="m" data-tex="T"></span> → flatter, more diverse distribution. Lower <span class="m" data-tex="T"></span> → sharper, closer to argmax (greedy).</p>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="sm-bars"></div>
+          <div class="formula-display" id="sm-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="tensor">
+      <h3>Anatomy of one LM training example</h3>
+      <p class="concept-desc">The same pipeline, one line at a time: <code>input_ids → logits → shift → log_softmax → gather → mask & sum</code>. Step through it and watch the tensor shapes change — <code>B</code> = batch, <code>L</code> = sequence length, <code>V</code> = vocab size.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="tp-prev">◀ Prev</button>
+          <button id="tp-next">Next ▶</button>
+          <div class="dots" id="tp-dots"></div>
+          <p class="hint" id="tp-note"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="code-block" id="tp-code"></div>
+          <div class="shape-row" id="tp-shape"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="masks">
+      <h3>Three masks</h3>
+      <p class="concept-desc">Silent bugs live here. The <b>causal</b> mask makes the model autoregressive, the <b>padding</b> mask ignores filler tokens, and the <b>completion</b> mask decides which tokens actually contribute to the loss. Switch tabs to see each one act on the same sequence.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="mask-tabs">
+            <button data-mode="causal" class="active">Causal</button>
+            <button data-mode="padding">Padding</button>
+            <button data-mode="completion">Completion</button>
+          </div>
+          <div id="mask-pos-wrap">
+            <label>Position t = <span id="mask-pos-val"></span></label>
+            <input type="range" id="mask-pos" min="0" max="10" step="1" value="6">
+          </div>
+          <p class="hint" id="mask-caption"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="mask-tokens"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="ce">
+      <h3>Cross-entropy / negative log-likelihood</h3>
+      <p class="concept-desc">The true next-token label is one-hot, so cross-entropy collapses to a single term. Drag the predicted probability of the true token and watch the loss curve.</p>
+      <div class="eq" data-tex="\mathcal{L}_t = H(q, P_\theta) = -\log P_\theta\!\left(x_t \mid x_{<t}\right) = -\log p"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\mathcal{L}_t"></span><span class="def">the <b>loss</b> at position <span class="m" data-tex="t"></span> — the single number training pushes down</span></div>
+        <div class="row"><span class="sym" data-tex="H(q, P_\theta)"></span><span class="def"><b>cross-entropy</b> between the true label <span class="m" data-tex="q"></span> (one-hot) and the model's prediction <span class="m" data-tex="P_\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="p"></span><span class="def">the probability the model placed on the <i>true</i> token; this is the <b>negative log-likelihood</b> <span class="m" data-tex="-\log p"></span></span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Predicted probability of true token, <span class="m" data-tex="p"></span> = <span id="ce-p-val">0.50</span></label>
+          <input type="range" id="ce-p" min="0.01" max="0.99" step="0.01" value="0.5">
+          <p class="hint">As <span class="m" data-tex="p\to1"></span>, loss <span class="m" data-tex="\to0"></span> (confident &amp; correct). As <span class="m" data-tex="p\to0"></span>, loss <span class="m" data-tex="\to\infty"></span> (confident &amp; wrong is punished hard).</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 320 200" id="ce-plot"></svg>
+          <div class="formula-display" id="ce-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION B: OPTIMIZATION ============ -->
+  <section class="group" id="opt">
+    <div class="group-header"><span class="group-index">02</span><h2>Optimization & Fine-tuning</h2></div>
+    <p class="group-intro">Training repeats one step: <span class="m" data-tex="\theta \leftarrow \theta - \eta\,\nabla_\theta \mathcal{L}(\theta)"></span>. What differs across pretraining, mid-training, and SFT is masking, sampling, and data — not the optimizer.</p>
+
+    <article class="concept" id="gd">
+      <h3>Gradient descent</h3>
+      <p class="concept-desc">Click anywhere on the curve to place <span class="m" data-tex="\theta"></span>, then step downhill. The dashed line shows the local gradient — descent moves opposite to it. Try a learning rate that's too large and watch it overshoot.</p>
+      <div class="eq" data-tex="\theta \leftarrow \theta - \eta\,\nabla_\theta \mathcal{L}(\theta)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\theta"></span><span class="def">the model <b>parameters</b> being optimized</span></div>
+        <div class="row"><span class="sym" data-tex="\eta"></span><span class="def">the <b>learning rate</b> — how big a step to take each update</span></div>
+        <div class="row"><span class="sym" data-tex="\nabla_\theta \mathcal{L}"></span><span class="def">the <b>gradient</b> of the loss w.r.t. <span class="m" data-tex="\theta"></span> — the direction of steepest <i>increase</i>, so we subtract it to go downhill</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Learning rate <span class="m" data-tex="\eta"></span> = <span id="gd-lr-val">0.05</span></label>
+          <input type="range" id="gd-lr" min="0.01" max="0.5" step="0.01" value="0.05">
+          <button id="gd-step">Step ▶</button>
+          <button id="gd-reset">Reset</button>
+          <p class="hint" id="gd-readout"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 400 220" id="gd-plot"></svg>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="pretrain">
+      <h3>Pretraining → mid-training → SFT</h3>
+      <p class="concept-desc">The boundary at the end of pretraining is fuzzy but important: it's where the loss mask changes from "every token" to "only the response."</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="stage-tabs">
+            <button data-stage="pretraining" class="active">Pretraining</button>
+            <button data-stage="midtraining">Mid-training</button>
+            <button data-stage="sft">SFT</button>
+          </div>
+          <p class="hint" id="stage-desc"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="stage-tokens"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION C: PROBABILITY ============ -->
+  <section class="group" id="prob">
+    <div class="group-header"><span class="group-index">03</span><h2>Probability Essentials</h2></div>
+    <p class="group-intro">KL divergence is the central object of alignment — it's how the RLHF KL penalty and the DPO loss are both derived. Sigmoid turns score differences into preference probabilities.</p>
+
+    <article class="concept" id="kl">
+      <h3>Entropy, cross-entropy &amp; KL divergence</h3>
+      <p class="concept-desc">One identity ties them together. Drag the weights for two distributions <span class="m" data-tex="p"></span> and <span class="m" data-tex="q"></span> over 5 outcomes and watch all three quantities update live.</p>
+      <div class="eq" data-tex="H(p,q) = H(p) + D_{\mathrm{KL}}(p \,\|\, q), \qquad D_{\mathrm{KL}}(p\,\|\,q) = \sum_i p_i \log\dfrac{p_i}{q_i}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="H(p)"></span><span class="def"><b>entropy</b> of <span class="m" data-tex="p"></span>, <span class="m" data-tex="-\sum_i p_i\log p_i"></span> — its inherent uncertainty</span></div>
+        <div class="row"><span class="sym" data-tex="H(p,q)"></span><span class="def"><b>cross-entropy</b>, <span class="m" data-tex="-\sum_i p_i\log q_i"></span> — cost of coding samples from <span class="m" data-tex="p"></span> using <span class="m" data-tex="q"></span></span></div>
+        <div class="row"><span class="sym" data-tex="D_{\mathrm{KL}}(p\,\|\,q)"></span><span class="def"><b>KL divergence</b> — the extra cost from using <span class="m" data-tex="q"></span> instead of the true <span class="m" data-tex="p"></span>; always <span class="m" data-tex="\geq 0"></span>, and <span class="m" data-tex="=0"></span> iff <span class="m" data-tex="p=q"></span></span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label style="color:var(--accent-bright)">p (policy)</label>
+          <div id="kl-p-sliders"></div>
+          <label style="color:var(--orange)">q (reference)</label>
+          <div id="kl-q-sliders"></div>
+          <button id="kl-match">Set q = p</button>
+          <button id="kl-uniform">Set q = uniform</button>
+          <button id="kl-random">Randomize q</button>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="kl-bars"></div>
+          <div class="formula-display" id="kl-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="mc">
+      <h3>Estimating KL by Monte Carlo</h3>
+      <p class="concept-desc">Over sequences, the KL sum is intractable — but KL is an <b>expectation</b>, so we estimate it from samples. The naive average (<span class="m" data-tex="k_1"></span>) is unbiased but can go negative; RLHF's <span class="m" data-tex="k_3"></span> estimator is always <span class="m" data-tex="\geq 0"></span> and lower-variance. Draw samples from <span class="m" data-tex="p"></span> and watch both estimators converge to the true KL.</p>
+      <div class="eq" data-tex="D_{\mathrm{KL}}(p\,\|\,q) = \mathbb{E}_{x\sim p}\!\left[\log\dfrac{p(x)}{q(x)}\right] \approx \underbrace{\tfrac{1}{N}\sum_i \log\tfrac{p(x_i)}{q(x_i)}}_{k_1} \;=\; \underbrace{\tfrac{1}{N}\sum_i \big(\rho_i - 1 - \log\rho_i\big)}_{k_3},\;\; \rho_i=\tfrac{q(x_i)}{p(x_i)}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\mathbb{E}_{x\sim p}"></span><span class="def"><b>expectation</b> over samples <span class="m" data-tex="x"></span> drawn from <span class="m" data-tex="p"></span> — KL is an average, which is why we can sample it</span></div>
+        <div class="row"><span class="sym" data-tex="k_1"></span><span class="def">naive estimator <span class="m" data-tex="\log(p/q)"></span>: unbiased but high-variance and can dip negative on a finite sample</span></div>
+        <div class="row"><span class="sym" data-tex="k_3"></span><span class="def">RLHF's estimator <span class="m" data-tex="\rho-1-\log\rho"></span>: same mean, always <span class="m" data-tex="\geq 0"></span>, lower variance</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="mc-draw1">Draw 1 sample</button>
+          <button id="mc-draw50">Draw 50 samples</button>
+          <button id="mc-reset">Reset</button>
+          <p class="hint" id="mc-readout"></p>
+        </div>
+        <div class="panel-viz">
+          <canvas id="mc-canvas" width="600" height="220" style="width:100%;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;"></canvas>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="sigmoid">
+      <h3>Sigmoid &amp; the Bradley–Terry model</h3>
+      <p class="concept-desc">A preference is binary, so a reward difference is squeezed through a sigmoid. Only the relative difference matters. Drag <span class="m" data-tex="\Delta r"></span> and watch the preference probability and the implied loss.</p>
+      <div class="eq" data-tex="P(y_w \succ y_l) = \sigma\!\big(r(x,y_w) - r(x,y_l)\big) = \sigma(\Delta r), \qquad \sigma(z) = \dfrac{1}{1+e^{-z}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic <b>sigmoid</b> <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span> — squashes any real number into a probability in <span class="m" data-tex="(0,1)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\Delta r"></span><span class="def">the reward gap <span class="m" data-tex="r(x,y_w)-r(x,y_l)"></span> between the <b>w</b>inning and <b>l</b>osing responses</span></div>
+        <div class="row"><span class="sym" data-tex="y_w \succ y_l"></span><span class="def">"<span class="m" data-tex="y_w"></span> is preferred to <span class="m" data-tex="y_l"></span>"; the implied training loss is <span class="m" data-tex="-\log\sigma(\Delta r)"></span></span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label><span class="m" data-tex="\Delta r = r(x, y_w) - r(x, y_l)"></span> = <span id="sig-dr-val">0.00</span></label>
+          <input type="range" id="sig-dr" min="-6" max="6" step="0.1" value="0">
+          <p class="hint"><span class="m" data-tex="\Delta r = 0"></span> → toss-up (<span class="m" data-tex="P = 0.5"></span>). Large positive <span class="m" data-tex="\Delta r"></span> → near-certain preference for <span class="m" data-tex="y_w"></span>.</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 320 200" id="sig-plot"></svg>
+          <div class="formula-display" id="sig-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="recurring-shapes">
+      <h3>Why these shapes keep recurring</h3>
+      <p class="concept-desc">Every loss on this site is built from the same three atoms you just saw above: a <b>log</b>-probability, a <b>sigmoid/softmax</b> squashing function, and <b>KL divergence</b>. They aren't separate ideas — committing to "outputs are distributions, quality is likelihood" forces all three.</p>
+      <div class="eq" data-tex="\underbrace{\text{score}}_{\text{logit / reward}} \;\xrightarrow{\ \exp\ }\; \underbrace{\text{probability}}_{\sigma\,/\,\mathrm{softmax}} \;\xrightarrow{\ -\log\ }\; \underbrace{\text{loss}}_{\mathcal{L}}"></div>
+      <p class="concept-desc"><b>Why log:</b> probabilities of a whole sequence multiply (chain rule), and <span class="m" data-tex="\log\prod_i p_i = \sum_i \log p_i"></span> turns that product into a sum that's numerically stable to optimize. Its asymmetric shape — <span class="m" data-tex="p\to1 \Rightarrow -\log p \to 0"></span> but <span class="m" data-tex="p\to0 \Rightarrow -\log p \to \infty"></span> — punishes confident wrongness far harder than it rewards confidence. The loss isn't minimized <i>in order to</i> reach 0; 0 is just the floor you hit once <span class="m" data-tex="p=1"></span>. The real target is putting probability mass on the right answer.</p>
+      <p class="concept-desc"><b>Why sigmoid / softmax:</b> models output unbounded scores (logits, rewards), but a loss needs a probability. Sigmoid and softmax are the <span class="m" data-tex="\exp"></span>-side partner of <span class="m" data-tex="\log"></span> — score&nbsp;&rarr;&nbsp;probability is <span class="m" data-tex="\exp"></span>-shaped, probability&nbsp;&rarr;&nbsp;score is <span class="m" data-tex="\log"></span>-shaped (a logit is literally a log-odds). That's why squashing a score gap with <span class="m" data-tex="\sigma(\Delta r)"></span> (Bradley&ndash;Terry, above) and then taking <span class="m" data-tex="-\log"></span> of it is the same two-step move as cross-entropy.</p>
+      <p class="concept-desc"><b>Why KL:</b> <span class="m" data-tex="D_{\mathrm{KL}}(p\,\|\,q) = \mathbb{E}_p[\log p - \log q]"></span> is built from nothing but log-probabilities — the expected gap between two distributions' surprisal. That's why it plays two different roles elsewhere in this course: as the <i>objective</i> (SFT minimizing <span class="m" data-tex="-\log p"></span> on data is exactly minimizing <span class="m" data-tex="D_{\mathrm{KL}}(\text{data}\,\|\,\text{model})"></span>), and as a <i>leash</i> (the RLHF KL penalty <span class="m" data-tex="D_{\mathrm{KL}}(\pi\,\|\,\pi_{\text{ref}})"></span> keeps a policy from drifting too far while it chases reward). DPO's loss derives from combining both roles with Bradley&ndash;Terry in a single line — the same atoms, recombined.</p>
+    </article>
+  </section>
+
+  <!-- ============ SECTION D: RL FRAMING ============ -->
+  <section class="group" id="rl">
+    <div class="group-header"><span class="group-index">04</span><h2>Reinforcement Learning Framing</h2></div>
+    <p class="group-intro">An LM is an MDP in disguise: the <b>policy</b> is the next-token distribution, the action is the next token, and the reward is usually one scalar at the very end. The last panel goes one step past the prereq deck into <b>PPO</b> — the algorithm that actually updates that policy.</p>
+
+    <article class="concept" id="mdp">
+      <h3>Language models as an MDP</h3>
+      <p class="concept-desc">Click a row to expand the intuition behind each mapping.</p>
+      <div class="panel" style="grid-template-columns:1fr;">
+        <div class="panel-viz">
+          <table class="mdp" id="mdp-table">
+            <thead><tr><th>MDP concept</th><th>Language model</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="objective">
+      <h3>The goal of RL: sparse, delayed reward</h3>
+      <p class="concept-desc">Maximize expected reward. A preference label is one scalar at the <i>end</i> of a response: sparse, delayed, with no token-level target. The policy gradient distributes that one number's credit across every token's log-probability.</p>
+      <div class="eq" data-tex="J(\theta) = \mathbb{E}_{y \sim \pi_\theta}\!\big[R(x,y)\big], \qquad \nabla_\theta J \approx R(x,y)\,\sum_{t} \nabla_\theta \log \pi_\theta\!\left(y_t \mid x, y_{<t}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="J(\theta)"></span><span class="def">the RL <b>objective</b> — the expected reward we want to maximize</span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}_{y\sim\pi_\theta}"></span><span class="def"><b>expectation</b> over responses <span class="m" data-tex="y"></span> sampled from the policy <span class="m" data-tex="\pi_\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="R(x,y)"></span><span class="def">the (usually terminal) scalar <b>reward</b> for response <span class="m" data-tex="y"></span> to prompt <span class="m" data-tex="x"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\nabla_\theta\log\pi_\theta"></span><span class="def">the per-token <b>score function</b>; the one reward weights every token's log-prob gradient</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="rl-resample">Sample new rollout</button>
+          <button id="rl-flow">Toggle gradient flow</button>
+          <p class="hint">Each bar is a token's sampled log-probability. The single reward at the end is the only training signal — there's no per-token ground truth.</p>
+        </div>
+        <div class="panel-viz">
+          <div id="rl-tokens-wrap">
+            <svg id="rl-arrows"></svg>
+            <div class="token-row" id="rl-tokens" style="align-items:flex-end;"></div>
+          </div>
+          <div class="formula-display" id="rl-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="ppo">
+      <h3>PPO: the clipped policy update</h3>
+      <p class="concept-desc">The bare policy gradient above is high-variance and unstable — one big step off the data you sampled can wreck the policy. <b>PPO</b> works off the probability ratio <span class="m" data-tex="r = \pi_\theta(a)/\pi_{\text{old}}(a)"></span> and <b>clips</b> it so a single update can't move too far. Drag the ratio and watch the objective flatten the moment you leave the trust region.</p>
+      <div class="eq" data-tex="L^{\mathrm{PPO}} = \min\!\Big( r\,A,\;\; \mathrm{clip}(r,\,1-\epsilon,\,1+\epsilon)\,A \Big)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r"></span><span class="def">the <b>probability ratio</b> <span class="m" data-tex="\pi_\theta(a)/\pi_{\text{old}}(a)"></span> — how much more likely this action is under the new policy</span></div>
+        <div class="row"><span class="sym" data-tex="A"></span><span class="def">the <b>advantage</b> — how much better than the baseline this action turned out (sign sets the push direction)</span></div>
+        <div class="row"><span class="sym" data-tex="\epsilon"></span><span class="def">the <b>clip</b> width; <span class="m" data-tex="[1-\epsilon,\,1+\epsilon]"></span> is the trust region the update may not exceed</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Probability ratio <span class="m" data-tex="r = \pi_\theta/\pi_{\text{old}}"></span> = <span id="ppo-r-val">1.00</span></label>
+          <input type="range" id="ppo-r" min="0.1" max="2.5" step="0.01" value="1">
+          <label>Advantage <span class="m" data-tex="A"></span> = <span id="ppo-a-val">1.00</span></label>
+          <input type="range" id="ppo-a" min="-2" max="2" step="0.1" value="1">
+          <label>Clip <span class="m" data-tex="\epsilon"></span> = <span id="ppo-eps-val">0.20</span></label>
+          <input type="range" id="ppo-eps" min="0.05" max="0.5" step="0.01" value="0.2">
+          <p class="hint" id="ppo-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 360 220" id="ppo-plot"></svg>
+          <div class="eq" id="ppo-formula"></div>
+          <div class="eq-readout" id="ppo-readout"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION E: SCALING ============ -->
+  <section class="group" id="scaling">
+    <div class="group-header"><span class="group-index">05</span><h2>Scaling: Train-time vs Test-time</h2></div>
+    <p class="group-intro">Compute spent <b>before</b> deployment (bigger model, more training steps) gets baked into the weights once and amortized over every future query. Compute spent <b>at</b> deployment (more samples per query, longer reasoning) is paid fresh every time. Under a fixed total compute budget, the two trade off directly.</p>
+
+    <article class="concept" id="compute-budget">
+      <h3>A fixed compute budget: model size vs. samples per query</h3>
+      <p class="concept-desc">Toy model: a bigger model has a higher per-sample accuracy ceiling but costs more per inference call. Under a <b>fixed total compute budget <span class="m" data-tex="C"></span></b>, spending more of it on model size <span class="m" data-tex="s"></span> leaves fewer affordable samples-per-query <span class="m" data-tex="n = \lfloor C/s \rfloor"></span> (best-of-<span class="m" data-tex="n"></span>), and vice versa. Drag the model-size slider and watch accuracy rise, peak, then fall as you overspend on size at the expense of samples.</p>
+      <div class="eq" data-tex="n = \lfloor C/s \rfloor, \qquad \mathrm{acc}(s) = \mathrm{ceil}(s) - \dfrac{\mathrm{ceil}(s) - \mathrm{base}(s)}{n}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="C"></span><span class="def">the fixed total <b>compute budget</b> shared between training a bigger model and sampling more per query</span></div>
+        <div class="row"><span class="sym" data-tex="s"></span><span class="def"><b>model size</b> (train-time compute); larger <span class="m" data-tex="s"></span> raises the accuracy ceiling but costs more per call</span></div>
+        <div class="row"><span class="sym" data-tex="n=\lfloor C/s\rfloor"></span><span class="def">affordable <b>samples per query</b> (best-of-<span class="m" data-tex="n"></span>) — what is left of the budget after paying for size</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Total compute budget <span class="m" data-tex="C"></span> = <span id="cb-budget-val">256</span> units</label>
+          <input type="range" id="cb-budget" min="32" max="1024" step="32" value="256">
+          <label>Model size <span class="m" data-tex="s"></span> (train-time compute) = <span id="cb-size-val">4.0</span></label>
+          <input type="range" id="cb-size" min="0.5" max="20" step="0.1" value="4">
+          <p class="hint" id="cb-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="cb-plot"></svg>
+          <div class="formula-display" id="cb-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Built as an interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, lecture 0 (prerequisite review) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function softmax(arr, T){
+    T = T===undefined?1:T;
+    var scaled = arr.map(function(x){ return x/T; });
+    var m = Math.max.apply(null, scaled);
+    var exps = scaled.map(function(x){ return Math.exp(x-m); });
+    var sum = exps.reduce(function(a,b){ return a+b; }, 0);
+    return exps.map(function(e){ return e/sum; });
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  function normalize(arr){ var s = sum(arr); return arr.map(function(x){ return x/s; }); }
+
+  /* ---------------- A1: Autoregressive factorization ---------------- */
+  function initAutoregressive(){
+    var input = document.getElementById('ar-input');
+    var tokensEl = document.getElementById('ar-tokens');
+    var formulaEl = document.getElementById('ar-formula');
+    var tokens = [];
+    var selected = -1;
+
+    function render(){
+      tokensEl.innerHTML = '';
+      tokens.forEach(function(tok, i){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        chip.textContent = tok;
+        if(selected >= 0){
+          if(i < selected) chip.classList.add('cond');
+          else if(i === selected) chip.classList.add('active');
+          else chip.classList.add('hidden-tok');
+        }
+        chip.addEventListener('click', function(){ selected = i; render(); });
+        tokensEl.appendChild(chip);
+      });
+      if(selected < 0){
+        tex(formulaEl, 'P_\\theta(x) = ' + tokens.map(function(_, i){
+          return 'P_\\theta(x_{' + (i+1) + '}\\mid x_{<' + (i+1) + '})';
+        }).join(' \\cdot '), true);
+      } else {
+        var condPart = selected === 0 ? '\\varnothing' : ('x_1,\\dots,x_{' + selected + '}');
+        var note = selected === 0 ? '\\;(\\text{no context — first token})' : '';
+        var word = '\\text{``' + tokens[selected].replace(/[\\{}$&#%_~^]/g, ' ') + '\'\'}';
+        tex(formulaEl,
+          'P_\\theta\\big(x_{' + (selected+1) + '} = ' + word + ' \\mid ' + condPart + '\\big)' + note,
+          true);
+      }
+    }
+    function setTokens(text){
+      tokens = text.trim().split(/\s+/).filter(Boolean);
+      selected = -1;
+      render();
+    }
+    input.addEventListener('input', function(e){ setTokens(e.target.value); });
+    document.getElementById('ar-reset').addEventListener('click', function(){
+      input.value = 'The cat sat on the mat';
+      setTokens(input.value);
+    });
+    setTokens(input.value);
+  }
+
+  /* ---------------- A2: Softmax & temperature ---------------- */
+  function initSoftmax(){
+    var defaultLogits = [2.1, 0.5, -1.0, 3.4, 0.2];
+    var slidersEl = document.getElementById('sm-sliders');
+    var tempSlider = document.getElementById('sm-temp');
+    var tempVal = document.getElementById('sm-temp-val');
+    var barsEl = document.getElementById('sm-bars');
+    var formulaEl = document.getElementById('sm-formula');
+    var logits = defaultLogits.slice();
+
+    defaultLogits.forEach(function(v, i){
+      var row = document.createElement('div');
+      row.className = 'slider-row';
+      row.innerHTML = '<label><span class="m" data-tex="z_{' + (i+1) + '}"></span> = <span id="sm-z-val-' + i + '">' + v.toFixed(1) + '</span></label>' +
+        '<input type="range" min="-5" max="5" step="0.1" value="' + v + '" id="sm-z-' + i + '">';
+      slidersEl.appendChild(row);
+    });
+    renderStaticMath();  // render the [data-tex] labels just added above
+
+    function render(){
+      var T = parseFloat(tempSlider.value);
+      tempVal.textContent = T.toFixed(2);
+      var probs = softmax(logits, T);
+      barsEl.innerHTML = '';
+      probs.forEach(function(p, i){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        col.innerHTML = '<div class="bar-track"><div class="bar-fill" style="height:' + (p*100).toFixed(1) + '%"></div></div>' +
+          '<div class="bar-label">x' + (i+1) + '<br>' + (p*100).toFixed(1) + '%</div>';
+        barsEl.appendChild(col);
+      });
+      var maxI = probs.indexOf(Math.max.apply(null, probs));
+      tex(formulaEl,
+        '\\mathrm{softmax}(z/T)_{' + (maxI+1) + '} = \\dfrac{e^{' + (logits[maxI]/T).toFixed(2) + '}}{\\sum_j e^{z_j/T}} = ' + probs[maxI].toFixed(3),
+        true);
+    }
+    defaultLogits.forEach(function(_, i){
+      document.getElementById('sm-z-' + i).addEventListener('input', function(e){
+        logits[i] = parseFloat(e.target.value);
+        document.getElementById('sm-z-val-' + i).textContent = logits[i].toFixed(1);
+        render();
+      });
+    });
+    tempSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- A3: Tensor shape pipeline ---------------- */
+  function initTensorPipeline(){
+    var steps = [
+      { code:'input_ids = batch["input_ids"]', shape:['B','L'], note:'Token IDs, batch B, length L. This is the input to the model.' },
+      { code:'logits = model(input_ids).logits', shape:['B','L','V'], note:'One score per vocab token (V), at every position.' },
+      { code:'logits = logits[:, :-1, :]', shape:['B','L-1','V'], note:"Drop the last position — its prediction has no next token to score." },
+      { code:'labels = input_ids[:, 1:]', shape:['B','L-1'], note:'The target at each position is just the actual next token (the shift).' },
+      { code:'completion_mask = completion_mask[:, 1:]', shape:['B','L-1'], note:'Shift the mask the same way so it lines up with labels (1 = completion).' },
+      { code:'log_probs = logits.log_softmax(dim=-1)', shape:['B','L-1','V'], note:'Normalize logits into log-probabilities over the vocab.' },
+      { code:'token_log_probs = log_probs.gather(-1, labels.unsqueeze(-1)).squeeze(-1)', shape:['B','L-1'], note:'Read off the log-prob of each TRUE next token.' },
+      { code:'seq_log_probs = (token_log_probs * completion_mask).sum(dim=-1)', shape:['B'], note:'Zero out prompt/pad, then sum per sequence — one log-prob per completion.' }
+    ];
+    var idx = 0;
+    var codeEl = document.getElementById('tp-code');
+    var shapeEl = document.getElementById('tp-shape');
+    var noteEl = document.getElementById('tp-note');
+    var dotsEl = document.getElementById('tp-dots');
+    var prevBtn = document.getElementById('tp-prev');
+    var nextBtn = document.getElementById('tp-next');
+
+    function render(){
+      codeEl.innerHTML = steps.map(function(s, i){
+        var cls = 'code-line' + (i === idx ? ' active' : '') + (i > idx ? ' dim' : '');
+        return '<div class="' + cls + '">' + escapeHtml(s.code) + '</div>';
+      }).join('');
+      shapeEl.innerHTML = '';
+      steps[idx].shape.forEach(function(dim){
+        var box = document.createElement('div');
+        box.className = 'shape-box';
+        box.textContent = dim;
+        shapeEl.appendChild(box);
+      });
+      noteEl.textContent = steps[idx].note;
+      dotsEl.innerHTML = steps.map(function(_, i){
+        return '<span class="dot' + (i === idx ? ' on' : '') + '"></span>';
+      }).join('');
+      prevBtn.disabled = idx === 0;
+      nextBtn.disabled = idx === steps.length - 1;
+    }
+    prevBtn.addEventListener('click', function(){ idx = Math.max(0, idx-1); render(); });
+    nextBtn.addEventListener('click', function(){ idx = Math.min(steps.length-1, idx+1); render(); });
+    render();
+  }
+
+  /* ---------------- A4: Three masks ---------------- */
+  function initMasks(){
+    var seq = [
+      {tok:'<s>', role:'prompt'},
+      {tok:'Summarize', role:'prompt'},
+      {tok:'the', role:'prompt'},
+      {tok:'text', role:'prompt'},
+      {tok:':', role:'prompt'},
+      {tok:'It', role:'completion'},
+      {tok:'is', role:'completion'},
+      {tok:'great', role:'completion'},
+      {tok:'</s>', role:'completion'},
+      {tok:'<pad>', role:'pad'},
+      {tok:'<pad>', role:'pad'}
+    ];
+    var tokensEl = document.getElementById('mask-tokens');
+    var captionEl = document.getElementById('mask-caption');
+    var posWrap = document.getElementById('mask-pos-wrap');
+    var posSlider = document.getElementById('mask-pos');
+    var posVal = document.getElementById('mask-pos-val');
+    var tabs = document.querySelectorAll('#mask-tabs button');
+    var mode = 'causal';
+
+    var captions = {
+      causal: 'Causal mask: position t can only attend to itself and earlier positions. This is built into decoder attention — you never touch it in training code.',
+      padding: 'Padding mask: tells attention to ignore padding tokens entirely. Shape (B, L).',
+      completion: 'Completion mask: 1 only on completion tokens. Prompt tokens condition the prediction but contribute no loss — get this wrong and you train on the prompt or on padding.'
+    };
+
+    posSlider.max = seq.length - 1;
+
+    function render(){
+      posWrap.style.display = mode === 'causal' ? 'block' : 'none';
+      captionEl.textContent = captions[mode];
+      var p = parseInt(posSlider.value, 10);
+      posVal.textContent = p;
+      tokensEl.innerHTML = '';
+      seq.forEach(function(item, i){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        chip.textContent = item.tok;
+        if(mode === 'causal'){
+          if(i > p) chip.classList.add('masked-causal');
+          if(i === p) chip.style.borderColor = 'var(--orange)';
+        } else if(mode === 'padding'){
+          if(item.role === 'pad') chip.classList.add('masked-pad');
+        } else if(mode === 'completion'){
+          if(item.role === 'completion') chip.classList.add('loss-token');
+          else if(item.role === 'pad') chip.classList.add('masked-pad');
+          else chip.classList.add('cond-token');
+        }
+        tokensEl.appendChild(chip);
+      });
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        render();
+      });
+    });
+    posSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- A5: Cross-entropy / NLL ---------------- */
+  function initCrossEntropy(){
+    var slider = document.getElementById('ce-p');
+    var pVal = document.getElementById('ce-p-val');
+    var formulaEl = document.getElementById('ce-formula');
+    var svg = document.getElementById('ce-plot');
+    var maxY = 4.6;
+
+    var pts = [];
+    for(var x = 0.02; x <= 1.001; x += 0.01){
+      var y = -Math.log(Math.min(x,1));
+      y = clamp(y, 0, maxY);
+      pts.push([x*300+10, 190 - (y/maxY)*170]);
+    }
+    var pathD = pts.map(function(pt, i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' ');
+
+    function render(){
+      var p = parseFloat(slider.value);
+      pVal.textContent = p.toFixed(2);
+      var loss = -Math.log(p);
+      var lossClamped = clamp(loss, 0, maxY);
+      var cx = p*300+10;
+      var cy = 190 - (lossClamped/maxY)*170;
+      svg.innerHTML =
+        '<line class="plot-axis" x1="10" y1="190" x2="310" y2="190"></line>' +
+        '<line class="plot-axis" x1="10" y1="20" x2="10" y2="190"></line>' +
+        '<path class="plot-curve" d="' + pathD + '"></path>' +
+        '<line x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="190" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<circle class="plot-marker" cx="' + cx + '" cy="' + cy + '" r="5"></circle>' +
+        '<text x="14" y="32" fill="var(--text-dim)" font-size="10">loss</text>' +
+        '<text x="270" y="186" fill="var(--text-dim)" font-size="10">p=1</text>';
+      tex(formulaEl,
+        '\\mathcal{L} = -\\log p = -\\log(' + p.toFixed(2) + ') = ' + loss.toFixed(3) + '\\ \\text{nats}',
+        true);
+    }
+    slider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- B1: Gradient descent ---------------- */
+  function initGradientDescent(){
+    function L(t){ return 0.08*Math.pow(t,4) - 0.6*t*t + 3; }
+    function dL(t){ return 0.32*Math.pow(t,3) - 1.2*t; }
+
+    var svg = document.getElementById('gd-plot');
+    var lrSlider = document.getElementById('gd-lr');
+    var lrVal = document.getElementById('gd-lr-val');
+    var stepBtn = document.getElementById('gd-step');
+    var resetBtn = document.getElementById('gd-reset');
+    var readout = document.getElementById('gd-readout');
+
+    var domain = [-4, 4];
+    var samples = [];
+    for(var t = domain[0]; t <= domain[1] + 1e-9; t += 0.05) samples.push(t);
+    var Lvals = samples.map(L);
+    var Lmin = Math.min.apply(null, Lvals);
+    var Lmax = Math.max.apply(null, Lvals);
+
+    var PAD = 20, W = 400, H = 220, plotW = W - PAD*2, plotH = H - PAD*2;
+    function xToPx(t){ return PAD + (t - domain[0])/(domain[1]-domain[0]) * plotW; }
+    function yToPx(v){ return PAD + (Lmax - v)/(Lmax - Lmin) * plotH; }
+    function pxToX(px){ return domain[0] + (px - PAD)/plotW * (domain[1]-domain[0]); }
+
+    var pathD = samples.map(function(t, i){
+      return (i===0?'M':'L') + xToPx(t).toFixed(1) + ',' + yToPx(L(t)).toFixed(1);
+    }).join(' ');
+
+    var theta = 3.3;
+    var trail = [];
+
+    function render(){
+      var lr = parseFloat(lrSlider.value);
+      lrVal.textContent = lr.toFixed(2);
+      var g = dL(theta);
+      var cx = xToPx(theta), cy = yToPx(L(theta));
+      var tangentLen = 50;
+      var slopePx = g * (plotH/plotW) * ((domain[1]-domain[0])/(Lmax-Lmin)) * -1;
+      var dx = tangentLen, dy = slopePx*tangentLen*-1;
+      var x1 = cx - dx, y1 = cy - dy, x2 = cx + dx, y2 = cy + dy;
+
+      var trailCircles = trail.map(function(pt, i){
+        var op = 0.15 + 0.5*(i/(trail.length||1));
+        return '<circle class="plot-trail" cx="' + xToPx(pt) + '" cy="' + yToPx(L(pt)) + '" r="4" opacity="' + op.toFixed(2) + '"></circle>';
+      }).join('');
+
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + (H-PAD) + '" x2="' + (W-PAD) + '" y2="' + (H-PAD) + '"></line>' +
+        '<path class="plot-curve" d="' + pathD + '"></path>' +
+        trailCircles +
+        '<line class="plot-tangent" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"></line>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="6"></circle>';
+
+      tex(readout,
+        '\\theta = ' + theta.toFixed(3) + ' \\quad ' +
+        '\\mathcal{L}(\\theta) = ' + L(theta).toFixed(3) + ' \\quad ' +
+        '\\nabla_\\theta\\mathcal{L} = ' + g.toFixed(3),
+        false);
+    }
+
+    svg.addEventListener('click', function(e){
+      var rect = svg.getBoundingClientRect();
+      var px = (e.clientX - rect.left) / rect.width * W;
+      theta = clamp(pxToX(px), domain[0], domain[1]);
+      trail = [];
+      render();
+    });
+    stepBtn.addEventListener('click', function(){
+      var lr = parseFloat(lrSlider.value);
+      trail.push(theta);
+      if(trail.length > 12) trail.shift();
+      theta = clamp(theta - lr*dL(theta), domain[0]*1.5, domain[1]*1.5);
+      render();
+    });
+    resetBtn.addEventListener('click', function(){
+      theta = 3.3; trail = []; render();
+    });
+    lrSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- B2: Pretraining stages ---------------- */
+  function initStages(){
+    var tokens = ['Explain', 'photosynthesis', 'in', 'one', 'sentence', '.', 'Plants', 'convert', 'sunlight', 'into', 'energy', '.'];
+    var promptLen = 6;
+    var stages = {
+      pretraining: { desc:'Next-token cross-entropy on massive raw web/code data; every token contributes to the loss.', split:false },
+      midtraining: { desc:'The annealing / high-quality-data phase at the very end of pretraining, before any instruction data. Quality ramps up here; loss mask is unchanged.', split:false },
+      sft: { desc:'Still cross-entropy, but now on instruction–response pairs with a completion mask: only response tokens contribute to the loss. The model learns to respond, not just continue text.', split:true }
+    };
+    var tabs = document.querySelectorAll('#stage-tabs button');
+    var tokensEl = document.getElementById('stage-tokens');
+    var descEl = document.getElementById('stage-desc');
+
+    function render(stageKey){
+      var stage = stages[stageKey];
+      descEl.textContent = stage.desc;
+      tokensEl.innerHTML = '';
+      tokens.forEach(function(tok, i){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        chip.textContent = tok;
+        if(stage.split){
+          chip.classList.add(i < promptLen ? 'cond-token' : 'loss-token');
+        } else {
+          chip.classList.add('loss-token');
+        }
+        tokensEl.appendChild(chip);
+      });
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        render(btn.dataset.stage);
+      });
+    });
+    render('pretraining');
+  }
+
+  /* ---------------- C1: KL divergence & entropy ---------------- */
+  function initKL(){
+    var n = 5;
+    var pw = [3, 2, 1, 0.5, 0.2];
+    var qw = [1, 1, 1, 1, 1];
+    var pSlidersEl = document.getElementById('kl-p-sliders');
+    var qSlidersEl = document.getElementById('kl-q-sliders');
+    var barsEl = document.getElementById('kl-bars');
+    var formulaEl = document.getElementById('kl-formula');
+
+    function buildSliders(container, weights, prefix, sym){
+      weights.forEach(function(v, i){
+        var row = document.createElement('div');
+        row.className = 'slider-row';
+        row.innerHTML = '<label><span class="m" data-tex="' + sym + '_{' + (i+1) + '}"></span> = <span id="' + prefix + '-val-' + i + '">' + v.toFixed(2) + '</span></label>' +
+          '<input type="range" min="0.05" max="3" step="0.05" value="' + v + '" id="' + prefix + '-' + i + '">';
+        container.appendChild(row);
+      });
+    }
+    buildSliders(pSlidersEl, pw, 'kl-p', 'p');
+    buildSliders(qSlidersEl, qw, 'kl-q', 'q');
+    renderStaticMath();  // render the [data-tex] slider labels just added
+
+    function render(){
+      var p = normalize(pw);
+      var q = normalize(qw);
+      var Hp = -sum(p.map(function(pi, i){ return pi*Math.log(pi); }));
+      var Hpq = -sum(p.map(function(pi, i){ return pi*Math.log(q[i]); }));
+      var KL = Hpq - Hp;
+
+      barsEl.innerHTML = '';
+      for(var i=0;i<n;i++){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        col.innerHTML =
+          '<div style="display:flex;gap:3px;height:100%;width:100%;justify-content:center;">' +
+            '<div class="bar-track" style="width:40%;height:100%;"><div class="bar-fill" style="height:' + (p[i]*100).toFixed(1) + '%"></div></div>' +
+            '<div class="bar-track" style="width:40%;height:100%;"><div class="bar-fill" style="height:' + (q[i]*100).toFixed(1) + '%;background:linear-gradient(to top, var(--orange), #f0c98a);"></div></div>' +
+          '</div>' +
+          '<div class="bar-label">x' + (i+1) + '</div>';
+        barsEl.appendChild(col);
+      }
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'H(p) &= ' + Hp.toFixed(3) + '\\ \\text{nats} \\quad ' +
+        'H(p,q) = ' + Hpq.toFixed(3) + ' \\quad ' +
+        'D_{\\mathrm{KL}}(p\\|q) = ' + KL.toFixed(3) + ' \\\\[2pt] ' +
+        '\\text{(identity)}\\;\\; H(p,q) &= H(p) + D_{\\mathrm{KL}} = ' +
+        Hp.toFixed(3) + ' + ' + KL.toFixed(3) + ' = ' + Hpq.toFixed(3) +
+        '\\end{aligned}',
+        true);
+    }
+    for(var i=0;i<n;i++){
+      (function(i){
+        document.getElementById('kl-p-' + i).addEventListener('input', function(e){
+          pw[i] = parseFloat(e.target.value);
+          document.getElementById('kl-p-val-' + i).textContent = pw[i].toFixed(2);
+          render();
+        });
+        document.getElementById('kl-q-' + i).addEventListener('input', function(e){
+          qw[i] = parseFloat(e.target.value);
+          document.getElementById('kl-q-val-' + i).textContent = qw[i].toFixed(2);
+          render();
+        });
+      })(i);
+    }
+    function syncQSliders(){
+      for(var i=0;i<n;i++){
+        document.getElementById('kl-q-' + i).value = qw[i];
+        document.getElementById('kl-q-val-' + i).textContent = qw[i].toFixed(2);
+      }
+    }
+    document.getElementById('kl-match').addEventListener('click', function(){
+      qw = pw.slice(); syncQSliders(); render();
+    });
+    document.getElementById('kl-uniform').addEventListener('click', function(){
+      qw = [1,1,1,1,1]; syncQSliders(); render();
+    });
+    document.getElementById('kl-random').addEventListener('click', function(){
+      qw = qw.map(function(){ return 0.1 + Math.random()*2.9; }); syncQSliders(); render();
+    });
+    render();
+  }
+
+  /* ---------------- C2: Monte Carlo KL estimator ---------------- */
+  function initMonteCarlo(){
+    var outcomes = ['A','B','C','D'];
+    var p = [0.4, 0.3, 0.2, 0.1];
+    var q = [0.25, 0.25, 0.25, 0.25];
+    var trueKL = sum(p.map(function(pi,i){ return pi*Math.log(pi/q[i]); }));
+
+    var k1Samples = [], k3Samples = [];
+    var canvas = document.getElementById('mc-canvas');
+    var ctx = canvas.getContext('2d');
+    var readout = document.getElementById('mc-readout');
+
+    function sampleFromP(){
+      var r = Math.random(), c = 0;
+      for(var i=0;i<p.length;i++){ c += p[i]; if(r <= c) return i; }
+      return p.length - 1;
+    }
+    function drawSample(){
+      var idx = sampleFromP();
+      var k1 = Math.log(p[idx]/q[idx]);
+      var ratio = q[idx]/p[idx];
+      var k3 = ratio - 1 - Math.log(ratio);
+      k1Samples.push(k1);
+      k3Samples.push(k3);
+    }
+    function runningMean(arr){
+      var out = [], s = 0;
+      for(var i=0;i<arr.length;i++){ s += arr[i]; out.push(s/(i+1)); }
+      return out;
+    }
+    function render(){
+      var W = canvas.width, H = canvas.height;
+      ctx.clearRect(0,0,W,H);
+      var k1Means = runningMean(k1Samples);
+      var k3Means = runningMean(k3Samples);
+      var N = k1Samples.length;
+      if(N === 0){
+        tex(readout, 'D_{\\mathrm{KL}}(p\\|q) = ' + trueKL.toFixed(3) + '\\ \\text{nats}.\\ \\text{Draw samples to watch } k_1 \\text{ (naive) and } k_3 \\text{ (low-variance) converge.}', false);
+        return;
+      }
+      var allVals = k1Means.concat(k3Means).concat([trueKL, 0]);
+      var yMin = Math.min.apply(null, allVals) - 0.1;
+      var yMax = Math.max.apply(null, allVals) + 0.1;
+      var PAD = 30;
+      function xToPx(i){ return PAD + (i/(Math.max(N-1,1))) * (W-PAD*2); }
+      function yToPx(v){ return H-PAD - (v-yMin)/(yMax-yMin) * (H-PAD*2); }
+
+      ctx.strokeStyle = '#9fb0a8'; ctx.setLineDash([4,3]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(PAD, yToPx(trueKL)); ctx.lineTo(W-PAD, yToPx(trueKL)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#9fb0a8'; ctx.font = '11px monospace';
+      ctx.fillText('true KL = ' + trueKL.toFixed(3), PAD+4, yToPx(trueKL)-6);
+
+      ctx.strokeStyle = '#84A98C'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      k1Means.forEach(function(v,i){ if(i===0) ctx.moveTo(xToPx(i), yToPx(v)); else ctx.lineTo(xToPx(i), yToPx(v)); });
+      ctx.stroke();
+
+      ctx.strokeStyle = '#e0a458'; ctx.lineWidth = 2;
+      ctx.beginPath();
+      k3Means.forEach(function(v,i){ if(i===0) ctx.moveTo(xToPx(i), yToPx(v)); else ctx.lineTo(xToPx(i), yToPx(v)); });
+      ctx.stroke();
+
+      ctx.fillStyle = '#84A98C'; ctx.fillText('k1 (naive)', W-110, 18);
+      ctx.fillStyle = '#e0a458'; ctx.fillText('k3 (low-var)', W-110, 32);
+
+      tex(readout,
+        'N = ' + N + ' \\quad k_1 = ' + k1Means[N-1].toFixed(3) +
+        ' \\quad k_3 = ' + k3Means[N-1].toFixed(3) +
+        ' \\quad D_{\\mathrm{KL}} = ' + trueKL.toFixed(3),
+        false);
+    }
+    document.getElementById('mc-draw1').addEventListener('click', function(){ drawSample(); render(); });
+    document.getElementById('mc-draw50').addEventListener('click', function(){ for(var i=0;i<50;i++) drawSample(); render(); });
+    document.getElementById('mc-reset').addEventListener('click', function(){ k1Samples=[]; k3Samples=[]; render(); });
+    render();
+  }
+
+  /* ---------------- C3: Sigmoid & Bradley-Terry ---------------- */
+  function initSigmoid(){
+    var slider = document.getElementById('sig-dr');
+    var drVal = document.getElementById('sig-dr-val');
+    var formulaEl = document.getElementById('sig-formula');
+    var svg = document.getElementById('sig-plot');
+
+    function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+    var domain = [-6, 6];
+    var pts = [];
+    for(var z = domain[0]; z <= domain[1] + 1e-9; z += 0.1){
+      var px = (z-domain[0])/(domain[1]-domain[0])*300+10;
+      var py = 190 - sigmoid(z)*170;
+      pts.push([px, py]);
+    }
+    var pathD = pts.map(function(pt,i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' ');
+
+    function render(){
+      var dr = parseFloat(slider.value);
+      drVal.textContent = dr.toFixed(2);
+      var p = sigmoid(dr);
+      var loss = -Math.log(p);
+      var cx = (dr-domain[0])/(domain[1]-domain[0])*300+10;
+      var cy = 190 - p*170;
+      svg.innerHTML =
+        '<line class="plot-axis" x1="10" y1="190" x2="310" y2="190"></line>' +
+        '<line class="plot-axis" x1="10" y1="20" x2="10" y2="190"></line>' +
+        '<line class="plot-axis" x1="160" y1="20" x2="160" y2="190" stroke-dasharray="2,3"></line>' +
+        '<path class="plot-curve" d="' + pathD + '"></path>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="14" y="32" fill="var(--text-dim)" font-size="10">P=1</text>' +
+        '<text x="14" y="186" fill="var(--text-dim)" font-size="10">P=0</text>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'P(y_w \\succ y_l) &= \\sigma(' + dr.toFixed(2) + ') = ' + p.toFixed(3) + ' \\\\ ' +
+        '\\mathcal{L} &= -\\log\\sigma(\\Delta r) = ' + loss.toFixed(3) +
+        '\\end{aligned}',
+        true);
+    }
+    slider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- D1: MDP table ---------------- */
+  function initMDP(){
+    var rows = [
+      { concept:'State <span class="m" data-tex="s_t"></span>', lm:'Prompt + tokens so far: <span class="m" data-tex="(x,\\,y_{<t})"></span>', detail:'Everything the model has seen up to this point — the conditioning context.' },
+      { concept:'Action <span class="m" data-tex="a_t"></span>', lm:'Next token <span class="m" data-tex="y_t"></span>', detail:'Choosing a token from the vocabulary is the "action" the policy takes.' },
+      { concept:'Transition <span class="m" data-tex="P"></span>', lm:'Deterministic: append the token', detail:'Unlike most RL environments, the dynamics here are trivial — no environment uncertainty, just concatenation.' },
+      { concept:'Policy <span class="m" data-tex="\\pi_\\theta(a_t\\mid s_t)"></span>', lm:'LM next-token distribution', detail:'The softmax output of the LM head is literally the RL policy.' },
+      { concept:'Reward <span class="m" data-tex="r"></span>', lm:'Usually terminal: RM score or verifier output', detail:'Most RLHF setups score only the full completion, not each token.' },
+      { concept:'Discount <span class="m" data-tex="\\gamma"></span>', lm:'Typically 1.0 (no discounting)', detail:'Responses are short enough that discounting future tokens is unnecessary.' }
+    ];
+    var tbody = document.querySelector('#mdp-table tbody');
+    rows.forEach(function(r, i){
+      var tr = document.createElement('tr');
+      tr.className = 'row';
+      tr.innerHTML = '<td>' + r.concept + '</td><td>' + r.lm + '</td>';
+      var detailTr = document.createElement('tr');
+      detailTr.className = 'detail';
+      detailTr.innerHTML = '<td colspan="2">' + r.detail + '</td>';
+      tr.addEventListener('click', function(){ detailTr.classList.toggle('show'); });
+      tbody.appendChild(tr);
+      tbody.appendChild(detailTr);
+    });
+    renderStaticMath();  // render the [data-tex] cells just added
+  }
+
+  /* ---------------- D2: RL objective / sparse reward ---------------- */
+  function initRLObjective(){
+    var tokens = ['The', 'capital', 'of', 'France', 'is', 'Paris', '.'];
+    var tokensEl = document.getElementById('rl-tokens');
+    var arrowsEl = document.getElementById('rl-arrows');
+    var formulaEl = document.getElementById('rl-formula');
+    var wrap = document.getElementById('rl-tokens-wrap');
+    var showFlow = false;
+    var logprobs = [];
+    var reward = 0;
+
+    function resample(){
+      logprobs = tokens.map(function(){ return 0.55 + Math.random()*0.43; });
+      reward = (Math.random()*2 - 1);
+      render();
+    }
+    function render(){
+      tokensEl.innerHTML = '';
+      var rewardBadge = document.createElement('span');
+      tokens.forEach(function(tok, i){
+        var col = document.createElement('div');
+        col.className = 'rl-token-col';
+        col.innerHTML =
+          '<div class="rl-token-bar-track"><div class="rl-token-bar-fill" style="height:' + (logprobs[i]*100).toFixed(0) + '%"></div></div>' +
+          '<span class="token-chip" style="cursor:default;">' + escapeHtml(tok) + '</span>';
+        tokensEl.appendChild(col);
+      });
+      rewardBadge.className = 'badge';
+      rewardBadge.id = 'rl-reward-badge';
+      rewardBadge.style.marginLeft = '10px';
+      rewardBadge.textContent = 'R = ' + reward.toFixed(2);
+      tokensEl.appendChild(rewardBadge);
+
+      tex(formulaEl,
+        '\\nabla_\\theta J \\approx R\\,\\sum_t \\nabla_\\theta\\log\\pi_\\theta(y_t\\mid x,y_{<t}), \\quad R = ' + reward.toFixed(2) +
+        '\\;\\;(\\text{one scalar weights every per-token gradient})',
+        true);
+
+      drawArrows();
+    }
+    function drawArrows(){
+      arrowsEl.innerHTML = '';
+      if(!showFlow) return;
+      var wrapRect = wrap.getBoundingClientRect();
+      var badge = document.getElementById('rl-reward-badge');
+      if(!badge) return;
+      var badgeRect = badge.getBoundingClientRect();
+      var bx = badgeRect.left + badgeRect.width/2 - wrapRect.left;
+      var by = badgeRect.top + badgeRect.height/2 - wrapRect.top;
+      arrowsEl.setAttribute('width', wrapRect.width);
+      arrowsEl.setAttribute('height', wrapRect.height);
+      arrowsEl.setAttribute('viewBox', '0 0 ' + wrapRect.width + ' ' + wrapRect.height);
+      var lines = '';
+      var chips = tokensEl.querySelectorAll('.rl-token-col');
+      chips.forEach(function(col){
+        var r = col.getBoundingClientRect();
+        var cx = r.left + r.width/2 - wrapRect.left;
+        var cy = r.top - wrapRect.top;
+        lines += '<line x1="' + bx + '" y1="' + by + '" x2="' + cx + '" y2="' + cy + '" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"></line>';
+      });
+      arrowsEl.innerHTML = lines;
+    }
+    document.getElementById('rl-resample').addEventListener('click', resample);
+    document.getElementById('rl-flow').addEventListener('click', function(){
+      showFlow = !showFlow;
+      drawArrows();
+    });
+    window.addEventListener('resize', drawArrows);
+    resample();
+  }
+
+  /* ---------------- D3: PPO clipped objective ---------------- */
+  function initPPO(){
+    var rSlider = document.getElementById('ppo-r');
+    var aSlider = document.getElementById('ppo-a');
+    var epsSlider = document.getElementById('ppo-eps');
+    var rVal = document.getElementById('ppo-r-val');
+    var aVal = document.getElementById('ppo-a-val');
+    var epsVal = document.getElementById('ppo-eps-val');
+    var hintEl = document.getElementById('ppo-hint');
+    var formulaEl = document.getElementById('ppo-formula');
+    var readoutEl = document.getElementById('ppo-readout');
+    var svg = document.getElementById('ppo-plot');
+
+    var W = 360, H = 220, PAD = 30;
+    var rMin = 0, rMax = 2.5;
+
+    function unclipped(r, A){ return r * A; }
+    function clipped(r, A, eps){ return clamp(r, 1-eps, 1+eps) * A; }
+    function ppoObj(r, A, eps){ return Math.min(unclipped(r, A), clipped(r, A, eps)); }
+
+    function render(){
+      var r = parseFloat(rSlider.value);
+      var A = parseFloat(aSlider.value);
+      var eps = parseFloat(epsSlider.value);
+      rVal.textContent = r.toFixed(2);
+      aVal.textContent = A.toFixed(2);
+      epsVal.textContent = eps.toFixed(2);
+
+      var yMax = Math.max(0.6, Math.abs(A) * rMax * 1.05);
+      function xToPx(rr){ return PAD + (rr - rMin)/(rMax - rMin) * (W - 2*PAD); }
+      function yToPx(v){ return PAD + (yMax - v)/(2*yMax) * (H - 2*PAD); }
+
+      var unclipPts = [], ppoPts = [];
+      for(var rr = rMin; rr <= rMax + 1e-9; rr += 0.02){
+        unclipPts.push([xToPx(rr), yToPx(clamp(unclipped(rr, A), -yMax, yMax))]);
+        ppoPts.push([xToPx(rr), yToPx(clamp(ppoObj(rr, A, eps), -yMax, yMax))]);
+      }
+      function toPath(pts){ return pts.map(function(p,i){ return (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '); }
+
+      var bandX1 = xToPx(1-eps), bandX2 = xToPx(1+eps);
+      var zeroY = yToPx(0);
+      var cx = xToPx(r), cy = yToPx(clamp(ppoObj(r, A, eps), -yMax, yMax));
+
+      svg.innerHTML =
+        '<rect x="' + bandX1.toFixed(1) + '" y="' + PAD + '" width="' + (bandX2-bandX1).toFixed(1) + '" height="' + (H-2*PAD) + '" fill="rgba(132,169,140,0.12)"></rect>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + zeroY.toFixed(1) + '" x2="' + (W-PAD) + '" y2="' + zeroY.toFixed(1) + '"></line>' +
+        '<line class="plot-axis" x1="' + xToPx(1).toFixed(1) + '" y1="' + PAD + '" x2="' + xToPx(1).toFixed(1) + '" y2="' + (H-PAD) + '" stroke-dasharray="2,3"></line>' +
+        '<path class="plot-true" d="' + toPath(unclipPts) + '"></path>' +
+        '<path class="plot-curve" d="' + toPath(ppoPts) + '"></path>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (xToPx(1)-6).toFixed(1) + '" y="' + (H-PAD+14) + '" fill="var(--text-dim)" font-size="10">r=1</text>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD+10) + '" fill="var(--text-dim)" font-size="10">objective</text>' +
+        '<text x="' + (bandX1+2).toFixed(1) + '" y="' + (PAD-4>10?PAD+10:PAD+22) + '" fill="var(--accent)" font-size="9">trust region</text>';
+
+      var lu = unclipped(r, A), lp = ppoObj(r, A, eps);
+      var clippedNow = Math.abs(lp - lu) > 1e-6;
+      var region;
+      if(A >= 0 && r > 1+eps){
+        region = 'Clipped: pushing this token above 1+ε gives <b>no extra objective</b> — the cap (1+ε)·A stops a runaway update.';
+      } else if(A < 0 && r < 1-eps){
+        region = 'Clipped: pushing this (bad) token below 1−ε gives <b>no extra objective</b> — the floor (1−ε)·A halts the step.';
+      } else {
+        region = 'Inside the trust region — the gradient flows normally and equals the plain policy gradient here.';
+      }
+      hintEl.innerHTML = 'Green curve = PPO surrogate (the min). Dashed grey = unclipped r·A. Shaded band = [1−ε, 1+ε]. ' +
+        'Notice the asymmetry: when A&gt;0 the cap is on the <i>up</i> side; when A&lt;0 it is on the <i>down</i> side. A KL penalty to π_ref (the probability section) does the same job more softly.';
+
+      tex(formulaEl,
+        'L^{\\mathrm{PPO}} = \\min\\big(' + lu.toFixed(2) + ',\\; ' + clipped(r, A, eps).toFixed(2) + '\\big) = ' + lp.toFixed(2) +
+        (clippedNow ? '\\;\\;\\textsf{[clipped]}' : ''),
+        true);
+      readoutEl.innerHTML =
+        '<span style="color:' + (clippedNow ? 'var(--orange)' : 'var(--accent-bright)') + '">' + region + '</span>';
+    }
+    rSlider.addEventListener('input', render);
+    aSlider.addEventListener('input', render);
+    epsSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- E1: Compute budget — train-time vs test-time ---------------- */
+  function initComputeBudget(){
+    var budgetSlider = document.getElementById('cb-budget');
+    var sizeSlider = document.getElementById('cb-size');
+    var budgetVal = document.getElementById('cb-budget-val');
+    var sizeVal = document.getElementById('cb-size-val');
+    var hintEl = document.getElementById('cb-hint');
+    var formulaEl = document.getElementById('cb-formula');
+    var svg = document.getElementById('cb-plot');
+
+    var W = 380, H = 220, PAD = 34;
+    var sMin = 0.5, sMax = 20;
+
+    // ceiling(s): accuracy an infinitely-resampled model of size s converges to —
+    // a "systematic competence" cap that more samples alone cannot fix.
+    function ceiling(s){ return 0.92 * (1 - Math.exp(-0.45*s)); }
+    // base(s): single-sample (n=1) accuracy, always below the ceiling.
+    function base(s){ return 0.05 + 0.5 * (1 - Math.exp(-0.45*s)); }
+    function nSamples(s, budget){ return Math.max(1, Math.floor(budget/s)); }
+    // More samples close the gap to the ceiling with diminishing returns (1/n),
+    // but can never push past it — that's the part train-time compute buys.
+    function finalAcc(s, budget){
+      var c = ceiling(s), b = Math.min(base(s), c - 0.01);
+      var n = nSamples(s, budget);
+      return c - (c-b)/n;
+    }
+
+    function render(){
+      var budget = parseFloat(budgetSlider.value);
+      var s = parseFloat(sizeSlider.value);
+      budgetVal.textContent = budget.toFixed(0);
+      sizeVal.textContent = s.toFixed(1);
+
+      function xToPx(ss){ return PAD + (ss-sMin)/(sMax-sMin) * (W-2*PAD); }
+      function yToPx(v){ return PAD + (1-v) * (H-2*PAD); }
+
+      var pts = [];
+      var bestS = sMin, bestAcc = -1;
+      for(var ss = sMin; ss <= sMax + 1e-9; ss += 0.1){
+        var a = finalAcc(ss, budget);
+        if(a > bestAcc){ bestAcc = a; bestS = ss; }
+        pts.push([xToPx(ss), yToPx(a)]);
+      }
+      function toPath(p){ return p.map(function(pt,i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' '); }
+
+      var n = nSamples(s, budget);
+      var acc = finalAcc(s, budget);
+      var cx = xToPx(s), cy = yToPx(acc);
+      var bx = xToPx(bestS), by = yToPx(bestAcc);
+
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + (H-PAD) + '" x2="' + (W-PAD) + '" y2="' + (H-PAD) + '"></line>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + PAD + '" x2="' + PAD + '" y2="' + (H-PAD) + '"></line>' +
+        '<path class="plot-curve" d="' + toPath(pts) + '"></path>' +
+        '<circle cx="' + bx.toFixed(1) + '" cy="' + by.toFixed(1) + '" r="3.5" fill="var(--text-dim)" opacity="0.6"></circle>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD-8) + '" fill="var(--text-dim)" font-size="10">accuracy</text>' +
+        '<text x="' + (W-PAD-58) + '" y="' + (H-PAD+16) + '" fill="var(--text-dim)" font-size="10">model size s</text>' +
+        '<text x="' + (bx+4).toFixed(1) + '" y="' + (by-6).toFixed(1) + '" fill="var(--text-dim)" font-size="9">optimum</text>';
+
+      var hint;
+      if(Math.abs(s-bestS) < 0.3){
+        hint = 'Near the budget-optimal split for C=' + budget.toFixed(0) + ': model size ≈ ' + bestS.toFixed(1) + '.';
+      } else if(s < bestS){
+        hint = 'Under-invested in the model: its competence ceiling (' + ceiling(s).toFixed(2) + ') is low enough that no amount of resampling — even ' + n + ' samples — closes the gap. Move the slider right.';
+      } else {
+        hint = 'Over-invested in the model: most of the budget went to size, leaving only ' + n + ' sample' + (n===1?'':'s') + ' per query — the model is already near its ceiling, so extra test-time compute would help more here. Move the slider left.';
+      }
+      hintEl.textContent = hint;
+
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'n &= \\lfloor C/s \\rfloor = \\lfloor ' + budget.toFixed(0) + '/' + s.toFixed(1) + ' \\rfloor = ' + n + '\\ \\text{samples/query} \\\\ ' +
+        '\\mathrm{acc} &= \\mathrm{ceil}(s) - \\tfrac{\\mathrm{ceil}(s)-\\mathrm{base}(s)}{n} = ' +
+        ceiling(s).toFixed(3) + ' - \\tfrac{' + ceiling(s).toFixed(3) + ' - ' + base(s).toFixed(3) + '}{' + n + '} = ' + acc.toFixed(3) +
+        '\\end{aligned}',
+        true);
+    }
+    budgetSlider.addEventListener('input', render);
+    sizeSlider.addEventListener('input', render);
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
+    initAutoregressive();
+    initSoftmax();
+    initTensorPipeline();
+    initMasks();
+    initCrossEntropy();
+    initGradientDescent();
+    initStages();
+    initKL();
+    initMonteCarlo();
+    initSigmoid();
+    initMDP();
+    initRLObjective();
+    initPPO();
+    initComputeBudget();
+  });
+})();
+</script>
+
+</body>
+</html>

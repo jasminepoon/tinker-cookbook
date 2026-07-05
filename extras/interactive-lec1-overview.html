@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 1: Overview — Interactive RLHF Course</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --rose:#F28482;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    transition:all 0.15s;
+  }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; }
+
+  /* timeline */
+  .timeline-years{ display:flex; flex-wrap:wrap; gap:6px; }
+  .year-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:7px 11px;
+    font-size:0.85em;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .year-chip:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .year-chip.active{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .milestone-card{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-left:3px solid var(--accent);
+    border-radius:8px;
+    padding:14px 16px;
+  }
+  .milestone-card h4{ margin:0 0 6px; font-size:1.05em; color:var(--accent-bright); }
+  .milestone-card .why{ color:var(--text-dim); font-size:0.9em; margin:8px 0 0; }
+  .milestone-card .why b{ color:var(--text); }
+
+  /* conversation blocks */
+  .convo{ display:flex; flex-direction:column; gap:8px; }
+  .msg{
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:9px 12px;
+    font-size:0.86em;
+  }
+  .msg .role{ font-family:var(--mono); font-size:0.72em; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:4px; }
+  .msg.user{ background:var(--panel-2); }
+  .msg.assistant{ background:rgba(132,169,140,0.08); border-color:var(--accent); }
+  .msg.assistant .model{ font-family:var(--mono); font-size:0.7em; color:var(--orange); float:right; }
+  .msg .content{ white-space:pre-wrap; }
+
+  /* RL loop diagram */
+  .loop-stage{ display:flex; flex-wrap:wrap; gap:8px; align-items:stretch; }
+  .loop-box{
+    flex:1;
+    min-width:90px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    transition:all 0.15s;
+  }
+  .loop-box.lit{ border-color:var(--accent); background:rgba(132,169,140,0.12); }
+  .loop-box .lk{ font-family:var(--mono); font-size:0.7em; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); }
+  .loop-box .lv{ font-size:1.0em; font-family:var(--mono); color:var(--accent-bright); margin-top:3px; }
+
+  /* pipeline steps */
+  .pipe{ display:flex; flex-direction:column; gap:10px; }
+  .pipe-step{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .pipe-step:hover{ border-color:var(--accent); }
+  .pipe-step.active{ border-color:var(--accent); background:rgba(132,169,140,0.1); }
+  .pipe-step .ph{ display:flex; align-items:center; gap:10px; }
+  .pipe-num{
+    font-family:var(--mono);
+    background:var(--accent);
+    color:#0b0f0e;
+    border-radius:50%;
+    width:24px; height:24px;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:0.82em; font-weight:700; flex:0 0 auto;
+  }
+  .pipe-title{ font-size:0.98em; font-weight:600; }
+  .pipe-body{ display:none; margin-top:10px; color:var(--text-dim); font-size:0.86em; }
+  .pipe-step.active .pipe-body{ display:block; }
+  .pipe-body .datatag{ display:inline-block; font-family:var(--mono); font-size:0.78em; background:rgba(224,164,88,0.14); border:1px solid var(--orange); color:var(--orange); border-radius:5px; padding:3px 8px; margin-top:6px; }
+
+  /* tug of war bar */
+  .tug{ height:34px; border-radius:8px; overflow:hidden; display:flex; border:1px solid var(--border); }
+  .tug-reward{ background:linear-gradient(to right, var(--accent), var(--accent-bright)); display:flex; align-items:center; justify-content:flex-start; padding-left:10px; font-size:0.8em; color:#0b0f0e; font-weight:600; transition:width 0.15s; white-space:nowrap; overflow:hidden; }
+  .tug-kl{ background:linear-gradient(to left, var(--rose), #f6a6a4); display:flex; align-items:center; justify-content:flex-end; padding-right:10px; font-size:0.8em; color:#0b0f0e; font-weight:600; transition:width 0.15s; white-space:nowrap; overflow:hidden; }
+
+  table.cmp{ width:100%; border-collapse:collapse; font-size:0.84em; }
+  table.cmp th, table.cmp td{ border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  table.cmp th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.cmp tr.row{ cursor:pointer; }
+  table.cmp tr.row:hover td{ background:rgba(132,169,140,0.08); }
+  table.cmp td.lab{ color:var(--accent-bright); font-weight:600; }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
+  <div class="eyebrow">rlhfbook.com/course · lecture 1</div>
+  <h1>Lecture 1: Overview</h1>
+  <p class="sub">From the Transformer to agents: what a language model is, how post-training turns autocomplete into a chatbot, the classical-RL roots of RLHF, and the InstructGPT recipe and objective that power modern alignment — every idea playable.</p>
+  <p class="credit">Interactive companion to Nathan Lambert's "Lecture 1: Overview" (Chapters 1–3, rlhfbook.com/course). Interactive build only — original content credit to the source deck.</p>
+</header>
+
+<nav class="toc">
+  <a href="#foundations">Foundations</a>
+  <a href="#lms">Language Models</a>
+  <a href="#stages">Training Stages</a>
+  <a href="#classical">Classical RL</a>
+  <a href="#recipe">The RLHF Recipe</a>
+  <a href="#objective">The Objective</a>
+  <a href="#landscape">Preference Landscape</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">This page tells the story of how a plain text predictor becomes a helpful chatbot. Before that story, here are the two everyday ideas it leans on: a language model is just a <b>probability distribution over the next word</b>, and reinforcement learning is just an <b>agent collecting reward by acting</b>. Nothing more exotic than "what's likely?" and "did that go well?"</p>
+
+    <article class="concept">
+      <h3>A language model is a next-word probability distribution</h3>
+      <p class="concept-desc">Given some text so far, the model doesn't output one word — it outputs a <b>probability</b> for <i>every</i> word it knows, all adding up to 100%. "Generating text" is just repeatedly sampling one word from that distribution and feeding it back in.</p>
+      <div class="eq" data-tex="P_\theta(\text{next word} \mid \text{context}), \qquad \sum_{\text{words}} P = 1"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 180" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="20" y1="150" x2="320" y2="150" stroke="var(--border)" stroke-width="1"/>
+          <rect x="26" y="53" width="40" height="97" fill="var(--accent)" rx="3"/>
+          <rect x="88" y="92" width="40" height="58" fill="var(--accent)" rx="3"/>
+          <rect x="150" y="115" width="40" height="35" fill="var(--accent)" rx="3"/>
+          <rect x="212" y="122" width="40" height="28" fill="var(--accent)" rx="3"/>
+          <rect x="274" y="136" width="40" height="14" fill="var(--accent)" rx="3"/>
+          <g font-family="monospace" font-size="9" fill="var(--text-dim)" text-anchor="middle">
+            <text x="46" y="164">"mat"</text><text x="108" y="164">"floor"</text><text x="170" y="164">"sofa"</text><text x="232" y="164">"roof"</text><text x="294" y="164">"moon"</text>
+            <text x="46" y="49">42%</text><text x="108" y="88">25%</text><text x="170" y="111">15%</text><text x="232" y="118">12%</text><text x="294" y="132">6%</text>
+          </g>
+          <text x="20" y="176" fill="var(--text-dim)" font-size="9">"The cat sat on the ___" — the model's guess is a distribution over every possible next word</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="P_\theta"></span><span class="def">the model (with parameters <span class="m" data-tex="\theta"></span>) turning context into probabilities; bigger bar = more likely word.</span></div>
+        <div class="row"><span class="sym" data-tex="\textstyle\sum P = 1"></span><span class="def">the bars always add to 100% — it's a real probability distribution, not arbitrary scores.</span></div>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>The vocabulary of reinforcement learning</h3>
+      <p class="concept-desc">RLHF borrows four words from classical RL. An <b>agent</b> takes <b>actions</b> in an <b>environment</b> and gets a <b>reward</b> telling it how well it did; it adjusts to earn more reward next time. For a chatbot, the agent is the model, an action is producing the next token, and the reward is "was this answer good?"</p>
+      <div style="margin:6px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 170" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <defs><marker id="arr-l1" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--text-dim)"/></marker></defs>
+          <rect x="22" y="58" width="116" height="54" rx="8" fill="var(--panel)" stroke="var(--accent)"/>
+          <text x="80" y="82" fill="var(--accent-bright)" font-size="12" text-anchor="middle" font-family="monospace">Agent</text>
+          <text x="80" y="99" fill="var(--text-dim)" font-size="9" text-anchor="middle">the model / policy</text>
+          <rect x="202" y="58" width="116" height="54" rx="8" fill="var(--panel)" stroke="var(--orange)"/>
+          <text x="260" y="82" fill="var(--orange)" font-size="12" text-anchor="middle" font-family="monospace">Environment</text>
+          <text x="260" y="99" fill="var(--text-dim)" font-size="9" text-anchor="middle">task / user / judge</text>
+          <line x1="138" y1="74" x2="200" y2="74" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-l1)"/>
+          <text x="170" y="66" fill="var(--text-dim)" font-size="9" text-anchor="middle">action</text>
+          <line x1="202" y1="98" x2="140" y2="98" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-l1)"/>
+          <text x="170" y="112" fill="var(--text-dim)" font-size="9" text-anchor="middle">reward + state</text>
+          <text x="22" y="140" fill="var(--text-dim)" font-size="9">the agent keeps acting and the reward steers it — that loop is all RL is</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\pi_\theta"></span><span class="def">the <b>policy</b> — the agent's rule for choosing actions. Here it's literally the next-token distribution above.</span></div>
+        <div class="row"><span class="sym" data-tex="R"></span><span class="def">the <b>reward</b> — one number scoring the outcome. RL's whole goal is to maximize it <i>on average</i>: <span class="m" data-tex="\mathbb{E}[R]"></span>, an expected (weighted-average) value.</span></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 1: LANGUAGE MODELS & THE TIMELINE ============ -->
+  <section class="group" id="lms">
+    <div class="group-header"><span class="group-index">01</span><h2>Language Models &amp; Their History</h2></div>
+    <p class="group-intro">A language model assigns probabilities to text. Words are broken into <b>tokens</b>; given the previous tokens it predicts the next one, and repeating that — <b>autoregressively</b> — produces a completion one step at a time. Modern models have billions to trillions of parameters and are largely downstream of the 2017 Transformer.</p>
+
+    <article class="concept" id="timeline">
+      <h3>The LM milestone timeline (2017 → 2025)</h3>
+      <p class="concept-desc">Click a year to see the milestone from the deck and why it mattered. The arc runs from the birth of the Transformer to the era of reasoning models and agents.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Pick a year</label>
+          <div class="timeline-years" id="tl-years"></div>
+          <p class="hint">The whole course is downstream of this arc: bigger Transformers (2017–2020), the public arrival of RLHF with ChatGPT (2022), then reasoning and agents (2024–2025).</p>
+        </div>
+        <div class="panel-viz">
+          <div class="milestone-card" id="tl-card"></div>
+          <div class="formula-display" id="tl-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="autoreg">
+      <h3>Autoregressive next-token prediction</h3>
+      <p class="concept-desc">Pretraining optimizes one objective: predict the next token. The sequence probability factorizes as <span class="m" data-tex="P_\theta(x)=\prod_{t} P_\theta(x_t \mid x_{<t})"></span>. Step through a completion and watch the model condition only on what came before — and see the running sequence log-probability accumulate.</p>
+      <div class="eq" data-tex="P_\theta(x)=\prod_{t=1}^{T} P_\theta\!\left(x_t \mid x_{<t}\right) \qquad\qquad \log P_\theta(x)=\sum_{t=1}^{T}\log P_\theta\!\left(x_t \mid x_{<t}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="x_t"></span><span class="def">the <span class="m" data-tex="t"></span>-th token of the sequence</span></div>
+        <div class="row"><span class="sym" data-tex="x_{<t}"></span><span class="def">all tokens before position <span class="m" data-tex="t"></span> — the only context the model conditions on (it never sees the future)</span></div>
+        <div class="row"><span class="sym" data-tex="P_\theta"></span><span class="def">the model's probability with parameters <span class="m" data-tex="\theta"></span>; the log form turns the product into a running sum of log-probs</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <button id="ar-prev">◀ Back</button>
+          <button id="ar-next">Generate next ▶</button>
+          <button id="ar-reset">Reset</button>
+          <p class="hint">Each generated token has a (toy) probability under the model. The model never sees future tokens — only the green context to its left.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="token-row" id="ar-tokens"></div>
+          <div class="eq" id="ar-formula"></div>
+          <div class="eq-readout" id="ar-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 2: TRAINING STAGES ============ -->
+  <section class="group" id="stages">
+    <div class="group-header"><span class="group-index">02</span><h2>From Base Model to Chatbot</h2></div>
+    <p class="group-intro">After pretraining we have "a glorified autocomplete model." Post-training reshapes <i>how</i> it responds. The deck breaks the change into stages — pretraining builds world knowledge, SFT teaches the answer format, preference tuning/RLHF gives response-level feedback, and RLVR sharpens verifiable skills.</p>
+
+    <article class="concept" id="basevspost">
+      <h3>Base completion vs. post-trained answer</h3>
+      <p class="concept-desc">The same prompt, two models. The base model continues the text like web data; the post-trained model answers the question. This is the exact example from the deck (Llama 3.1 405B Base vs. Tülu 3 405B). Toggle to see what post-training changes.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="bp-tabs">
+            <button data-mode="base" class="active">Base model</button>
+            <button data-mode="post">Post-trained</button>
+          </div>
+          <p class="hint" id="bp-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="convo" id="bp-convo"></div>
+          <div class="formula-display" id="bp-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="stagechain">
+      <h3>The four training stages</h3>
+      <p class="concept-desc">Click a stage to see what it changes about the model. The deck's framing: pretraining sets the <b>ceiling</b>; the rest of post-training is the craft of reaching it (the "elicitation theory").</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="st-tabs">
+            <button data-stage="0" class="active">Pretraining</button>
+            <button data-stage="1">SFT / IFT</button>
+            <button data-stage="2">RLHF</button>
+            <button data-stage="3">RLVR</button>
+          </div>
+          <p class="hint">Each stage uses a different optimizer/signal with different strengths. SFT remains the foundation; RL-based stages add richer, response-level, contrastive feedback.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="milestone-card" id="st-card"></div>
+          <div class="formula-display" id="st-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 3: CLASSICAL RL ============ -->
+  <section class="group" id="classical">
+    <div class="group-header"><span class="group-index">03</span><h2>Classical Reinforcement Learning</h2></div>
+    <p class="group-intro">RLHF inherits its language from classical RL, written as a Markov Decision Process <span class="m" data-tex="(\mathcal{S}, \mathcal{A}, P, r, \gamma)"></span>. The agent observes a <b>state</b>, its <b>policy</b> picks an <b>action</b>, the environment returns a <b>reward</b> and a <b>next state</b>; the goal is to maximize cumulative return <span class="m" data-tex="J(\pi)=\mathbb{E}\!\left[\sum_t \gamma^t\, r(s_t,a_t)\right]"></span>.</p>
+
+    <article class="concept" id="thermostat">
+      <h3>The agent–environment loop (Thermostat)</h3>
+      <p class="concept-desc">The deck's thermostat example. <b>State</b> = room temperature; <b>action</b> = heater on/off; <b>reward</b> = high when near the target. The policy here is: heater <code>on</code> if temperature &lt; 70°F, else <code>off</code>. Step the loop and watch state → policy → action → reward → next state with live numbers, and the return accumulate.</p>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\pi"></span><span class="def">the <b>policy</b> — the rule mapping a state to an action, here <span class="m" data-tex="\pi(\text{on}\mid s)=1"></span> if <span class="m" data-tex="s<70^\circ\!F"></span> else 0</span></div>
+        <div class="row"><span class="sym" data-tex="r(s)"></span><span class="def">the <b>reward</b>, <span class="m" data-tex="\max\!\left(0,\,1-|s-\text{target}|/10\right)"></span> — peaks at the target temperature</span></div>
+        <div class="row"><span class="sym" data-tex="\gamma"></span><span class="def">the <b>discount</b> in <span class="m" data-tex="(0,1]"></span> — how much future reward is worth now</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Target temperature = <span id="th-target-val">70</span>°F</label>
+          <input type="range" id="th-target" min="64" max="76" step="1" value="70">
+          <label>Discount γ = <span id="th-gamma-val">0.90</span></label>
+          <input type="range" id="th-gamma" min="0.5" max="1" step="0.01" value="0.9">
+          <button id="th-step">Step ▶</button>
+          <button id="th-reset">Reset</button>
+          <p class="hint">Policy: <span class="m" data-tex="\pi(\text{on}\mid s)=1"></span> if <span class="m" data-tex="s<70^\circ\!F"></span> else 0. Reward <span class="m" data-tex="r(s)=\max(0,\,1-|s-\text{target}|/10)"></span>. The heater warms the room ~+3°F when on; it cools ~−2°F when off.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="loop-stage" id="th-loop"></div>
+          <svg class="plot" viewBox="0 0 360 150" id="th-plot"></svg>
+          <div class="eq" id="th-formula"></div>
+          <div class="eq-readout" id="th-status"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="whyrlhf">
+      <h3>Why RLHF? Rewards you can't write down</h3>
+      <p class="concept-desc">In CartPole the reward is a known formula (+1 per upright step). But it's easy to <i>judge</i> which response is better and hard to <i>specify</i> "helpful" as an equation. RLHF (and its predecessors — TAMER 2008, Christiano 2017's Atari/backflip preferences, Ziegler 2019 on LMs) optimizes behavior we can <b>evaluate</b> even when we can't <b>specify</b> the reward. Drag the two backflip scores and pick the better one.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Backflip A — "quality" (hidden human taste) = <span id="bf-a-val">0.40</span></label>
+          <input type="range" id="bf-a" min="0" max="1" step="0.01" value="0.4">
+          <label>Backflip B — "quality" = <span id="bf-b-val">0.70</span></label>
+          <input type="range" id="bf-b" min="0" max="1" step="0.01" value="0.7">
+          <p class="hint">There's no closed-form reward for "a good backflip" — so a human just picks the better clip. That single bit of preference becomes the training signal (Christiano et al. 2017).</p>
+        </div>
+        <div class="panel-viz">
+          <div class="loop-stage" id="bf-clips"></div>
+          <div class="eq" id="bf-formula"></div>
+          <div class="eq-readout" id="bf-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 4: THE RLHF RECIPE ============ -->
+  <section class="group" id="recipe">
+    <div class="group-header"><span class="group-index">04</span><h2>InstructGPT's 3-Step RLHF Recipe</h2></div>
+    <p class="group-intro">InstructGPT (Ouyang et al. 2022) made the canonical three-stage recipe standard: instruction fine-tuning, reward modeling, then RL against the reward model. OpenAI hinted the original ChatGPT used exactly this. It became the intellectual template for modern post-training.</p>
+
+    <article class="concept" id="pipeline">
+      <h3>The pipeline: IFT → Reward Modeling → RL</h3>
+      <p class="concept-desc">Click each stage to expand what it does and the data it needs.</p>
+      <div class="panel" style="grid-template-columns:1fr;">
+        <div class="panel-viz">
+          <div class="pipe" id="ig-pipe"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="rm">
+      <h3>Reward modeling &amp; the Bradley–Terry preview</h3>
+      <p class="concept-desc">An annotator sees two responses to a prompt and picks the winner. The reward model <span class="m" data-tex="r_\varphi"></span> is trained so the chosen response scores higher, minimizing the negative log-likelihood of the preference. The reward is literally the model's predicted probability that a piece of text is the "winning" completion. Drag the reward gap <span class="m" data-tex="\Delta r"></span> and watch the preference probability and loss respond.</p>
+      <div class="eq" data-tex="P(y_w \succ y_l)=\sigma\!\left(r_\varphi(x,y_w)-r_\varphi(x,y_l)\right) \qquad\qquad \mathcal{L}=-\log\sigma(\Delta r)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_\varphi"></span><span class="def">the reward model (parameters <span class="m" data-tex="\varphi"></span>) scoring a prompt–completion pair <span class="m" data-tex="(x,y)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="y_w,\ y_l"></span><span class="def">the <b>w</b>inning (chosen) and <b>l</b>osing (rejected) completions; <span class="m" data-tex="\Delta r=r_\varphi(x,y_w)-r_\varphi(x,y_l)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic sigmoid <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span>, mapping the score gap to a probability</span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the loss minimized in reward-model training — small when the pair is ordered correctly</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label><span class="m" data-tex="r_\varphi(x, y_w)"></span> = <span id="bt-rw-val">1.20</span></label>
+          <input type="range" id="bt-rw" min="-3" max="3" step="0.05" value="1.2">
+          <label><span class="m" data-tex="r_\varphi(x, y_l)"></span> = <span id="bt-rl-val">0.30</span></label>
+          <input type="range" id="bt-rl" min="-3" max="3" step="0.05" value="0.3">
+          <p class="hint">Only the difference <span class="m" data-tex="\Delta r = r_w - r_l"></span> matters. <span class="m" data-tex="\Delta r = 0"></span> → toss-up (<span class="m" data-tex="P=0.5"></span>). Large positive <span class="m" data-tex="\Delta r"></span> → near-certain preference for the winner, and the RM loss → 0.</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 320 200" id="bt-plot"></svg>
+          <div class="eq" id="bt-formula"></div>
+          <div class="eq-readout" id="bt-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 5: THE OBJECTIVE ============ -->
+  <section class="group" id="objective">
+    <div class="group-header"><span class="group-index">05</span><h2>The RLHF Objective, Unpacked</h2></div>
+    <p class="group-intro">Step 3 brings it together: sample prompts, generate completions, score them with the reward model, and update the policy — but with a <b>KL penalty</b> keeping the policy close to the reference (SFT) model. The whole thing is one objective with a knob, β, controlling the tradeoff.</p>
+
+    <article class="concept" id="jtheta">
+      <h3>The RLHF objective <span class="m" data-tex="J(\theta)"></span></h3>
+      <p class="concept-desc">The tug-of-war: the first term pulls the policy toward high reward; the second pulls it back toward the reference model. Drag the policy's chosen reward and the KL distance from the reference, then turn <span class="m" data-tex="\beta"></span> to see who wins. The deck's annotation: "maximize the reward, but don't change the model too much."</p>
+      <div class="eq" data-tex="J(\theta)=\mathbb{E}_{x\sim\mathcal{D},\,y\sim\pi_\theta}\!\left[r(x,y)\right]-\beta\,\mathrm{D}_{\mathrm{KL}}\!\left(\pi_\theta \,\|\, \pi_{\mathrm{ref}}\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="J(\theta)"></span><span class="def">the objective being <b>maximized</b> over the policy parameters <span class="m" data-tex="\theta"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\mathbb{E}"></span><span class="def">the <b>expectation</b> (average) over prompts <span class="m" data-tex="x"></span> and completions <span class="m" data-tex="y"></span> the policy samples</span></div>
+        <div class="row"><span class="sym" data-tex="r(x,y)"></span><span class="def">the reward (from the reward model) for the policy's response</span></div>
+        <div class="row"><span class="sym" data-tex="\mathrm{D}_{\mathrm{KL}}"></span><span class="def">the <b>KL divergence</b> — how far the policy <span class="m" data-tex="\pi_\theta"></span> has drifted from the reference <span class="m" data-tex="\pi_{\mathrm{ref}}"></span> (the SFT model), in nats</span></div>
+        <div class="row"><span class="sym" data-tex="\beta"></span><span class="def">the KL <b>penalty strength</b> — the leash holding the policy near the reference</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Reward of policy's response, <span class="m" data-tex="r(x,y)"></span> = <span id="jt-r-val">2.00</span></label>
+          <input type="range" id="jt-r" min="-1" max="5" step="0.05" value="2">
+          <label>KL from reference, <span class="m" data-tex="\mathrm{D}_{\mathrm{KL}}(\pi_\theta\|\pi_{\mathrm{ref}})"></span> = <span id="jt-kl-val">3.00</span> nats</label>
+          <input type="range" id="jt-kl" min="0" max="10" step="0.1" value="3">
+          <label><span class="m" data-tex="\beta"></span> (KL strength) = <span id="jt-beta-val">0.20</span></label>
+          <input type="range" id="jt-beta" min="0" max="1" step="0.01" value="0.2">
+          <p class="hint" id="jt-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <div class="tug" id="jt-tug"></div>
+          <svg class="plot" viewBox="0 0 360 200" id="jt-plot"></svg>
+          <div class="eq" id="jt-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="overopt">
+      <h3>Over-optimization: the reward is a proxy</h3>
+      <p class="concept-desc">The reward model is only <i>correlated</i> with real quality (Goodhart's Law). Push the policy too far from the reference and the <b>proxy</b> reward keeps climbing while <b>true</b> quality turns over — reward hacking, verbosity, sycophancy. β is the main defense. Drag the optimization pressure (how far the policy drifts) and watch proxy vs. true reward diverge.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Optimization pressure (KL from ref) = <span id="oo-kl-val">3.0</span></label>
+          <input type="range" id="oo-kl" min="0" max="12" step="0.1" value="3">
+          <p class="hint" id="oo-hint"></p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 360 200" id="oo-plot"></svg>
+          <div class="formula-display" id="oo-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 6: LANDSCAPE ============ -->
+  <section class="group" id="landscape">
+    <div class="group-header"><span class="group-index">06</span><h2>The Preference-Tuning Landscape</h2></div>
+    <p class="group-intro">Rejection sampling, online RL (PPO), and DPO all optimize the same underlying objective — they differ in <b>how</b> they move the policy toward higher-reward completions. DPO even eliminates the separate reward model by training an implicit one directly on preferences.</p>
+
+    <article class="concept" id="dpo">
+      <h3>DPO: skip the reward model</h3>
+      <p class="concept-desc">DPO derives the gradient toward the optimal policy directly, training on preferred (<span class="m" data-tex="y_w"></span>) vs. rejected (<span class="m" data-tex="y_l"></span>) pairs. Its loss reuses the same Bradley–Terry sigmoid, but on a <i>policy-vs-reference log-ratio</i>. Drag the policy's log-probs and watch the implicit reward margin and loss.</p>
+      <div class="eq" data-tex="\mathcal{L}_{\mathrm{DPO}}=-\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w)}{\pi_{\mathrm{ref}}(y_w)}-\beta\log\frac{\pi_\theta(y_l)}{\pi_{\mathrm{ref}}(y_l)}\right)"></div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label><span class="m" data-tex="\log\,\pi_\theta(y_w)/\pi_{\mathrm{ref}}(y_w)"></span> = <span id="dpo-w-val">0.80</span></label>
+          <input type="range" id="dpo-w" min="-2" max="2" step="0.05" value="0.8">
+          <label><span class="m" data-tex="\log\,\pi_\theta(y_l)/\pi_{\mathrm{ref}}(y_l)"></span> = <span id="dpo-l-val">-0.40</span></label>
+          <input type="range" id="dpo-l" min="-2" max="2" step="0.05" value="-0.4">
+          <label><span class="m" data-tex="\beta"></span> = <span id="dpo-beta-val">0.10</span></label>
+          <input type="range" id="dpo-beta" min="0.01" max="0.5" step="0.01" value="0.1">
+          <p class="hint">The implicit reward is <span class="m" data-tex="\beta\log[\pi_\theta/\pi_{\mathrm{ref}}]"></span>. Raising <span class="m" data-tex="y_w"></span>'s log-ratio above <span class="m" data-tex="y_l"></span>'s drives the loss down — exactly the contrastive push of preference tuning, no reward model required.</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 320 200" id="dpo-plot"></svg>
+          <div class="eq" id="dpo-formula"></div>
+          <div class="eq-readout" id="dpo-status"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="cmp">
+      <h3>Classical RL vs. RLHF vs. RLVR</h3>
+      <p class="concept-desc">The deck's comparison table. Click a row to highlight how the three regimes differ on reward source, state transitions, granularity, and primary challenge.</p>
+      <div class="panel" style="grid-template-columns:1fr;">
+        <div class="panel-viz">
+          <table class="cmp" id="cmp-table">
+            <thead><tr><th>&nbsp;</th><th>Classical RL</th><th>RLHF</th><th>RLVR</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="formula-display" id="cmp-formula">Click a row to read the contrast.</div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>, Lecture 1 (Overview) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
+
+  /* ---------------- 1A: Milestone timeline ---------------- */
+  function initTimeline(){
+    var data = [
+      {y:'2017', t:'The Transformer is born', why:'Vaswani et al. introduce the Transformer, popularizing the <b>self-attention</b> mechanism alongside fully-dense layers. Nearly every modern language model is downstream of this architecture.'},
+      {y:'2018', t:'GPT-1, ELMo, and BERT', why:'The first wave of large pretrained Transformer language models — establishing the pretrain-then-adapt paradigm.'},
+      {y:'2019', t:'GPT-2 and scaling laws', why:'GPT-2 showed surprisingly fluent generation; scaling laws (Kaplan et al.) revealed that loss falls predictably as you add <b>parameters, data, and compute</b>.'},
+      {y:'2020', t:'GPT-3 surprising capabilities', why:'GPT-3 expanded <b>in-context learning</b> and few-shot prompting — capable without task-specific fine-tuning, just from examples in the prompt.'},
+      {y:'2021', t:'Stochastic Parrots', why:'Bender et al. raised the risks and limits of ever-larger LMs — a critical counterpoint as scale accelerated.'},
+      {y:'2022', t:'ChatGPT', why:'RLHF post-training made models dramatically easier to use: better <b>format</b> (direct answers), <b>style</b> (helpful, concise, markdown), and <b>product</b> (usable every day). The public debut of RLHF.'},
+      {y:'2023', t:'GPT-4 and frontier-scale', why:'Frontier-scale multimodal models; the rumored ~2T-parameter MoE pushed capability and cost to a new tier.'},
+      {y:'2024', t:'o1 and reasoning models', why:'OpenAI\'s o1 demonstrated <b>test-time scaling</b> — spending more compute at generation time keeps improving accuracy, unlocked in popular form by RLVR.'},
+      {y:'2025', t:'o3, Claude Code, and agents', why:'Reasoning models and coding agents (Claude Code, o3) mark the shift to <b>tool-use-native</b>, agentic systems — models are now about tools and harnesses, not just weights.'}
+    ];
+    var yearsEl = document.getElementById('tl-years');
+    var cardEl = document.getElementById('tl-card');
+    var formulaEl = document.getElementById('tl-formula');
+    var sel = 0;
+
+    function render(){
+      yearsEl.innerHTML = '';
+      data.forEach(function(d, i){
+        var chip = document.createElement('span');
+        chip.className = 'year-chip' + (i===sel ? ' active' : '');
+        chip.textContent = d.y;
+        chip.addEventListener('click', function(){ sel = i; render(); });
+        yearsEl.appendChild(chip);
+      });
+      cardEl.innerHTML = '<h4>' + data[sel].y + ' — ' + escapeHtml(data[sel].t) + '</h4>' +
+        '<p class="why">' + data[sel].why + '</p>';
+      formulaEl.innerHTML = 'Milestone <b>' + (sel+1) + ' of ' + data.length + '</b> &nbsp;|&nbsp; ' +
+        data[0].y + ' &rarr; ' + data[data.length-1].y + ' &nbsp;|&nbsp; selected: <b>' + data[sel].y + '</b>';
+    }
+    render();
+  }
+
+  /* ---------------- 1B: Autoregressive generation ---------------- */
+  function initAutoreg(){
+    var prompt = ['The', 'president', 'of', 'the', 'US', 'in', '2006', 'was'];
+    var gen = [
+      {tok:'George', p:0.62},
+      {tok:'W.', p:0.91},
+      {tok:'Bush', p:0.97},
+      {tok:'.', p:0.55}
+    ];
+    var tokensEl = document.getElementById('ar-tokens');
+    var formulaEl = document.getElementById('ar-formula');
+    var statusEl = document.getElementById('ar-status');
+    var prevBtn = document.getElementById('ar-prev');
+    var nextBtn = document.getElementById('ar-next');
+    var resetBtn = document.getElementById('ar-reset');
+    var nGen = 0; // how many generated tokens revealed
+
+    function render(){
+      tokensEl.innerHTML = '';
+      prompt.forEach(function(tok){
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        chip.style.borderColor = 'var(--accent-bright)';
+        chip.style.color = 'var(--accent-bright)';
+        chip.textContent = tok;
+        tokensEl.appendChild(chip);
+      });
+      gen.forEach(function(g, i){
+        if(i >= nGen) return;
+        var chip = document.createElement('span');
+        chip.className = 'token-chip';
+        if(i === nGen-1){
+          chip.style.background = 'var(--orange)';
+          chip.style.color = '#0b0f0e';
+          chip.style.borderColor = 'var(--orange)';
+        } else {
+          chip.style.borderColor = 'var(--accent)';
+        }
+        chip.textContent = g.tok;
+        tokensEl.appendChild(chip);
+      });
+      var logp = 0;
+      for(var i=0;i<nGen;i++){ logp += Math.log(gen[i].p); }
+      if(nGen === 0){
+        tex(formulaEl, 'P_\\theta(x_t \\mid x_{<t})', true);
+        statusEl.innerHTML = 'Context (green) = prompt. Click <b>Generate next</b> to sample tokens one at a time.';
+      } else {
+        var last = gen[nGen-1];
+        tex(formulaEl,
+          '\\begin{aligned}' +
+          'P_\\theta(x_t \\mid x_{<t}) &= ' + last.p.toFixed(2) + ' \\\\ ' +
+          '\\textstyle\\sum_t \\log P_\\theta &= ' + logp.toFixed(3) +
+          ' \\quad\\Rightarrow\\quad P_\\theta(x)\\approx ' + Math.exp(logp).toFixed(4) +
+          '\\end{aligned}', true);
+        statusEl.innerHTML = 'Predicted <b>"' + escapeHtml(last.tok) + '"</b> &nbsp;|&nbsp; running &Sigma; log P = <b>' + logp.toFixed(3) + '</b>';
+      }
+      prevBtn.disabled = nGen === 0;
+      nextBtn.disabled = nGen === gen.length;
+    }
+    nextBtn.addEventListener('click', function(){ nGen = Math.min(gen.length, nGen+1); render(); });
+    prevBtn.addEventListener('click', function(){ nGen = Math.max(0, nGen-1); render(); });
+    resetBtn.addEventListener('click', function(){ nGen = 0; render(); });
+    render();
+  }
+
+  /* ---------------- 2A: Base vs post-trained ---------------- */
+  function initBaseVsPost(){
+    var convos = {
+      base: {
+        model: 'Llama 3.1 405B Base',
+        content: 'George W. Bush, the governor of Florida in 2006 was Jeb Bush, and John McCain was an Arizona senator in 2006...',
+        hint: 'Base model: a "glorified autocomplete." It continues the prompt as if it were web text — drifting into loosely related trivia rather than answering.'
+      },
+      post: {
+        model: 'Tülu 3 405B',
+        content: 'George W. Bush was the president of the United States in 2006. He served two terms in office, from January 20, 2001, to January 20, 2009.',
+        hint: 'Post-trained: the same prompt is now treated as a question. Post-training shifted the continuation into an "answer-the-question" style — direct, conversational, useful.'
+      }
+    };
+    var convoEl = document.getElementById('bp-convo');
+    var formulaEl = document.getElementById('bp-formula');
+    var hintEl = document.getElementById('bp-hint');
+    var tabs = document.querySelectorAll('#bp-tabs button');
+    var mode = 'base';
+
+    function render(){
+      var c = convos[mode];
+      hintEl.textContent = c.hint;
+      convoEl.innerHTML =
+        '<div class="msg user"><div class="role">user</div><div class="content">The president of the United States in 2006 was</div></div>' +
+        '<div class="msg assistant"><div class="role">assistant <span class="model">' + escapeHtml(c.model) + '</span></div><div class="content">' + escapeHtml(c.content) + '</div></div>';
+      formulaEl.innerHTML = mode === 'base'
+        ? 'Same prompt &rarr; <b>continuation</b>. Objective unchanged: next-token prediction.'
+        : 'Same prompt &rarr; <b>answer</b>. Post-training changed the <i>format</i>, not the knowledge.';
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        mode = btn.dataset.mode;
+        render();
+      });
+    });
+    render();
+  }
+
+  /* ---------------- 2B: Four training stages ---------------- */
+  function initStages(){
+    var stages = [
+      {t:'Pretraining', sig:'Next-token cross-entropy on trillions of tokens', body:'Builds the model\'s <b>world knowledge</b>, language fluency, and broad capabilities. Trained on 5–50+ trillion tokens of web, books, code, and documents. This stage sets the <b>ceiling</b> on what the model can do.'},
+      {t:'Instruction tuning / SFT', sig:'Supervised loss on prompt–response pairs', body:'Teaches the model to answer in a <b>question–answer format</b> and to repeat specific token sequences. Still the foundation for maximum performance — easy to quickly adapt a base model to many domains.'},
+      {t:'Preference tuning / RLHF', sig:'Contrastive loss from preferences + KL penalty', body:'Uses a <b>contrastive</b> loss to modify completions as a whole. Gives the model richer, <b>response-level</b> feedback that makes it more flexible and engaging — this is what made ChatGPT easy to use.'},
+      {t:'RLVR', sig:'RL with verifiable rewards (math/code checkers)', body:'Reinforcement learning with <b>verifiable</b> rewards — no learned reward model, no proxy objective. Enhances the model on checkable questions (math, code), which translates into more complex, <b>agentic</b> behaviors and unlocks inference-time scaling.'}
+    ];
+    var tabs = document.querySelectorAll('#st-tabs button');
+    var cardEl = document.getElementById('st-card');
+    var formulaEl = document.getElementById('st-formula');
+
+    function render(i){
+      var s = stages[i];
+      cardEl.innerHTML = '<h4>' + escapeHtml(s.t) + '</h4><p class="why">' + s.body + '</p>';
+      formulaEl.innerHTML = 'Stage <b>' + (i+1) + '/4</b> &nbsp;|&nbsp; signal: <b>' + escapeHtml(s.sig) + '</b>';
+    }
+    tabs.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        tabs.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        render(parseInt(btn.dataset.stage,10));
+      });
+    });
+    render(0);
+  }
+
+  /* ---------------- 3A: Thermostat loop ---------------- */
+  function initThermostat(){
+    var targetSlider = document.getElementById('th-target');
+    var gammaSlider = document.getElementById('th-gamma');
+    var targetVal = document.getElementById('th-target-val');
+    var gammaVal = document.getElementById('th-gamma-val');
+    var loopEl = document.getElementById('th-loop');
+    var formulaEl = document.getElementById('th-formula');
+    var statusEl = document.getElementById('th-status');
+    var svg = document.getElementById('th-plot');
+    var stepBtn = document.getElementById('th-step');
+    var resetBtn = document.getElementById('th-reset');
+
+    var temp = 66;       // current state
+    var t = 0;           // timestep
+    var ret = 0;         // discounted return
+    var history = [66];
+    var lastAction = null, lastReward = 0;
+
+    function target(){ return parseInt(targetSlider.value,10); }
+    function reward(s){ return Math.max(0, 1 - Math.abs(s - target())/10); }
+    function policy(s){ return s < 70 ? 'on' : 'off'; }  // deck's policy
+
+    function render(){
+      var tgt = target();
+      var gamma = parseFloat(gammaSlider.value);
+      targetVal.textContent = tgt;
+      gammaVal.textContent = gamma.toFixed(2);
+
+      var action = policy(temp);
+      var r = reward(temp);
+      loopEl.innerHTML =
+        '<div class="loop-box lit"><div class="lk">State sₜ</div><div class="lv">' + temp.toFixed(1) + '°F</div></div>' +
+        '<div class="loop-box lit"><div class="lk">Policy π</div><div class="lv">s &lt; 70 ?</div></div>' +
+        '<div class="loop-box lit"><div class="lk">Action aₜ</div><div class="lv">heater ' + action + '</div></div>' +
+        '<div class="loop-box lit"><div class="lk">Reward rₜ</div><div class="lv">' + r.toFixed(2) + '</div></div>';
+
+      // plot temperature history vs target band
+      var W=360,H=150,PAD=22;
+      var n = history.length;
+      function xToPx(i){ return PAD + (n<=1?0:(i/(n-1))*(W-2*PAD)); }
+      function yToPx(v){ return PAD + (76 - v)/(76-60) * (H-2*PAD); }
+      var path = history.map(function(v,i){ return (i===0?'M':'L') + xToPx(i).toFixed(1) + ',' + yToPx(clamp(v,60,76)).toFixed(1); }).join(' ');
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<line x1="'+PAD+'" y1="'+yToPx(tgt).toFixed(1)+'" x2="'+(W-PAD)+'" y2="'+yToPx(tgt).toFixed(1)+'" stroke="var(--rose)" stroke-width="1.5" stroke-dasharray="4,3"></line>' +
+        '<text x="'+(W-PAD-40)+'" y="'+(yToPx(tgt)-4).toFixed(1)+'" fill="var(--rose)" font-size="9">target</text>' +
+        '<path class="plot-curve" d="'+path+'"></path>' +
+        '<circle class="plot-marker" cx="'+xToPx(n-1).toFixed(1)+'" cy="'+yToPx(clamp(temp,60,76)).toFixed(1)+'" r="4"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-6)+'" fill="var(--text-dim)" font-size="9">temp °F</text>';
+
+      var lastLine = lastAction === null
+        ? 'Step the loop to take an action and accumulate return.'
+        : 'Last step: chose <b>' + lastAction + '</b>, got reward ' + lastReward.toFixed(2) + '.';
+      tex(formulaEl,
+        'J=\\sum_t \\gamma^t\\, r(s_t) \\qquad t=' + t + ' \\qquad J=' + ret.toFixed(3),
+        true);
+      statusEl.innerHTML = '<span style="color:var(--text-dim)">' + lastLine + '</span>';
+    }
+
+    function step(){
+      var gamma = parseFloat(gammaSlider.value);
+      var action = policy(temp);
+      var r = reward(temp);
+      ret += Math.pow(gamma, t) * r;
+      lastAction = action; lastReward = r;
+      // transition dynamics
+      temp += (action === 'on') ? 3 : -2;
+      temp = clamp(temp, 60, 78);
+      t += 1;
+      history.push(temp);
+      if(history.length > 24) history.shift();
+      render();
+    }
+    function reset(){
+      temp = 66; t = 0; ret = 0; history = [66]; lastAction=null; lastReward=0; render();
+    }
+    stepBtn.addEventListener('click', step);
+    resetBtn.addEventListener('click', reset);
+    targetSlider.addEventListener('input', render);
+    gammaSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 3B: Backflip preference ---------------- */
+  function initBackflip(){
+    var aSlider = document.getElementById('bf-a');
+    var bSlider = document.getElementById('bf-b');
+    var aVal = document.getElementById('bf-a-val');
+    var bVal = document.getElementById('bf-b-val');
+    var clipsEl = document.getElementById('bf-clips');
+    var formulaEl = document.getElementById('bf-formula');
+    var statusEl = document.getElementById('bf-status');
+
+    function render(){
+      var a = parseFloat(aSlider.value);
+      var b = parseFloat(bSlider.value);
+      aVal.textContent = a.toFixed(2);
+      bVal.textContent = b.toFixed(2);
+      var winner = a >= b ? 'A' : 'B';
+      // model human preference noise via sigmoid on quality gap (scaled)
+      var pA = sigmoid(6*(a-b));
+      clipsEl.innerHTML =
+        '<div class="loop-box' + (winner==='A'?' lit':'') + '"><div class="lk">Backflip A' + (winner==='A'?' ✓':'') + '</div><div class="lv">quality ' + a.toFixed(2) + '</div></div>' +
+        '<div class="loop-box' + (winner==='B'?' lit':'') + '"><div class="lk">Backflip B' + (winner==='B'?' ✓':'') + '</div><div class="lv">quality ' + b.toFixed(2) + '</div></div>';
+      tex(formulaEl,
+        'P(\\text{human prefers }A)=\\sigma\\!\\big(q_A-q_B\\big)=' + pA.toFixed(3),
+        true);
+      statusEl.innerHTML =
+        'Human picks <b>' + winner + '</b> &nbsp;|&nbsp; ' +
+        '<span style="color:var(--text-dim)">No formula scored these clips — a person just judged them. That preference is the reward signal.</span>';
+    }
+    aSlider.addEventListener('input', render);
+    bSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 4A: InstructGPT pipeline ---------------- */
+  function initPipeline(){
+    var steps = [
+      {n:'1', t:'Instruction fine-tuning (IFT / SFT)', body:'Start from a pretrained model and train with standard supervised learning on <b>demonstrations of desired assistant behavior</b> — prompt–response pairs. The model can now answer questions. Loss: <span class="m" data-tex="\\mathcal{L}=-\\sum_t \\log \\pi_\\theta(y^*_t \\mid x, y^*_{<t})"></span>.', data:'Data needed: ~thousands of human-written demonstrations'},
+      {n:'2', t:'Reward modeling', body:'Collect <b>comparisons</b> between two model outputs for the same prompt and train a reward model <span class="m" data-tex="r_\\varphi(x,y)"></span> to score the preferred completion higher. The reward is the model\'s predicted probability that a text is the "winning" completion. Loss: <span class="m" data-tex="-\\log\\sigma(r_\\varphi(x,y_w)-r_\\varphi(x,y_l))"></span>.', data:'Data needed: preference pairs (human or AI feedback)'},
+      {n:'3', t:'RL against the reward model', body:'Sample prompts, generate completions <span class="m" data-tex="y\\sim\\pi_\\theta"></span>, score them with <span class="m" data-tex="r_\\varphi"></span>, and update the policy with a policy-gradient algorithm (<b>PPO</b> in InstructGPT/ChatGPT) — plus a <b>KL penalty</b> to stay near the SFT/reference model. Objective: <span class="m" data-tex="J=\\mathbb{E}[r_\\varphi(x,y)]-\\beta\\,\\mathrm{D}_{\\mathrm{KL}}(\\pi_\\theta\\|\\pi_{\\mathrm{ref}})"></span>.', data:'Data needed: prompts + the trained reward model'}
+    ];
+    var pipeEl = document.getElementById('ig-pipe');
+    var open = 0;
+
+    function render(){
+      pipeEl.innerHTML = '';
+      steps.forEach(function(s, i){
+        var div = document.createElement('div');
+        div.className = 'pipe-step' + (i===open ? ' active' : '');
+        div.innerHTML =
+          '<div class="ph"><span class="pipe-num">' + s.n + '</span><span class="pipe-title">' + escapeHtml(s.t) + '</span></div>' +
+          '<div class="pipe-body">' + s.body + '<br><span class="datatag">' + escapeHtml(s.data) + '</span></div>';
+        div.addEventListener('click', function(){ open = (open===i ? -1 : i); render(); });
+        pipeEl.appendChild(div);
+      });
+      // re-render KaTeX inside the freshly-injected pipeline markup
+      pipeEl.querySelectorAll('[data-tex]').forEach(function(el){
+        tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+      });
+    }
+    render();
+  }
+
+  /* ---------------- 4B: Bradley-Terry reward model ---------------- */
+  function initBradleyTerry(){
+    var rwSlider = document.getElementById('bt-rw');
+    var rlSlider = document.getElementById('bt-rl');
+    var rwVal = document.getElementById('bt-rw-val');
+    var rlVal = document.getElementById('bt-rl-val');
+    var formulaEl = document.getElementById('bt-formula');
+    var statusEl = document.getElementById('bt-status');
+    var svg = document.getElementById('bt-plot');
+
+    var domain = [-6, 6];
+    var pts = [];
+    for(var z = domain[0]; z <= domain[1]+1e-9; z += 0.1){
+      var px = (z-domain[0])/(domain[1]-domain[0])*300+10;
+      var py = 190 - sigmoid(z)*170;
+      pts.push([px,py]);
+    }
+    var pathD = pts.map(function(p,i){ return (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+
+    function render(){
+      var rw = parseFloat(rwSlider.value);
+      var rl = parseFloat(rlSlider.value);
+      rwVal.textContent = rw.toFixed(2);
+      rlVal.textContent = rl.toFixed(2);
+      var dr = rw - rl;
+      var p = sigmoid(dr);
+      var loss = -Math.log(p);
+      var drC = clamp(dr, domain[0], domain[1]);
+      var cx = (drC-domain[0])/(domain[1]-domain[0])*300+10;
+      var cy = 190 - p*170;
+      svg.innerHTML =
+        '<line class="plot-axis" x1="10" y1="190" x2="310" y2="190"></line>' +
+        '<line class="plot-axis" x1="10" y1="20" x2="10" y2="190"></line>' +
+        '<line class="plot-axis" x1="160" y1="20" x2="160" y2="190" stroke-dasharray="2,3"></line>' +
+        '<path class="plot-curve" d="' + pathD + '"></path>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="14" y="32" fill="var(--text-dim)" font-size="10">P=1</text>' +
+        '<text x="14" y="186" fill="var(--text-dim)" font-size="10">P=0</text>' +
+        '<text x="150" y="200" fill="var(--text-dim)" font-size="9">&Delta;r=0</text>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\Delta r &= ' + rw.toFixed(2) + ' - (' + rl.toFixed(2) + ') = ' + dr.toFixed(2) + ' \\\\ ' +
+        'P(y_w \\succ y_l) &= \\sigma(\\Delta r) = ' + p.toFixed(3) +
+        ' \\qquad \\mathcal{L} = -\\log\\sigma(\\Delta r) = ' + loss.toFixed(3) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML = '<span style="color:' + (dr>0?'var(--accent-bright)':'var(--rose)') + '">' +
+        (dr>0 ? 'winner scored higher — low loss' : 'winner scored lower — high loss, big gradient') + '</span>';
+    }
+    rwSlider.addEventListener('input', render);
+    rlSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 5A: J(theta) tug of war ---------------- */
+  function initObjective(){
+    var rSlider = document.getElementById('jt-r');
+    var klSlider = document.getElementById('jt-kl');
+    var betaSlider = document.getElementById('jt-beta');
+    var rVal = document.getElementById('jt-r-val');
+    var klVal = document.getElementById('jt-kl-val');
+    var betaVal = document.getElementById('jt-beta-val');
+    var hintEl = document.getElementById('jt-hint');
+    var tugEl = document.getElementById('jt-tug');
+    var formulaEl = document.getElementById('jt-formula');
+    var svg = document.getElementById('jt-plot');
+
+    function render(){
+      var r = parseFloat(rSlider.value);
+      var kl = parseFloat(klSlider.value);
+      var beta = parseFloat(betaSlider.value);
+      rVal.textContent = r.toFixed(2);
+      klVal.textContent = kl.toFixed(2);
+      betaVal.textContent = beta.toFixed(2);
+
+      var penalty = beta * kl;
+      var J = r - penalty;
+
+      // tug-of-war bar widths from magnitudes of the two terms
+      var rewardMag = Math.max(0, r);
+      var total = rewardMag + penalty;
+      var rewardW = total > 0 ? (rewardMag/total)*100 : 50;
+      var klW = 100 - rewardW;
+      tugEl.innerHTML =
+        '<div class="tug-reward" style="width:' + rewardW.toFixed(1) + '%">reward ' + r.toFixed(2) + '</div>' +
+        '<div class="tug-kl" style="width:' + klW.toFixed(1) + '%">βKL ' + penalty.toFixed(2) + '</div>';
+
+      // plot J vs beta at fixed r, kl
+      var W=360,H=200,PAD=30;
+      var bMax=1;
+      function xToPx(b){ return PAD + b/bMax*(W-2*PAD); }
+      var Jvals=[]; for(var b=0;b<=bMax+1e-9;b+=0.02){ Jvals.push(r - b*kl); }
+      var ymin = Math.min(r - bMax*kl, 0) - 0.3;
+      var ymax = Math.max(r, 0) + 0.3;
+      function yToPx(v){ return PAD + (ymax - v)/(ymax-ymin)*(H-2*PAD); }
+      var path='', bi=0;
+      for(var b2=0;b2<=bMax+1e-9;b2+=0.02){ path += (bi===0?'M':'L') + xToPx(b2).toFixed(1) + ',' + yToPx(r-b2*kl).toFixed(1); bi++; }
+      var cx = xToPx(beta), cy = yToPx(J);
+      var zeroY = yToPx(0);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+zeroY.toFixed(1)+'" x2="'+(W-PAD)+'" y2="'+zeroY.toFixed(1)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path class="plot-curve" d="'+path+'"></path>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-8)+'" fill="var(--text-dim)" font-size="10">J(θ)</text>' +
+        '<text x="'+(W-PAD-24)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">β</text>';
+
+      var hint;
+      if(beta < 0.05){ hint = 'β ≈ 0: almost no leash — the policy chases reward and can drift far from the reference (over-optimization risk).'; }
+      else if(penalty > r){ hint = 'The KL penalty now outweighs the reward gain: J is negative. The objective says this move strays too far from the reference for too little reward.'; }
+      else { hint = 'Balanced: positive J. The policy improves reward while the βKL term keeps it anchored near the reference model.'; }
+      hintEl.textContent = hint;
+
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'J(\\theta) &= \\mathbb{E}[r(x,y)] - \\beta\\,\\mathrm{D}_{\\mathrm{KL}}(\\pi_\\theta\\|\\pi_{\\mathrm{ref}}) \\\\ ' +
+        '&= ' + r.toFixed(2) + ' - ' + beta.toFixed(2) + '\\cdot' + kl.toFixed(2) +
+        ' = ' + r.toFixed(2) + ' - ' + penalty.toFixed(2) + ' = ' + J.toFixed(3) +
+        '\\end{aligned}', true);
+    }
+    rSlider.addEventListener('input', render);
+    klSlider.addEventListener('input', render);
+    betaSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 5B: Over-optimization ---------------- */
+  function initOverOpt(){
+    var klSlider = document.getElementById('oo-kl');
+    var klVal = document.getElementById('oo-kl-val');
+    var hintEl = document.getElementById('oo-hint');
+    var formulaEl = document.getElementById('oo-formula');
+    var svg = document.getElementById('oo-plot');
+
+    // proxy reward: keeps rising with diminishing returns
+    function proxy(kl){ return 4*(1-Math.exp(-0.35*kl)); }
+    // true reward: rises then falls (Goodhart turnover)
+    function trueR(kl){ return 3.2*(1-Math.exp(-0.45*kl)) - 0.18*kl; }
+
+    var W=360,H=200,PAD=30, klMax=12;
+    function xToPx(k){ return PAD + k/klMax*(W-2*PAD); }
+    var allY=[]; for(var k=0;k<=klMax;k+=0.2){ allY.push(proxy(k)); allY.push(trueR(k)); }
+    var ymin = Math.min.apply(null, allY)-0.2, ymax = Math.max.apply(null, allY)+0.3;
+    function yToPx(v){ return PAD + (ymax-v)/(ymax-ymin)*(H-2*PAD); }
+    function pathFor(f){ var d='',i=0; for(var k=0;k<=klMax+1e-9;k+=0.1){ d += (i===0?'M':'L')+xToPx(k).toFixed(1)+','+yToPx(f(k)).toFixed(1); i++; } return d; }
+    var proxyPath = pathFor(proxy), truePath = pathFor(trueR);
+
+    // find true-reward peak
+    var bestK=0,bestV=-1e9; for(var kk=0;kk<=klMax;kk+=0.05){ var v=trueR(kk); if(v>bestV){bestV=v;bestK=kk;} }
+
+    function render(){
+      var kl = parseFloat(klSlider.value);
+      klVal.textContent = kl.toFixed(1);
+      var pr = proxy(kl), tr = trueR(kl);
+      var cx = xToPx(kl);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<line x1="'+xToPx(bestK).toFixed(1)+'" y1="'+PAD+'" x2="'+xToPx(bestK).toFixed(1)+'" y2="'+(H-PAD)+'" stroke="var(--text-dim)" stroke-dasharray="2,3" stroke-width="1"></line>' +
+        '<path class="plot-true" d="'+proxyPath+'" style="stroke:var(--accent)"></path>' +
+        '<path class="plot-curve" d="'+truePath+'" style="stroke:var(--rose)"></path>' +
+        '<line x1="'+cx.toFixed(1)+'" y1="'+PAD+'" x2="'+cx.toFixed(1)+'" y2="'+(H-PAD)+'" stroke="var(--orange)" stroke-dasharray="3,3" stroke-width="1"></line>' +
+        '<circle class="plot-marker" cx="'+cx.toFixed(1)+'" cy="'+yToPx(tr).toFixed(1)+'" r="4"></circle>' +
+        '<circle cx="'+cx.toFixed(1)+'" cy="'+yToPx(pr).toFixed(1)+'" r="4" fill="var(--accent)"></circle>' +
+        '<text x="'+(W-PAD-78)+'" y="'+(PAD+8)+'" fill="var(--accent)" font-size="9">proxy (RM)</text>' +
+        '<text x="'+(W-PAD-78)+'" y="'+(PAD+20)+'" fill="var(--rose)" font-size="9">true quality</text>' +
+        '<text x="'+(W-PAD-30)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">KL drift</text>';
+
+      var hint;
+      if(kl < bestK-0.5){ hint = 'Healthy regime: more optimization still improves true quality. Both curves rise together.'; }
+      else if(kl <= bestK+0.5){ hint = 'Near the sweet spot: true quality peaks around KL ≈ ' + bestK.toFixed(1) + '. Pushing further trades real quality for proxy score.'; }
+      else { hint = 'Over-optimized: the proxy RM score keeps climbing but TRUE quality is falling — reward hacking, verbosity, sycophancy. This is Goodhart\'s Law. A larger β would hold KL back.'; }
+      hintEl.textContent = hint;
+      formulaEl.innerHTML =
+        'KL drift = ' + kl.toFixed(1) + ' &nbsp;|&nbsp; proxy reward = <b style="color:var(--accent-bright)">' + pr.toFixed(2) + '</b> &nbsp;|&nbsp; true quality = <b style="color:var(--rose)">' + tr.toFixed(2) + '</b><br>' +
+        '<span style="color:var(--text-dim)">true quality peaks at KL ≈ ' + bestK.toFixed(1) + ', then declines as the proxy is over-optimized.</span>';
+    }
+    klSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 6A: DPO ---------------- */
+  function initDPO(){
+    var wSlider = document.getElementById('dpo-w');
+    var lSlider = document.getElementById('dpo-l');
+    var betaSlider = document.getElementById('dpo-beta');
+    var wVal = document.getElementById('dpo-w-val');
+    var lVal = document.getElementById('dpo-l-val');
+    var betaVal = document.getElementById('dpo-beta-val');
+    var formulaEl = document.getElementById('dpo-formula');
+    var statusEl = document.getElementById('dpo-status');
+    var svg = document.getElementById('dpo-plot');
+
+    var domain = [-6, 6];
+    var pts = [];
+    for(var z = domain[0]; z <= domain[1]+1e-9; z += 0.1){
+      pts.push([(z-domain[0])/(domain[1]-domain[0])*300+10, 190 - (-Math.log(sigmoid(z)))/4.5*170 ]);
+    }
+    // loss curve -log sigmoid(z), clamp at 4.5
+    pts = [];
+    for(var z2 = domain[0]; z2 <= domain[1]+1e-9; z2 += 0.1){
+      var loss = clamp(-Math.log(sigmoid(z2)), 0, 4.5);
+      pts.push([(z2-domain[0])/(domain[1]-domain[0])*300+10, 190 - loss/4.5*170]);
+    }
+    var pathD = pts.map(function(p,i){ return (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+
+    function render(){
+      var lw = parseFloat(wSlider.value);
+      var ll = parseFloat(lSlider.value);
+      var beta = parseFloat(betaSlider.value);
+      wVal.textContent = lw.toFixed(2);
+      lVal.textContent = ll.toFixed(2);
+      betaVal.textContent = beta.toFixed(2);
+
+      var margin = beta*(lw - ll);       // the sigmoid argument
+      var loss = -Math.log(sigmoid(margin));
+      var lossC = clamp(loss, 0, 4.5);
+      var mC = clamp(margin, domain[0], domain[1]);
+      var cx = (mC-domain[0])/(domain[1]-domain[0])*300+10;
+      var cy = 190 - lossC/4.5*170;
+      svg.innerHTML =
+        '<line class="plot-axis" x1="10" y1="190" x2="310" y2="190"></line>' +
+        '<line class="plot-axis" x1="10" y1="20" x2="10" y2="190"></line>' +
+        '<line class="plot-axis" x1="160" y1="20" x2="160" y2="190" stroke-dasharray="2,3"></line>' +
+        '<path class="plot-curve" d="' + pathD + '"></path>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="14" y="32" fill="var(--text-dim)" font-size="10">loss</text>' +
+        '<text x="150" y="200" fill="var(--text-dim)" font-size="9">margin=0</text>';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\text{margin} &= \\beta(\\rho_w-\\rho_l) = ' + beta.toFixed(2) + '(' + lw.toFixed(2) + ' - (' + ll.toFixed(2) + ')) = ' + margin.toFixed(3) + ' \\\\ ' +
+        '\\mathcal{L}_{\\mathrm{DPO}} &= -\\log\\sigma(\\text{margin}) = ' + loss.toFixed(3) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        '<span style="color:var(--text-dim)">' + String.fromCharCode(961) + ' = log-ratio &nbsp;|&nbsp; P(prefer y_w) = <b>' + sigmoid(margin).toFixed(3) + '</b></span>';
+    }
+    wSlider.addEventListener('input', render);
+    lSlider.addEventListener('input', render);
+    betaSlider.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 6B: Comparison table ---------------- */
+  function initCompare(){
+    var rows = [
+      {lab:'Reward', vals:['Environment', 'Learned (proxy)', 'Verifiable (exact)'], note:'Classical RL gets reward straight from the environment; RLHF learns a reward model as a proxy for human preference; RLVR checks the answer directly (math/code) — no proxy.'},
+      {lab:'State transitions', vals:['Yes', 'No', 'No'], note:'Classical RL is a multi-step control problem where each action changes the next state. LLM RLHF/RLVR is bandit-style: one response, no environment dynamics.'},
+      {lab:'Reward granularity', vals:['Per-step', 'Per-response', 'Per-response'], note:'CartPole gives +1 every step; LLM methods score the whole completion at once.'},
+      {lab:'Primary challenge', vals:['Explore–Exploit', 'Over-optimization', 'Task generalization'], note:'Each regime\'s hardest problem: balancing exploration vs exploitation; not over-optimizing a proxy reward; and getting verifiable-task skills to generalize.'},
+      {lab:'Example', vals:['CartPole', 'Chat style tuning', 'Math reasoning'], note:'Canonical examples of each from the lecture.'}
+    ];
+    var tbody = document.querySelector('#cmp-table tbody');
+    var formulaEl = document.getElementById('cmp-formula');
+    rows.forEach(function(r){
+      var tr = document.createElement('tr');
+      tr.className = 'row';
+      tr.innerHTML = '<td class="lab">' + escapeHtml(r.lab) + '</td>' +
+        r.vals.map(function(v){ return '<td>' + escapeHtml(v) + '</td>'; }).join('');
+      tr.addEventListener('click', function(){
+        var prev = tbody.querySelector('tr.sel');
+        if(prev) prev.classList.remove('sel');
+        tr.classList.add('sel');
+        tr.querySelectorAll('td').forEach(function(td){ td.style.background='rgba(132,169,140,0.12)'; });
+        formulaEl.innerHTML = '<b>' + escapeHtml(r.lab) + ':</b> ' + escapeHtml(r.note);
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
+    initTimeline();
+    initAutoreg();
+    initBaseVsPost();
+    initStages();
+    initThermostat();
+    initBackflip();
+    initPipeline();
+    initBradleyTerry();
+    initObjective();
+    initOverOpt();
+    initDPO();
+    initCompare();
+  });
+})();
+</script>
+
+</body>
+</html>

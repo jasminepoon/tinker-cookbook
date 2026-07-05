@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluation — Interactive RLHF Course</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --red:#d98b7a;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:680px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
+  /* "in practice" styled callout */
+  .in-practice{
+    border-left:3px solid var(--orange);
+    background:rgba(224,164,88,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
+    margin-top:4px;
+  }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  .token-chip:hover{ border-color:var(--accent); }
+  .token-chip.active{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.correct{ background:var(--accent); color:#0b0f0e; border-color:var(--accent); font-weight:600; }
+  .token-chip.wrong{ border-color:var(--red); color:var(--red); }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-fill.win{ background:linear-gradient(to top, var(--orange), #f0c98a); }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; white-space:pre-wrap; line-height:1.5; }
+  .code-block .hl{ color:var(--accent-bright); }
+  .code-block .hl-o{ color:var(--orange); }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-curve-2{ fill:none; stroke:var(--orange); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; }
+
+  /* leaderboard table */
+  table.lb{ width:100%; border-collapse:collapse; font-size:0.86em; }
+  table.lb th, table.lb td{ border:1px solid var(--border); padding:8px 11px; text-align:left; }
+  table.lb th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.lb td.rankcell{ font-family:var(--mono); width:42px; text-align:center; }
+  table.lb tr.moved-up td{ background:rgba(132,169,140,0.12); }
+  table.lb tr.moved-down td{ background:rgba(217,139,122,0.10); }
+  table.lb .delta-up{ color:var(--accent-bright); }
+  table.lb .delta-down{ color:var(--red); }
+
+  .legend{ display:flex; gap:16px; flex-wrap:wrap; font-size:0.76em; color:var(--text-dim); }
+  .legend .swatch{ display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:middle; }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
+  <div class="eyebrow">rlhfbook.com/course · book chapter 16</div>
+  <h1>Evaluation</h1>
+  <p class="sub">Evaluation is the instrument you trust to know whether a reward change, a data change, or a training run actually <i>helped</i>. This page makes the fragility of that instrument tangible — formatting swings, log-likelihood scoring, contamination, generalization vs. training reward, and why two labs' leaderboard numbers are not comparable.</p>
+  <p class="credit">Interactive companion to Nathan Lambert's RLHF book, Chapter 16 (Evaluation), rlhfbook.com/course. Interactive build only — content credit to the source chapter.</p>
+</header>
+
+<nav class="toc">
+  <a href="#foundations">Foundations</a>
+  <a href="#format">Format Sensitivity</a>
+  <a href="#ll">Log-Likelihood Scoring</a>
+  <a href="#cot">CoT-Era Prompts</a>
+  <a href="#contam">Contamination</a>
+  <a href="#generalize">Generalization</a>
+  <a href="#external">External Comparisons</a>
+  <a href="#internal">Internal Use</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">Evaluation is about measuring a model fairly, and the traps are mostly arithmetic. Three ideas cover this page: <b>accuracy is just a percentage</b>, models are often scored by <b>log-likelihood</b> (how much probability they gave the right answer), and long answers need <b>length normalization</b> so they aren't unfairly penalized. None of it is harder than adding fractions.</p>
+
+    <article class="concept">
+      <h3>Accuracy is a fraction, and small samples wobble</h3>
+      <p class="concept-desc"><b>Accuracy</b> = number correct ÷ number of questions, written as a percent. The catch: on a small test set that fraction is noisy. 7/10 and 70/100 both read "70%," but the first could easily have been 5/10 or 9/10 by luck — a reason to distrust tiny benchmarks.</p>
+      <div class="eq" data-tex="\text{accuracy} = \frac{\#\,\text{correct}}{\#\,\text{total}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 90" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <g font-family="monospace" font-size="12" text-anchor="middle">
+            <rect x="14" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="26" y="47" fill="#0b0f0e">✓</text>
+            <rect x="42" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="54" y="47" fill="#0b0f0e">✓</text>
+            <rect x="70" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="82" y="47" fill="#0b0f0e">✓</text>
+            <rect x="98" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="110" y="47" fill="#0b0f0e">✓</text>
+            <rect x="126" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="138" y="47" fill="#0b0f0e">✓</text>
+            <rect x="154" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="166" y="47" fill="#0b0f0e">✓</text>
+            <rect x="182" y="30" width="24" height="24" rx="4" fill="var(--accent)"/><text x="194" y="47" fill="#0b0f0e">✓</text>
+            <rect x="210" y="30" width="24" height="24" rx="4" fill="none" stroke="var(--border)"/><text x="222" y="47" fill="var(--text-dim)">✗</text>
+            <rect x="238" y="30" width="24" height="24" rx="4" fill="none" stroke="var(--border)"/><text x="250" y="47" fill="var(--text-dim)">✗</text>
+            <rect x="266" y="30" width="24" height="24" rx="4" fill="none" stroke="var(--border)"/><text x="278" y="47" fill="var(--text-dim)">✗</text>
+            <text x="308" y="47" fill="var(--accent-bright)">70%</text>
+          </g>
+          <text x="14" y="78" fill="var(--text-dim)" font-size="9">7 of 10 correct — but flip one box and it's 60% or 80%; big test sets steady the number</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>Log-likelihood scoring: grading without generating</h3>
+      <p class="concept-desc">For multiple choice you often don't let the model write freely — you ask, for each option, "what probability would you assign to this exact text?" and pick the highest. Because sentence probabilities are tiny products, we compare their <b>logs</b> (bigger = less negative = the model likes it more).</p>
+      <div class="eq" data-tex="\text{pick } \arg\max_{\text{option}} \; \log P_\theta(\text{option} \mid \text{question})"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 150" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="120" y1="20" x2="120" y2="130" stroke="var(--border)" stroke-width="1"/>
+          <text x="115" y="16" fill="var(--text-dim)" font-size="9" text-anchor="end">0</text>
+          <g font-family="monospace" font-size="10">
+            <rect x="120" y="28" width="150" height="20" fill="var(--accent)" rx="3"/><text x="10" y="42" fill="var(--text-dim)">(A) Paris</text><text x="278" y="42" fill="var(--accent-bright)">−0.8</text>
+            <rect x="120" y="58" width="70" height="20" fill="var(--accent)" opacity="0.6" rx="3"/><text x="10" y="72" fill="var(--text-dim)">(B) Lyon</text><text x="198" y="72" fill="var(--text-dim)">−3.1</text>
+            <rect x="120" y="88" width="40" height="20" fill="var(--accent)" opacity="0.6" rx="3"/><text x="10" y="102" fill="var(--text-dim)">(C) Rome</text><text x="168" y="102" fill="var(--text-dim)">−4.4</text>
+          </g>
+          <text x="120" y="142" fill="var(--text-dim)" font-size="9">bars grow leftward (more negative = worse); the shortest/least-negative one, A, wins</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\arg\max"></span><span class="def">"the option that maximizes this" — return the choice, not the number.</span></div>
+        <div class="row"><span class="sym" data-tex="\log P"></span><span class="def">always ≤ 0; the option closest to 0 got the most probability.</span></div>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>Length normalization: don't punish long answers</h3>
+      <p class="concept-desc">Every extra word multiplies in another probability &lt; 1, so longer sequences <i>always</i> score lower total log-prob — even when they're better. Dividing by the number of tokens gives a <b>per-token average</b>, a fair comparison across answers of different lengths.</p>
+      <div class="eq" data-tex="\text{score} = \frac{\log P_\theta(\text{answer})}{\#\,\text{tokens}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 130" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <text x="88" y="16" fill="var(--text-dim)" font-size="9" text-anchor="middle">raw total log-prob</text>
+          <line x1="20" y1="20" x2="20" y2="100" stroke="var(--border)" stroke-width="1"/>
+          <rect x="20" y="30" width="60" height="16" fill="var(--orange)" rx="2"/><text x="150" y="42" fill="var(--text-dim)" font-size="9" text-anchor="end">short</text>
+          <rect x="20" y="60" width="130" height="16" fill="var(--orange)" rx="2"/><text x="158" y="72" fill="var(--text-dim)" font-size="9" text-anchor="end">long (looks worse)</text>
+          <text x="250" y="16" fill="var(--text-dim)" font-size="9" text-anchor="middle">÷ length → per token</text>
+          <line x1="185" y1="20" x2="185" y2="100" stroke="var(--border)" stroke-width="1"/>
+          <rect x="185" y="30" width="86" height="16" fill="var(--accent)" rx="2"/><text x="315" y="42" fill="var(--text-dim)" font-size="9" text-anchor="end">short</text>
+          <rect x="185" y="60" width="92" height="16" fill="var(--accent)" rx="2"/><text x="315" y="72" fill="var(--text-dim)" font-size="9" text-anchor="end">long (now fair)</text>
+          <text x="20" y="120" fill="var(--text-dim)" font-size="9">normalizing removes the "longer = worse" artifact so quality, not length, decides</text>
+        </svg>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION A: PROMPTING & SCORING ============ -->
+  <section class="group" id="prompting">
+    <div class="group-header"><span class="group-index">01</span><h2>Prompting Format &amp; Scoring</h2></div>
+    <p class="group-intro">A single eval number hides a stack of choices: how many in-context examples, whether the model reasons before answering, and whether you score a generated string or compare log-probabilities. The chapter warns that formatting alone "can make a model's performance drop from 60% to near 0." These first panels let you feel that swing.</p>
+
+    <article class="concept" id="format">
+      <h3>Prompt-formatting sensitivity</h3>
+      <p class="concept-desc">The <i>same</i> eval question, scored under different formats. Toggle few-shot vs zero-shot, chain-of-thought vs direct, and log-likelihood (multiple-choice) vs free-generation scoring, and watch the measured accuracy for one fixed model swing across the whole format grid. The model didn't change — only how you asked and graded.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Shots</label>
+          <div class="tabs" id="fmt-shots">
+            <button data-v="0" class="active">Zero-shot</button>
+            <button data-v="5">5-shot</button>
+          </div>
+          <label>Reasoning</label>
+          <div class="tabs" id="fmt-cot">
+            <button data-v="direct" class="active">Direct answer</button>
+            <button data-v="cot">Chain-of-thought</button>
+          </div>
+          <label>Scoring method</label>
+          <div class="tabs" id="fmt-score">
+            <button data-v="ll" class="active">Log-likelihood (MC)</button>
+            <button data-v="gen">Free generation (exact match)</button>
+          </div>
+          <p class="hint" id="fmt-hint"></p>
+          <div class="in-practice"><b>In practice</b> · One eval number is a point estimate over a format you happened to pick. Before you trust a delta, pin the format — or report the whole grid.</div>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="fmt-bars"></div>
+          <div class="eq" data-tex="\mathrm{acc} = \mathrm{base} + \Delta_{\text{shots}} + \Delta_{\text{CoT}} + \Delta_{\text{score}}"></div>
+          <div class="eq" id="fmt-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="ll">
+      <h3>Log-likelihood (multiple-choice) scoring</h3>
+      <p class="concept-desc">For an MMLU-style question, one scoring route never samples at all: take each option's tokens, sum their conditional log-probabilities given the prompt, and pick the most likely option. But raw summed log-prob favors short answers. Drag each option's per-token log-prob and toggle <b>length normalization</b> to see how the predicted answer — and whether it's correct — flips.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div id="ll-sliders"></div>
+          <label>Scoring</label>
+          <div class="tabs" id="ll-norm">
+            <button data-v="raw" class="active">Unnormalized <span class="m" data-tex="\sum \log p"></span></button>
+            <button data-v="norm">Length-normalized</button>
+          </div>
+          <p class="hint">Correct answer is <b>(C) The Extreme Value Theorem</b> — a longer string. Raw sum log-prob can punish it just for having more tokens; length normalization divides by token count.</p>
+          <div class="in-practice"><b>In practice</b> · Log-likelihood scoring is static (no sampling noise) and common in pretraining evals; the normalization choice silently decides the winner.</div>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="ll-bars"></div>
+          <div class="eq" data-tex="\text{score}(o)=\sum_{t=1}^{L}\log p(\text{tok}_t\mid \text{prompt},\,\text{tok}_{<t}) \qquad\quad \text{score}_{\text{norm}}(o)=\tfrac{1}{L}\sum_{t=1}^{L}\log p(\text{tok}_t)"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="\log p(\text{tok}_t)"></span><span class="def">the model's <b>log-probability</b> for token <span class="m" data-tex="t"></span> of the option, conditioned on the prompt and earlier tokens — always <span class="m" data-tex="\le 0"></span></span></div>
+            <div class="row"><span class="sym" data-tex="\sum_t"></span><span class="def">sum over every token in the option; the picked answer is <span class="m" data-tex="\arg\max"></span> of this score across options</span></div>
+            <div class="row"><span class="sym" data-tex="L"></span><span class="def">the option's <b>token count</b> (length); dividing by it removes the bias against longer answers</span></div>
+          </div>
+          <div class="eq" id="ll-formula"></div>
+          <div class="eq-readout" id="ll-status"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="cot">
+      <h3>CoT / reasoning-era eval prompts</h3>
+      <p class="concept-desc">Modern MMLU isn't single-token sampling anymore. Tülu 3 switched it to long chain-of-thought with an exact-match answer regex: the model reasons, then must finish with "Therefore, the answer is (X)". Step through the answer string and watch the extractor try to recover the letter — and fail when the format suffix is missing.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Model output style</label>
+          <div class="tabs" id="cot-style">
+            <button data-v="good" class="active">Follows format</button>
+            <button data-v="paren">Bare "(C)" mid-text</button>
+            <button data-v="prose">Reasoned, no suffix</button>
+          </div>
+          <p class="hint" id="cot-hint"></p>
+          <div class="in-practice"><b>In practice</b> · Format-agnostic grading is rare and expensive. A correct answer the regex can't find scores as wrong — the eval measures formatting compliance, not capability.</div>
+        </div>
+        <div class="panel-viz">
+          <div class="code-block" id="cot-output"></div>
+          <div class="formula-display" id="cot-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION B: WHAT YOU MEASURE ============ -->
+  <section class="group" id="measuring">
+    <div class="group-header"><span class="group-index">02</span><h2>What You're Actually Measuring</h2></div>
+    <p class="group-intro">Even with the format pinned, the number can lie. Train/test overlap inflates it, and a metric that moves on the training task tells you nothing until a held-out eval moves too. This is the core of judgment instrumentation: trust the held-out instrument, not the training reward.</p>
+
+    <article class="concept" id="contam">
+      <h3>Contamination inflates the score</h3>
+      <p class="concept-desc">If a fraction of your test questions leaked into training (n-gram overlap from scraped web data, benchmark prompts in datasets), the model answers those near-perfectly for the wrong reason. Slide the contamination fraction and watch the <b>apparent</b> accuracy split away from the <b>true held-out</b> accuracy. The gap is pure illusion.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Contaminated fraction of test set = <span id="contam-frac-val">0%</span></label>
+          <input type="range" id="contam-frac" min="0" max="100" step="1" value="0">
+          <label>True (held-out) ability = <span id="contam-true-val">0.55</span></label>
+          <input type="range" id="contam-true" min="0.1" max="0.9" step="0.01" value="0.55">
+          <label>Accuracy on memorized items = <span id="contam-mem-val">0.99</span></label>
+          <input type="range" id="contam-mem" min="0.9" max="1" step="0.005" value="0.99">
+          <p class="hint" id="contam-hint"></p>
+          <div class="in-practice"><b>In practice</b> · Decontaminate before you believe a jump. The most damning tell is a model that improves under RL on <i>random</i> rewards — only possible if the answer was already memorized.</div>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="contam-bars"></div>
+          <div class="eq" data-tex="\mathrm{acc}_{\text{apparent}} = f\cdot \mathrm{acc}_{\text{mem}} + (1-f)\cdot \mathrm{acc}_{\text{true}}"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="f"></span><span class="def">fraction of the test set that <b>leaked</b> into training (contaminated)</span></div>
+            <div class="row"><span class="sym" data-tex="\mathrm{acc}_{\text{mem}}"></span><span class="def">accuracy on the <b>memorized</b> (leaked) items — near 1, for the wrong reason</span></div>
+            <div class="row"><span class="sym" data-tex="\mathrm{acc}_{\text{true}}"></span><span class="def">the real <b>held-out</b> ability on clean, unseen items — the number you actually want</span></div>
+          </div>
+          <div class="eq" id="contam-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="generalize">
+      <h3>Generalization, not training reward</h3>
+      <p class="concept-desc">The role-critical panel. You make a data/reward change and the <b>training-task metric</b> climbs. Do you ship it? Not until a <b>held-out eval</b> moves. Slide how much your change is real generalization vs. how much it just over-fits the training distribution, and watch the two curves diverge. The held-out curve is the only one you trust.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Training steps = <span id="gen-step-val">0</span></label>
+          <input type="range" id="gen-step" min="0" max="100" step="1" value="0">
+          <label>Generalization share of the gain = <span id="gen-share-val">0.50</span></label>
+          <input type="range" id="gen-share" min="0" max="1" step="0.01" value="0.5">
+          <p class="hint" id="gen-hint"></p>
+          <div class="in-practice"><b>In practice</b> · Training reward going up is necessary, never sufficient. The instrument you trust is the held-out eval; a flat held-out curve under a rising train curve means you memorized the reward, not the skill.</div>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 220" id="gen-plot"></svg>
+          <div class="legend">
+            <span><span class="swatch" style="background:var(--accent)"></span>Training-task metric</span>
+            <span><span class="swatch" style="background:var(--orange)"></span>Held-out eval (the one you trust)</span>
+          </div>
+          <div class="eq" data-tex="\text{held-out gain} = s \cdot \text{train gain} \qquad\quad \text{gap} = \text{train} - \text{held-out}"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="\text{train}"></span><span class="def">accuracy on the <b>training task</b> — always climbs, since the run optimizes it directly</span></div>
+            <div class="row"><span class="sym" data-tex="\text{held-out}"></span><span class="def">accuracy on a <b>held-out eval</b> the run never trained on — the only number you trust</span></div>
+            <div class="row"><span class="sym" data-tex="s\in[0,1]"></span><span class="def">the <b>generalization share</b>: how much of the training gain actually transfers to held-out</span></div>
+          </div>
+          <div class="eq" id="gen-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION C: COMPARING & USING EVALS ============ -->
+  <section class="group" id="comparing">
+    <div class="group-header"><span class="group-index">03</span><h2>Comparing &amp; Using Evals</h2></div>
+    <p class="group-intro">Numbers from different press releases are not comparable: each lab fixes its own prompts, harness, and decoding, and none disclose them. Olmo 3 found held-constant eval setups still carry 0.25–1.5 point standard deviations — and bigger swings come from changing the harness. The last panels make harness drift reorder a leaderboard, and sketch how labs actually use evals.</p>
+
+    <article class="concept" id="external">
+      <h3>Why external comparisons are unreliable</h3>
+      <p class="concept-desc">Three models are "ranked" by a benchmark, but each reported number was produced under a slightly different harness. Perturb the harness settings — prompt template, decoding temperature, answer-extraction strictness, few-shot count — within the small ranges the chapter documents, and watch the leaderboard reorder. Within a ±1.5 point noise band, the ranking is essentially a coin flip.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Prompt template variant = <span id="ext-prompt-val">A</span></label>
+          <input type="range" id="ext-prompt" min="0" max="3" step="1" value="0">
+          <label>Decoding temperature = <span id="ext-temp-val">0.0</span></label>
+          <input type="range" id="ext-temp" min="0" max="1" step="0.05" value="0">
+          <label>Answer-extraction strictness = <span id="ext-strict-val">loose</span></label>
+          <input type="range" id="ext-strict" min="0" max="2" step="1" value="1">
+          <label>Few-shot count = <span id="ext-shots-val">0</span></label>
+          <input type="range" id="ext-shots" min="0" max="8" step="1" value="0">
+          <button id="ext-reset">Reset harness</button>
+          <p class="hint" id="ext-hint"></p>
+          <div class="in-practice"><b>In practice</b> · Treat a slightly-better external number as a tie. Reproducible comparison only exists inside your own controlled harness.</div>
+        </div>
+        <div class="panel-viz">
+          <table class="lb" id="ext-table">
+            <thead><tr><th>Rank</th><th>Model</th><th>Score</th><th>vs. baseline run</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="formula-display" id="ext-formula"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="internal">
+      <h3>How labs use evals internally: statistical power</h3>
+      <p class="concept-desc">Labs hillclimb on a few private evals. The key thing better evals buy is <b>statistical power</b>: lower noise on your prioritized signal so you can tell a real training delta from chance. Set the true improvement between two runs and the per-eval noise, then add more eval items and watch the chance of correctly detecting the winner rise.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>True accuracy gain of run B over A = <span id="pow-gain-val">0.020</span></label>
+          <input type="range" id="pow-gain" min="0" max="0.1" step="0.002" value="0.02">
+          <label>Per-item noise (std-dev points) = <span id="pow-noise-val">1.00</span></label>
+          <input type="range" id="pow-noise" min="0.25" max="1.5" step="0.05" value="1.0">
+          <label>Eval set size N = <span id="pow-n-val">200</span></label>
+          <input type="range" id="pow-n" min="20" max="4000" step="20" value="200">
+          <p class="hint" id="pow-hint"></p>
+          <div class="in-practice"><b>In practice</b> · "Improving the eval" usually means shrinking its noise, not raising the bar — that's what lets you compare training runs with confidence instead of chasing ghosts.</div>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 380 200" id="pow-plot"></svg>
+          <div class="eq" data-tex="\mathrm{SE} = \sigma\sqrt{\tfrac{2}{N}} \qquad\quad \text{power} = \Phi\!\left(\frac{\Delta}{\mathrm{SE}} - z_{0.95}\right)"></div>
+          <div class="symbol-key">
+            <div class="row"><span class="sym" data-tex="\Delta"></span><span class="def">the <b>true</b> accuracy gain of run B over run A you are trying to detect</span></div>
+            <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">per-item <b>noise</b> std-dev; <span class="m" data-tex="N"></span> is the eval-set size, so more items shrink <span class="m" data-tex="\mathrm{SE}"></span></span></div>
+            <div class="row"><span class="sym" data-tex="\Phi"></span><span class="def">the standard-normal <b>CDF</b>; <span class="m" data-tex="z_{0.95}=1.645"></span> is the one-sided <span class="m" data-tex="\alpha=0.05"></span> threshold</span></div>
+          </div>
+          <div class="eq" id="pow-formula"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Built as an interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a> (book Chapter 16, Evaluation) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function softmax(arr, T){
+    T = T===undefined?1:T;
+    var scaled = arr.map(function(x){ return x/T; });
+    var m = Math.max.apply(null, scaled);
+    var exps = scaled.map(function(x){ return Math.exp(x-m); });
+    var s = exps.reduce(function(a,b){ return a+b; }, 0);
+    return exps.map(function(e){ return e/s; });
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  function normalize(arr){ var s = sum(arr); return arr.map(function(x){ return x/s; }); }
+
+  // Standard normal CDF (Abramowitz & Stegun 7.1.26 via erf approx)
+  function erf(x){
+    var s = x<0?-1:1; x = Math.abs(x);
+    var t = 1/(1+0.3275911*x);
+    var y = 1 - (((((1.061405429*t - 1.453152027)*t) + 1.421413741)*t - 0.284496736)*t + 0.254829592)*t*Math.exp(-x*x);
+    return s*y;
+  }
+  function normCdf(z){ return 0.5*(1+erf(z/Math.SQRT2)); }
+
+  function tabGroup(containerId, onSelect){
+    var btns = document.querySelectorAll('#' + containerId + ' button');
+    btns.forEach(function(btn){
+      btn.addEventListener('click', function(){
+        btns.forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        onSelect(btn.dataset.v);
+      });
+    });
+  }
+
+  /* ---------------- A1: Prompt-formatting sensitivity ---------------- */
+  function initFormat(){
+    var state = { shots:'0', cot:'direct', score:'ll' };
+    var barsEl = document.getElementById('fmt-bars');
+    var formulaEl = document.getElementById('fmt-formula');
+    var hintEl = document.getElementById('fmt-hint');
+
+    // Toy but plausible model: a single fixed model's measured accuracy is built
+    // additively from format choices, then clamped to [0,1]. Numbers chosen to
+    // echo the chapter: format alone can swing scores by tens of points.
+    var BASE = 0.42;
+    function components(){
+      var c = {};
+      c.base = BASE;
+      c.shots = state.shots === '5' ? 0.13 : 0.00;          // few-shot helps stabilize format
+      c.cot   = state.cot   === 'cot' ? 0.16 : 0.00;        // reasoning helps hard items
+      // Free generation is fragile w/o CoT (format compliance); LL scoring is robust.
+      if(state.score === 'gen'){
+        c.score = state.cot === 'cot' ? 0.05 : -0.22;       // bare generation w/o CoT often fails the format check
+        c.score += state.shots === '5' ? 0.06 : -0.04;      // few-shot demonstrates the target format
+      } else {
+        c.score = 0.04;                                     // LL scoring sidesteps format-following entirely
+      }
+      return c;
+    }
+    function acc(){
+      var c = components();
+      return clamp(c.base + c.shots + c.cot + c.score, 0.01, 0.99);
+    }
+
+    function render(){
+      var c = components();
+      var a = acc();
+      // bars: contribution stack visualized as the 4 candidate format scores vs the live one
+      var grid = [
+        {label:'this format', val:a, live:true},
+        {label:'0-shot direct LL', val:scoreFor('0','direct','ll')},
+        {label:'5-shot CoT gen', val:scoreFor('5','cot','gen')},
+        {label:'0-shot direct gen', val:scoreFor('0','direct','gen')}
+      ];
+      var maxV = Math.max.apply(null, grid.map(function(g){return g.val;}));
+      barsEl.innerHTML = '';
+      grid.forEach(function(g){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        var h = (g.val/Math.max(maxV,0.01))*100;
+        col.innerHTML = '<div class="bar-track"><div class="bar-fill' + (g.live?' win':'') + '" style="height:' + h.toFixed(1) + '%"></div></div>' +
+          '<div class="bar-label">' + escapeHtml(g.label) + '<br>' + (g.val*100).toFixed(0) + '%</div>';
+        barsEl.appendChild(col);
+      });
+      tex(formulaEl,
+        '\\mathrm{acc} = ' + fmt(c.base,2) + ' ' + texSigned(c.shots) + ' ' + texSigned(c.cot) + ' ' + texSigned(c.score) +
+        ' = \\mathbf{' + (a/1).toFixed(3) + '} = ' + (a*100).toFixed(1) + '\\%',
+        true);
+      var lo = scoreFor('0','direct','gen'), hi = scoreFor('5','cot','gen');
+      hintEl.innerHTML = 'Same model, same question bank. Across these formats the score ranges from ' +
+        '<b>' + (lo*100).toFixed(0) + '%</b> to <b>' + (hi*100).toFixed(0) + '%</b> — a ' +
+        ((hi-lo)*100).toFixed(0) + '-point swing with no change to the weights.';
+    }
+    function signed(x){ return (x>=0?'+':'−') + Math.abs(x).toFixed(2); }
+    function texSigned(x){ return (x>=0?'+':'-') + ' ' + Math.abs(x).toFixed(2); }
+    function scoreFor(sh, co, sc){
+      var save = {shots:state.shots, cot:state.cot, score:state.score};
+      state.shots=sh; state.cot=co; state.score=sc;
+      var a = acc();
+      state.shots=save.shots; state.cot=save.cot; state.score=save.score;
+      return a;
+    }
+
+    tabGroup('fmt-shots', function(v){ state.shots=v; render(); });
+    tabGroup('fmt-cot',   function(v){ state.cot=v; render(); });
+    tabGroup('fmt-score', function(v){ state.score=v; render(); });
+    render();
+  }
+
+  /* ---------------- A2: Log-likelihood MC scoring ---------------- */
+  function initLogLikelihood(){
+    // Each option: text + token count + per-token avg log-prob (slider-controlled).
+    var options = [
+      {letter:'A', text:'The Mean Value Theorem',        tokens:4, lp:-1.1, correct:false},
+      {letter:'B', text:'The Intermediate Value Theorem', tokens:4, lp:-1.4, correct:false},
+      {letter:'C', text:'The Extreme Value Theorem',      tokens:4, lp:-1.0, correct:true},
+      {letter:'D', text:"Rolle's Theorem",                tokens:2, lp:-1.6, correct:false}
+    ];
+    // Give correct answer slightly MORE tokens so raw-sum can wrongly favor a shorter option.
+    options[2].tokens = 5;
+    var mode = 'raw';
+    var slidersEl = document.getElementById('ll-sliders');
+    var barsEl = document.getElementById('ll-bars');
+    var formulaEl = document.getElementById('ll-formula');
+    var statusEl = document.getElementById('ll-status');
+
+    options.forEach(function(o,i){
+      var row = document.createElement('div');
+      row.className = 'slider-row';
+      row.innerHTML = '<label>(' + o.letter + ') avg log p/token = <span id="ll-v-' + i + '">' + o.lp.toFixed(2) + '</span> &nbsp;[' + o.tokens + ' tok]</label>' +
+        '<input type="range" min="-3" max="-0.1" step="0.05" value="' + o.lp + '" id="ll-s-' + i + '">';
+      slidersEl.appendChild(row);
+    });
+
+    function scoreOf(o){
+      var total = o.lp * o.tokens;           // sum of per-token log-probs
+      return mode === 'norm' ? total / o.tokens : total;  // norm => avg = o.lp
+    }
+    function render(){
+      var scores = options.map(scoreOf);
+      var predIdx = scores.indexOf(Math.max.apply(null, scores));
+      var correctIdx = options.findIndex(function(o){return o.correct;});
+      // bars: map scores (negative) to bar heights — closer to 0 (less negative) = taller
+      var minS = Math.min.apply(null, scores), maxS = Math.max.apply(null, scores);
+      barsEl.innerHTML = '';
+      options.forEach(function(o,i){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        var frac = (scores[i]-minS)/Math.max(maxS-minS, 1e-6); // 0..1, taller = preferred
+        var h = 8 + frac*92;
+        var isPred = i===predIdx;
+        col.innerHTML = '<div class="bar-track"><div class="bar-fill' + (isPred?' win':'') + '" style="height:' + h.toFixed(1) + '%"></div></div>' +
+          '<div class="bar-label">(' + o.letter + ')' + (o.correct?'&#10003;':'') + '<br>' + scores[i].toFixed(2) + '</div>';
+        barsEl.appendChild(col);
+      });
+      var ok = predIdx === correctIdx;
+      var best = options[predIdx];
+      tex(formulaEl,
+        (mode==='raw'
+          ? '\\text{score} = \\sum_t \\log p(\\text{tok}_t) = \\text{avg}\\times L = ' + best.lp.toFixed(2) + '\\times' + best.tokens + ' = ' + scores[predIdx].toFixed(2)
+          : '\\text{score} = \\tfrac{1}{L}\\sum_t \\log p(\\text{tok}_t) = \\text{avg} = ' + scores[predIdx].toFixed(2)),
+        true);
+      statusEl.innerHTML =
+        'predicted = <b>(' + options[predIdx].letter + ') ' + escapeHtml(options[predIdx].text) + '</b> &nbsp;' +
+        (ok ? '<span style="color:var(--accent-bright)">[correct]</span>' : '<span style="color:var(--red)">[wrong &mdash; correct is (' + options[correctIdx].letter + ')]</span>');
+    }
+    options.forEach(function(o,i){
+      document.getElementById('ll-s-'+i).addEventListener('input', function(e){
+        o.lp = parseFloat(e.target.value);
+        document.getElementById('ll-v-'+i).textContent = o.lp.toFixed(2);
+        render();
+      });
+    });
+    tabGroup('ll-norm', function(v){ mode=v; render(); });
+    render();
+  }
+
+  /* ---------------- A3: CoT-era exact-match extraction ---------------- */
+  function initCoT(){
+    var outputs = {
+      good: "Let me reason. A function continuous on a closed\ninterval attains its extrema by the relevant theorem.\nThe Mean Value Theorem is about derivatives, not extrema.\nTherefore, the answer is (C).",
+      paren: "The relevant result here is clearly (C), since a\ncontinuous function on [a,b] attains a max and a min.\nThe other options concern derivatives or roots.",
+      prose: "A continuous function on a closed interval must\nattain both a maximum and a minimum value. That is\nexactly the Extreme Value Theorem, so the answer is\nthe Extreme Value Theorem."
+    };
+    // Tulu-3-style strict extractor: require the exact suffix phrase.
+    function extractStrict(txt){
+      var m = txt.match(/Therefore, the answer is \(([A-E])\)/);
+      return m ? m[1] : null;
+    }
+    // Looser fallback regex: any "(X)" anywhere.
+    function extractLoose(txt){
+      var m = txt.match(/\(([A-E])\)/);
+      return m ? m[1] : null;
+    }
+    var style = 'good';
+    var outEl = document.getElementById('cot-output');
+    var formulaEl = document.getElementById('cot-formula');
+    var hintEl = document.getElementById('cot-hint');
+
+    function render(){
+      var txt = outputs[style];
+      var strict = extractStrict(txt);
+      var loose = extractLoose(txt);
+      // highlight the matched answer phrase
+      var html = escapeHtml(txt);
+      if(strict){
+        html = html.replace(/Therefore, the answer is \(([A-E])\)/, '<span class="hl-o">Therefore, the answer is ($1)</span>');
+      } else if(loose){
+        html = html.replace('(' + loose + ')', '<span class="hl">(' + loose + ')</span>');
+      }
+      outEl.innerHTML = html;
+      var correct = 'C';
+      var strictOK = strict === correct;
+      var graded = strict;
+      formulaEl.innerHTML =
+        'strict regex /Therefore, the answer is \\(([A-E])\\)/ &rarr; <b>' + (strict?('('+strict+')'):'no match') + '</b><br>' +
+        'graded: ' + (strictOK ? '<span style="color:var(--accent-bright)">correct</span>' : '<span style="color:var(--red)">incorrect</span>') +
+        ' &nbsp;|&nbsp; <span style="color:var(--text-dim)">loose /\\(([A-E])\\)/ would have found (' + (loose||'?') + ')</span>';
+      var hints = {
+        good: 'Format followed: the strict suffix phrase is present, the regex locks onto (C), graded correct. This is the happy path Tülu 3 designed for.',
+        paren: 'The model is right and even wrote "(C)" — but mid-sentence, not in the required suffix. The strict extractor finds nothing; a looser regex would rescue it. Eval measured formatting, not knowledge.',
+        prose: 'Fully correct reasoning and it names the Extreme Value Theorem — but never emits "(C)" and never uses the suffix. Strict exact-match scores this as WRONG. Format-agnostic grading is the rare, expensive fix.'
+      };
+      hintEl.textContent = hints[style];
+    }
+    tabGroup('cot-style', function(v){ style=v; render(); });
+    render();
+  }
+
+  /* ---------------- B1: Contamination ---------------- */
+  function initContamination(){
+    var fracS = document.getElementById('contam-frac');
+    var trueS = document.getElementById('contam-true');
+    var memS  = document.getElementById('contam-mem');
+    var fracV = document.getElementById('contam-frac-val');
+    var trueV = document.getElementById('contam-true-val');
+    var memV  = document.getElementById('contam-mem-val');
+    var barsEl = document.getElementById('contam-bars');
+    var formulaEl = document.getElementById('contam-formula');
+    var hintEl = document.getElementById('contam-hint');
+
+    function render(){
+      var f = parseFloat(fracS.value)/100;
+      var trueAcc = parseFloat(trueS.value);
+      var memAcc = parseFloat(memS.value);
+      fracV.textContent = (f*100).toFixed(0) + '%';
+      trueV.textContent = trueAcc.toFixed(2);
+      memV.textContent = memAcc.toFixed(3);
+      // apparent = f*memorized + (1-f)*true held-out
+      var apparent = f*memAcc + (1-f)*trueAcc;
+      var inflation = apparent - trueAcc;
+
+      var bars = [
+        {label:'true held-out', val:trueAcc, win:false},
+        {label:'apparent', val:apparent, win:true},
+        {label:'inflation', val:inflation, win:false, neg:true}
+      ];
+      var maxV = Math.max(apparent, trueAcc, 0.1);
+      barsEl.innerHTML = '';
+      bars.forEach(function(b){
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        var h = (b.val/maxV)*100;
+        var color = b.win ? ' win' : '';
+        col.innerHTML = '<div class="bar-track"><div class="bar-fill' + color + '" style="height:' + clamp(h,1,100).toFixed(1) + '%' + (b.neg?';background:linear-gradient(to top,var(--red),#e8a99a)':'') + '"></div></div>' +
+          '<div class="bar-label">' + escapeHtml(b.label) + '<br>' + (b.val*100).toFixed(1) + '%</div>';
+        barsEl.appendChild(col);
+      });
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\mathrm{acc}_{\\text{apparent}} &= ' + f.toFixed(2) + '\\cdot' + memAcc.toFixed(2) + ' + ' + (1-f).toFixed(2) + '\\cdot' + trueAcc.toFixed(2) +
+        ' = \\mathbf{' + (apparent*100).toFixed(1) + '\\%} \\\\ ' +
+        '\\text{illusion} &= \\mathrm{acc}_{\\text{apparent}} - \\mathrm{acc}_{\\text{true}} = +' + (inflation*100).toFixed(1) + '\\text{ pts}' +
+        '\\end{aligned}',
+        true);
+      hintEl.innerHTML = f<0.01
+        ? 'No contamination: apparent = true. The benchmark is honest signal.'
+        : f.toFixed(2) + ' of the test set leaked into training. Those items are answered at ' + (memAcc*100).toFixed(1) + '% for the wrong reason, lifting the headline by <b>' + (inflation*100).toFixed(1) + ' points</b> over real ability.';
+    }
+    fracS.addEventListener('input', render);
+    trueS.addEventListener('input', render);
+    memS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- B2: Generalization vs training reward ---------------- */
+  function initGeneralization(){
+    var stepS = document.getElementById('gen-step');
+    var shareS = document.getElementById('gen-share');
+    var stepV = document.getElementById('gen-step-val');
+    var shareV = document.getElementById('gen-share-val');
+    var svg = document.getElementById('gen-plot');
+    var formulaEl = document.getElementById('gen-formula');
+    var hintEl = document.getElementById('gen-hint');
+
+    var W=380, H=220, PAD=34;
+    function xToPx(s){ return PAD + (s/100)*(W-2*PAD); }
+    function yToPx(v){ return PAD + (1-v)*(H-2*PAD); }
+
+    // training metric: rises strongly to a high ceiling (it always fits the train task)
+    function trainAt(s){ return 0.45 + 0.50*(1-Math.exp(-3.2*(s/100))); }
+    // held-out: only the "generalization share" of the gain transfers
+    function heldAt(s, share){
+      var trainGain = trainAt(s) - 0.45;
+      return 0.45 + share*trainGain;
+    }
+
+    function render(){
+      var step = parseInt(stepS.value,10);
+      var share = parseFloat(shareS.value);
+      stepV.textContent = step;
+      shareV.textContent = share.toFixed(2);
+
+      var trainPts=[], heldPts=[];
+      for(var s=0;s<=100;s+=1){
+        trainPts.push([xToPx(s), yToPx(trainAt(s))]);
+        heldPts.push([xToPx(s), yToPx(heldAt(s,share))]);
+      }
+      function toPath(p){ return p.map(function(pt,i){ return (i===0?'M':'L')+pt[0].toFixed(1)+','+pt[1].toFixed(1); }).join(' '); }
+
+      var tNow = trainAt(step), hNow = heldAt(step,share);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<path class="plot-curve" d="'+toPath(trainPts)+'"></path>' +
+        '<path class="plot-curve-2" d="'+toPath(heldPts)+'"></path>' +
+        '<line class="plot-true" x1="'+xToPx(step).toFixed(1)+'" y1="'+PAD+'" x2="'+xToPx(step).toFixed(1)+'" y2="'+(H-PAD)+'"></line>' +
+        '<circle class="plot-marker" cx="'+xToPx(step).toFixed(1)+'" cy="'+yToPx(tNow).toFixed(1)+'" r="5" style="fill:var(--accent)"></circle>' +
+        '<circle class="plot-marker" cx="'+xToPx(step).toFixed(1)+'" cy="'+yToPx(hNow).toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-8)+'" fill="var(--text-dim)" font-size="10">metric</text>' +
+        '<text x="'+(W-PAD-58)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">training steps</text>';
+
+      var gap = tNow - hNow;
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\text{train} &= ' + (tNow*100).toFixed(1) + '\\% \\quad ' +
+        '\\text{held-out} = ' + (hNow*100).toFixed(1) + '\\% \\quad ' +
+        '\\text{gap} = ' + (gap*100).toFixed(1) + '\\text{ pts} \\\\ ' +
+        '\\text{held-out gain} &= s\\times\\text{train gain} = ' + share.toFixed(2) + '\\times' + ((tNow-0.45)*100).toFixed(1) + ' = ' + ((hNow-0.45)*100).toFixed(1) + '\\text{ pts}' +
+        '\\end{aligned}',
+        true);
+      if(share>0.75){
+        hintEl.innerHTML = 'High transfer: the held-out eval climbs with the train metric. This change is real — ship it.';
+      } else if(share<0.25){
+        hintEl.innerHTML = 'Low transfer: train reward soars while the held-out eval barely moves. You over-fit the training task. The train number is a <b>mirage</b>.';
+      } else {
+        hintEl.innerHTML = 'Partial transfer: some of the gain is real, some is over-fitting. Only the held-out curve tells you which.';
+      }
+    }
+    stepS.addEventListener('input', render);
+    shareS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- C1: External comparison / harness drift ---------------- */
+  function initExternal(){
+    // Three close models; "true" latent skill very near each other.
+    var models = [
+      {name:'Model Apex',  base:71.8},
+      {name:'Model Boreal',base:71.2},
+      {name:'Model Cirro', base:70.9}
+    ];
+    var promptS = document.getElementById('ext-prompt');
+    var tempS   = document.getElementById('ext-temp');
+    var strictS = document.getElementById('ext-strict');
+    var shotsS  = document.getElementById('ext-shots');
+    var promptV = document.getElementById('ext-prompt-val');
+    var tempV   = document.getElementById('ext-temp-val');
+    var strictV = document.getElementById('ext-strict-val');
+    var shotsV  = document.getElementById('ext-shots-val');
+    var tbody = document.querySelector('#ext-table tbody');
+    var formulaEl = document.getElementById('ext-formula');
+    var hintEl = document.getElementById('ext-hint');
+
+    var strictLabels = ['strict','medium','loose'];
+    // Deterministic pseudo-random per (model, harness) so results are stable but reorder.
+    function hash(a,b,c,d,e){
+      var x = Math.sin(a*12.9898 + b*78.233 + c*37.719 + d*9.137 + e*53.51)*43758.5453;
+      return x - Math.floor(x); // 0..1
+    }
+    function baselineScore(m){ return m.base; } // baseline harness = all sliders at reset midpoints
+
+    function render(){
+      var pV = parseInt(promptS.value,10);
+      var tV = parseFloat(tempS.value);
+      var sV = parseInt(strictS.value,10);
+      var fV = parseInt(shotsS.value,10);
+      promptV.textContent = String.fromCharCode(65+pV);
+      tempV.textContent = tV.toFixed(2);
+      strictV.textContent = strictLabels[sV];
+      shotsV.textContent = fV;
+
+      var rows = models.map(function(m, mi){
+        // Each harness knob perturbs each model differently, within ~±1.5 pts total.
+        var dPrompt = (hash(mi,pV,1,0,0)-0.5)*1.6;
+        var dTemp   = (hash(mi,Math.round(tV*20),2,0,0)-0.5)*1.2 * (tV>0?1:0);
+        var dStrict = (sV-1)*((hash(mi,sV,3,0,0))-0.5)*1.4 + (sV===2?0.4:0); // looser tends to recover a bit
+        var dShots  = (hash(mi,fV,4,0,0)-0.5)*1.0 + (fV>0?0.2:0);
+        var score = m.base + dPrompt + dTemp + dStrict + dShots;
+        return {name:m.name, base:m.base, score:score};
+      });
+      // current rank
+      var ranked = rows.slice().sort(function(a,b){ return b.score-a.score; });
+      // baseline rank (by base)
+      var baseRank = {};
+      models.slice().sort(function(a,b){return b.base-a.base;}).forEach(function(m,i){ baseRank[m.name]=i+1; });
+
+      tbody.innerHTML = '';
+      ranked.forEach(function(r, i){
+        var rankNow = i+1;
+        var was = baseRank[r.name];
+        var moved = was - rankNow; // >0 moved up
+        var tr = document.createElement('tr');
+        if(moved>0) tr.className='moved-up'; else if(moved<0) tr.className='moved-down';
+        var deltaTxt = moved===0 ? '&ndash;' :
+          (moved>0 ? '<span class="delta-up">&uarr; from #'+was+'</span>' : '<span class="delta-down">&darr; from #'+was+'</span>');
+        tr.innerHTML = '<td class="rankcell">#'+rankNow+'</td><td>'+escapeHtml(r.name)+'</td><td>'+r.score.toFixed(1)+'</td><td>'+deltaTxt+'</td>';
+        tbody.appendChild(tr);
+      });
+
+      var top = ranked[0], spread = ranked[0].score - ranked[ranked.length-1].score;
+      var anyReorder = ranked.some(function(r,i){ return baseRank[r.name] !== i+1; });
+      formulaEl.innerHTML =
+        'leader: <b>'+escapeHtml(top.name)+'</b> at '+top.score.toFixed(1)+
+        ' &nbsp;|&nbsp; top&ndash;bottom spread = '+spread.toFixed(1)+' pts<br>' +
+        '<span style="color:var(--text-dim)">Olmo 3: held-constant setups still carry 0.25&ndash;1.5 pt &sigma;; this spread is inside the noise band.</span>';
+      hintEl.innerHTML = anyReorder
+        ? 'Harness perturbed &rarr; the leaderboard <b>reordered</b>, though no model actually changed. The "winner" is an artifact of prompt/temperature/extraction/shots.'
+        : 'At this harness the baseline order holds — but the margins are within the ±1.5 pt noise band, so a tweak away it flips.';
+    }
+    [promptS,tempS,strictS,shotsS].forEach(function(s){ s.addEventListener('input', render); });
+    document.getElementById('ext-reset').addEventListener('click', function(){
+      promptS.value=0; tempS.value=0; strictS.value=1; shotsS.value=0; render();
+    });
+    render();
+  }
+
+  /* ---------------- C2: Statistical power ---------------- */
+  function initPower(){
+    var gainS = document.getElementById('pow-gain');
+    var noiseS = document.getElementById('pow-noise');
+    var nS = document.getElementById('pow-n');
+    var gainV = document.getElementById('pow-gain-val');
+    var noiseV = document.getElementById('pow-noise-val');
+    var nV = document.getElementById('pow-n-val');
+    var svg = document.getElementById('pow-plot');
+    var formulaEl = document.getElementById('pow-formula');
+    var hintEl = document.getElementById('pow-hint');
+
+    var W=380, H=200, PAD=34;
+    // power of a one-sided z-test for difference in means at alpha=0.05.
+    // SE of the per-item-noise std (in accuracy units) for the difference over N paired-ish items.
+    function power(gain, noiseStd, N){
+      // noiseStd given in "points" (percentage points). convert to accuracy units.
+      var sigma = noiseStd/100;
+      var se = sigma * Math.sqrt(2/N); // two independent runs of N items each
+      if(se<=0) return 1;
+      var z = gain/se - 1.6449; // z_{0.95}
+      return clamp(normCdf(z), 0, 1);
+    }
+
+    function render(){
+      var gain = parseFloat(gainS.value);
+      var noise = parseFloat(noiseS.value);
+      var N = parseInt(nS.value,10);
+      gainV.textContent = gain.toFixed(3);
+      noiseV.textContent = noise.toFixed(2);
+      nV.textContent = N;
+
+      // curve: power vs N (log-ish x over 20..4000)
+      var Nmax=4000, Nmin=20;
+      function xToPx(n){ return PAD + (Math.log(n)-Math.log(Nmin))/(Math.log(Nmax)-Math.log(Nmin))*(W-2*PAD); }
+      function yToPx(v){ return PAD + (1-v)*(H-2*PAD); }
+      var pts=[];
+      for(var n=Nmin;n<=Nmax;n*=1.05){ pts.push([xToPx(n), yToPx(power(gain,noise,n))]); }
+      pts.push([xToPx(Nmax), yToPx(power(gain,noise,Nmax))]);
+      function toPath(p){ return p.map(function(pt,i){ return (i===0?'M':'L')+pt[0].toFixed(1)+','+pt[1].toFixed(1); }).join(' '); }
+
+      var pNow = power(gain,noise,N);
+      // 80% power reference line
+      var y80 = yToPx(0.8);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+(H-PAD)+'" x2="'+(W-PAD)+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-axis" x1="'+PAD+'" y1="'+PAD+'" x2="'+PAD+'" y2="'+(H-PAD)+'"></line>' +
+        '<line class="plot-true" x1="'+PAD+'" y1="'+y80.toFixed(1)+'" x2="'+(W-PAD)+'" y2="'+y80.toFixed(1)+'"></line>' +
+        '<text x="'+(W-PAD-26)+'" y="'+(y80-4).toFixed(1)+'" fill="var(--text-dim)" font-size="9">80%</text>' +
+        '<path class="plot-curve" d="'+toPath(pts)+'"></path>' +
+        '<circle class="plot-marker" cx="'+xToPx(N).toFixed(1)+'" cy="'+yToPx(pNow).toFixed(1)+'" r="5"></circle>' +
+        '<text x="'+(PAD+2)+'" y="'+(PAD-8)+'" fill="var(--text-dim)" font-size="10">detection power</text>' +
+        '<text x="'+(W-PAD-44)+'" y="'+(H-PAD+16)+'" fill="var(--text-dim)" font-size="10">eval size N</text>';
+
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\mathrm{SE} &= ' + (noise/100).toFixed(3) + '\\sqrt{\\tfrac{2}{' + N + '}} = ' + ( (noise/100)*Math.sqrt(2/N) ).toFixed(4) + ' \\\\ ' +
+        '\\text{power} &= P\\big(\\text{detect } +' + (gain*100).toFixed(1) + '\\text{pt}\\big) = \\mathbf{' + (pNow*100).toFixed(0) + '\\%}' +
+        '\\end{aligned}',
+        true);
+      if(pNow>0.8){
+        hintEl.innerHTML = 'Enough power: a real +'+(gain*100).toFixed(1)+'pt change is reliably detected. You can trust this eval to rank two runs.';
+      } else if(pNow<0.4){
+        hintEl.innerHTML = 'Under-powered: this eval is too noisy / too small to see a +'+(gain*100).toFixed(1)+'pt gain. Most "improvements" here are noise. <b>Lower the noise or add items.</b>';
+      } else {
+        hintEl.innerHTML = 'Borderline: you would miss the true gain a meaningful fraction of the time. Shrink noise or grow N to cross 80%.';
+      }
+    }
+    gainS.addEventListener('input', render);
+    noiseS.addEventListener('input', render);
+    nS.addEventListener('input', render);
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
+    initFormat();
+    initLogLikelihood();
+    initCoT();
+    initContamination();
+    initGeneralization();
+    initExternal();
+    initPower();
+  });
+})();
+</script>
+
+</body>
+</html>

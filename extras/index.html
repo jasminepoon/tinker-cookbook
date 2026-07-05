@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLHF &amp; Post-Training: An Interactive Course Companion</title>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:72px 24px 44px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.5em;
+    margin:0 0 14px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:700px;
+    margin:0 auto 6px;
+    font-size:1.05em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  /* ---- framing paragraph ---- */
+  section.framing{
+    max-width:760px;
+    margin:48px auto 0;
+    text-align:center;
+  }
+  section.framing h2{
+    font-size:0.85em;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 14px;
+  }
+  section.framing p{
+    color:var(--text-dim);
+    font-size:1.0em;
+    margin:0 0 12px;
+  }
+  section.framing .arc{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin:22px 0 6px;
+    font-family:var(--mono);
+    font-size:0.92em;
+  }
+  section.framing .arc .step{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px 14px;
+    color:var(--accent-bright);
+  }
+  section.framing .arc .arrow{
+    color:var(--text-dim);
+  }
+
+  /* ---- tiered sections ---- */
+  section.tier{ margin-top:60px; }
+  section.tier > .tier-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.tier > .tier-header .tier-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.tier > .tier-header h2{
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.tier > .tier-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 26px;
+    font-size:0.95em;
+  }
+
+  .card-grid{ display:grid; gap:18px; }
+
+  /* Tier 1: core depth — large cards */
+  #tier-core .card-grid{ grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); }
+  #tier-core .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:22px 22px;
+    text-decoration:none;
+    color:var(--text);
+    display:block;
+    transition:border-color 0.15s, transform 0.15s, background 0.15s;
+  }
+  #tier-core .card:hover{
+    border-color:var(--accent);
+    background:var(--panel-2);
+    transform:translateY(-2px);
+  }
+  #tier-core .card .card-eyebrow{
+    color:var(--accent-bright);
+    font-family:var(--mono);
+    font-size:0.74em;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  #tier-core .card h3{
+    margin:0 0 8px;
+    font-size:1.15em;
+  }
+  #tier-core .card p{
+    margin:0;
+    color:var(--text-dim);
+    font-size:0.88em;
+  }
+
+  /* Tier 2: RL-infra literacy — medium cards */
+  #tier-infra .card-grid{ grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
+  #tier-infra .card{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px 18px;
+    text-decoration:none;
+    color:var(--text);
+    display:block;
+    transition:border-color 0.15s, transform 0.15s;
+  }
+  #tier-infra .card:hover{ border-color:var(--accent); transform:translateY(-1px); }
+  #tier-infra .card h3{
+    margin:0 0 6px;
+    font-size:0.98em;
+  }
+  #tier-infra .card p{
+    margin:0;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+
+  /* Tier 3: also covered — smallest, list-like */
+  #tier-also .card-grid{ grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; }
+  #tier-also .card{
+    background:transparent;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:11px 14px;
+    text-decoration:none;
+    color:var(--text-dim);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    font-size:0.85em;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  #tier-also .card:hover{ border-color:var(--accent); color:var(--text); }
+  #tier-also .card .arrow{ color:var(--accent); flex-shrink:0; }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">rlhfbook.com/course · interactive companion</div>
+  <h1>RLHF &amp; Post-Training: An Interactive Course Companion</h1>
+  <p class="sub">Every page below is a playable version of one lecture or chapter from Nathan Lambert's RLHF course — drag sliders, click tokens, watch the math respond instead of just reading about it.</p>
+  <p class="credit">Course content and structure by Nathan Lambert, <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>. These pages are an independent interactive build; original content credit belongs to the source course and book.</p>
+</header>
+
+<main>
+
+  <section class="framing">
+    <h2>How this course fits together</h2>
+    <p>RLHF practitioners tend to think about the problem as one arc, not a list of independent topics: you start by deciding what to reward, you spend compute turning that reward into a policy update, and then you spend the rest of your time finding out where the reward signal lied to you.</p>
+    <div class="arc">
+      <span class="step">Reward design</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step">RL training</span>
+      <span class="arrow">&rarr;</span>
+      <span class="step">Reward hacking &amp; evaluation</span>
+    </div>
+    <p>Reward design (what scalar are we even optimizing, and where does it come from) and reward hacking / evaluation (did optimizing that scalar actually make the model better, or just better at gaming the scalar) are the two ends of the arc that are genuinely hard to get right — most of the RL machinery in the middle is, in comparison, well-understood engineering. The tiers below reflect that: the topics that are hardest and most central to getting RLHF right are called out for depth; the RL training machinery is presented as infrastructure literacy — know the shape of it, not every derivation.</p>
+  </section>
+
+  <!-- ============ TIER 1: CORE DEPTH ============ -->
+  <section class="tier" id="tier-core">
+    <div class="tier-header"><span class="tier-index">01</span><h2>Core depth — go deep</h2></div>
+    <p class="tier-intro">Reward design and reward hacking are where RLHF is hardest to get right, because there is rarely a single correct answer and the failure modes are silent: a model can look like it's improving while it's actually learning to game the metric. These five pages are worth knowing cold.</p>
+    <div class="card-grid">
+      <a class="card" href="interactive-reward-modeling.html">
+        <div class="card-eyebrow">Chapter 5</div>
+        <h3>Reward Modeling</h3>
+        <p>Bradley&ndash;Terry preference modeling, generative reward models / LLM-as-a-judge, ORM vs. PRM, and the reward-hacking taxonomy that follows from a miscalibrated reward.</p>
+      </a>
+      <a class="card" href="interactive-overoptimization-reward-hacking.html">
+        <div class="card-eyebrow">Chapter 14 &middot; the core objective spine</div>
+        <h3>Over-Optimization &amp; Reward Hacking</h3>
+        <p>Goodhart's law in RLHF: the proxy reward climbs while the true objective rises, peaks, and falls. Proxy reward, the KL regularizer, and knowing when to stop optimizing.</p>
+      </a>
+      <a class="card" href="interactive-evaluation.html">
+        <div class="card-eyebrow">Chapter 16</div>
+        <h3>Evaluation</h3>
+        <p>Why the instrument you trust to measure "did this help" is itself fragile: format sensitivity, log-likelihood scoring, contamination, and train-task reward vs. held-out generalization.</p>
+      </a>
+      <a class="card" href="interactive-lec2-ift-rm-rejection.html">
+        <div class="card-eyebrow">Lecture 2 &middot; Chapters 4, 5 &amp; 9</div>
+        <h3>IFT, Reward Models &amp; Rejection Sampling</h3>
+        <p>Preference-data foundations: instruction tuning, the Bradley&ndash;Terry model from first principles, and curating data via rejection sampling before any RL loop exists.</p>
+      </a>
+      <a class="card" href="interactive-lec5-reasoning-rlvr.html">
+        <div class="card-eyebrow">Lecture 5 &middot; Chapter 7</div>
+        <h3>The Rise of Reasoning Models</h3>
+        <p>RLVR &mdash; reinforcement learning with verifiable rewards &mdash; and why a checkable verifier is a fundamentally different (and easier) signal than a learned, gameable reward model.</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ TIER 2: RL-INFRA LITERACY ============ -->
+  <section class="tier" id="tier-infra">
+    <div class="tier-header"><span class="tier-index">02</span><h2>RL-infra literacy — grasp the shape, not every derivation</h2></div>
+    <p class="tier-intro">Once the reward exists, turning it into a policy update is comparatively well-trodden engineering. You should know what GRPO's group-relative advantage and PPO's clipped objective are doing and why the KL penalty is there &mdash; you don't need to re-derive GAE or the clip bound from scratch to use these tools well.</p>
+    <div class="card-grid">
+      <a class="card" href="interactive-lec1-overview.html">
+        <h3>Lecture 1: Overview</h3>
+        <p>The Transformer to agents, post-training's classical-RL roots, and the InstructGPT recipe that set the template for the field.</p>
+      </a>
+      <a class="card" href="interactive-lec3-policy-gradients.html">
+        <h3>Reinforcement Learning (the math)</h3>
+        <p>Policy gradients from first principles &mdash; the log-derivative trick, baselines, and the KL term that keeps a policy from drifting too far.</p>
+      </a>
+      <a class="card" href="interactive-lec4-rl-implementation.html">
+        <h3>RL Implementation &amp; Practice</h3>
+        <p>REINFORCE &rarr; RLOO &rarr; PPO &rarr; GRPO in code: the clipped surrogate, GAE, group-relative advantages, and where the KL penalty actually goes.</p>
+      </a>
+      <a class="card" href="interactive-lec6-dpo.html">
+        <h3>Direct Preference Optimization</h3>
+        <p>DPO derived end to end: the KL-regularized objective, its closed-form optimal policy, and the implicit reward hiding inside the policy &mdash; no RL loop required.</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ TIER 3: ALSO COVERED ============ -->
+  <section class="tier" id="tier-also">
+    <div class="tier-header"><span class="tier-index">03</span><h2>Also covered</h2></div>
+    <p class="tier-intro">Rounding out the course: where synthetic data and modern post-training methods fit, where "preferences" actually come from, and the prerequisite math underneath everything above.</p>
+    <div class="card-grid">
+      <a class="card" href="interactive-lec7-synthetic-data.html">
+        <span>Synthetic Data &amp; Modern Post-training</span>
+        <span class="arrow">&rarr;</span>
+      </a>
+      <a class="card" href="interactive-lec8-preferences.html">
+        <span>Preferences &amp; Preference Data</span>
+        <span class="arrow">&rarr;</span>
+      </a>
+      <a class="card" href="interactive-math-prereqs.html">
+        <span>Math Prereqs (Lecture 0)</span>
+        <span class="arrow">&rarr;</span>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built as an interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a> by Nathan Lambert &mdash; this page is the table of contents for the full set.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+</body>
+</html>

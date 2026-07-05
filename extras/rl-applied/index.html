@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RL Applied — Build the RLHF Pipeline Yourself</title>
+<link rel="stylesheet" href="../assets/katex/katex.embedded.min.css">
+<script defer src="../assets/katex/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --red:#d98b7a;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:720px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:800px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:800px;
+    margin:0 0 14px;
+  }
+
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(48px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text); font-family:var(--mono);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
+  /* "in practice" styled callout */
+  .in-practice{
+    border-left:3px solid var(--orange);
+    background:rgba(224,164,88,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.82em;
+    color:var(--text);
+    margin-top:12px;
+  }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
+
+  /* "connects to" callout — the throughline back into the course */
+  .connects{
+    border-left:3px solid var(--accent);
+    background:rgba(132,169,140,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.82em;
+    color:var(--text);
+    margin-top:12px;
+  }
+  .connects b{ color:var(--accent-bright); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
+
+  .viz{ margin:16px 0 6px; text-align:center; }
+  svg.diagram{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+
+  .legend{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; font-size:0.76em; color:var(--text-dim); margin-top:8px; }
+  .legend .swatch{ display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:middle; }
+
+  /* file / run reference block */
+  .files{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:14px 16px;
+    margin-top:14px;
+    font-size:0.85em;
+  }
+  .files .files-title{
+    color:var(--accent-bright);
+    font-family:var(--mono);
+    font-size:0.74em;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .files ul{ margin:0; padding-left:18px; color:var(--text-dim); }
+  .files li{ margin:4px 0; }
+  .files code{ color:var(--accent-bright); }
+  .files a{ text-decoration:none; }
+  .files a:hover{ text-decoration:underline; }
+
+  .run{ font-family:var(--mono); font-size:0.8em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:11px 14px; white-space:pre-wrap; line-height:1.6; margin-top:12px; }
+  .run .c{ color:var(--accent-bright); }
+  .run .o{ color:var(--orange); }
+  .run .dim{ color:var(--text-dim); }
+
+  /* checkpoint list */
+  .checks{ list-style:none; padding:0; margin:14px 0 0; font-size:0.86em; }
+  .checks li{ position:relative; padding:6px 0 6px 26px; color:var(--text-dim); border-top:1px solid var(--border); }
+  .checks li:first-child{ border-top:none; }
+  .checks li::before{ content:"\2713"; position:absolute; left:4px; top:6px; color:var(--accent); font-family:var(--mono); }
+  .checks li b{ color:var(--text); }
+
+  /* mapping table */
+  table.map{ width:100%; border-collapse:collapse; font-size:0.85em; margin-top:8px; }
+  table.map th, table.map td{ border:1px solid var(--border); padding:9px 11px; text-align:left; vertical-align:top; }
+  table.map th{ background:var(--panel-2); color:var(--accent-bright); }
+  table.map td.mid{ color:var(--text); font-family:var(--mono); font-size:0.9em; }
+  table.map td.lec a{ color:var(--accent-bright); text-decoration:none; }
+  table.map td.lec a:hover{ text-decoration:underline; }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <a class="back-link" href="../index.html">&larr; Course index</a>
+  <div class="eyebrow">rlhfbook.com/course · hands-on lab</div>
+  <h1>RL Applied: Build the RLHF Pipeline Yourself</h1>
+  <p class="sub">You already know the theory — policy gradients, reward modeling, DPO, RLVR. This three-week lab closes the gap between reading the loss and <i>writing</i> it: a full <b>RLHF-in-miniature</b> pipeline, pure numpy on your laptop, on your own research problem. This page is the map — the single throughline that connects every week, and what each exercise grounds back in the course.</p>
+  <p class="credit">Companion to the tinker-cookbook <code>extras/rl-applied/</code> exercises and Nathan Lambert's RLHF course. Interactive build only; the exercises and solutions live alongside this file.</p>
+</header>
+
+<nav class="toc">
+  <a href="#throughline">The Throughline</a>
+  <a href="#week1">Week 1 · REINFORCE</a>
+  <a href="#week2">Week 2 · Reward Model</a>
+  <a href="#week3">Week 3 · α-Policy</a>
+  <a href="#week4">Week 4 · LLM Rep</a>
+  <a href="#map">Pipeline Map</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 00: THE THROUGHLINE ============ -->
+  <section class="group" id="throughline">
+    <div class="group-header"><span class="group-index">00</span><h2>The throughline — one pipeline, three weeks</h2></div>
+    <p class="group-intro">RLHF is one arc, not a pile of topics: <b>collect preferences</b> → <b>train a reward model</b> that turns those preferences into a score → <b>train a policy</b> that maximizes that score. This lab builds exactly that arc on a real research problem — your α-sweep activation-steering images and your own preference judgments over them. Week 1 forges the engine (REINFORCE by hand); Weeks 2 and 3 are the two halves of the arc. Read this diagram once; every week below is a zoom-in on one box.</p>
+
+    <article class="concept">
+      <h3>The whole lab on one screen</h3>
+      <p class="concept-desc">The same three ideas recur every week: a <b>policy</b> is a distribution you sample from, you nudge it with <b>log-prob × advantage</b>, and a <b>baseline</b> keeps that nudge low-variance. Week 1 teaches those ideas in the simplest possible world; Week 3 reuses your Week-1 code almost verbatim to drive the reward model you build in Week 2.</p>
+      <div class="viz">
+        <svg viewBox="0 0 720 300" class="diagram" style="max-width:720px;">
+          <defs>
+            <marker id="rla-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 Z" fill="var(--accent)"/>
+            </marker>
+            <marker id="rla-arrow-o" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+              <path d="M0,0 L9,4.5 L0,9 Z" fill="var(--orange)"/>
+            </marker>
+          </defs>
+
+          <!-- Preferences box -->
+          <rect x="24" y="108" width="150" height="84" rx="10" fill="var(--panel)" stroke="var(--border)"/>
+          <text x="99" y="134" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="600">Your preferences</text>
+          <text x="99" y="153" text-anchor="middle" fill="var(--text-dim)" font-size="10">pairwise judgments on</text>
+          <text x="99" y="167" text-anchor="middle" fill="var(--text-dim)" font-size="10">α-sweep images</text>
+          <text x="99" y="184" text-anchor="middle" fill="var(--accent-bright)" font-size="10" font-family="monospace">"A beats B"</text>
+
+          <!-- Reward Model box -->
+          <rect x="286" y="108" width="150" height="84" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="361" y="132" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="600">Reward model</text>
+          <text x="361" y="151" text-anchor="middle" fill="var(--text-dim)" font-size="10">CLIP embed → linear head</text>
+          <text x="361" y="166" text-anchor="middle" fill="var(--text-dim)" font-size="10">Bradley–Terry loss</text>
+          <text x="361" y="184" text-anchor="middle" fill="var(--accent-bright)" font-size="10" font-family="monospace">s = w·e</text>
+
+          <!-- Policy box -->
+          <rect x="548" y="108" width="150" height="84" rx="10" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="623" y="132" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="600">α-policy</text>
+          <text x="623" y="151" text-anchor="middle" fill="var(--text-dim)" font-size="10">REINFORCE over 9 α values</text>
+          <text x="623" y="166" text-anchor="middle" fill="var(--text-dim)" font-size="10">maximize RM score</text>
+          <text x="623" y="184" text-anchor="middle" fill="var(--accent-bright)" font-size="10" font-family="monospace">π(α | context)</text>
+
+          <!-- arrows between boxes -->
+          <line x1="176" y1="150" x2="282" y2="150" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <text x="229" y="142" text-anchor="middle" fill="var(--text-dim)" font-size="9">train</text>
+          <line x1="438" y1="150" x2="544" y2="150" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <text x="491" y="142" text-anchor="middle" fill="var(--text-dim)" font-size="9">scores</text>
+
+          <!-- reward hacking feedback (dashed, orange) -->
+          <path d="M623 196 C623 250, 361 250, 361 196" fill="none" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#rla-arrow-o)"/>
+          <text x="492" y="268" text-anchor="middle" fill="var(--orange)" font-size="10">over-optimize a ~80%-right RM → reward hacking</text>
+
+          <!-- week tags -->
+          <rect x="286" y="72" width="150" height="22" rx="6" fill="rgba(132,169,140,0.14)"/>
+          <text x="361" y="87" text-anchor="middle" fill="var(--accent-bright)" font-size="10" font-family="monospace">WEEK 2</text>
+          <rect x="548" y="72" width="150" height="22" rx="6" fill="rgba(132,169,140,0.14)"/>
+          <text x="623" y="87" text-anchor="middle" fill="var(--accent-bright)" font-size="10" font-family="monospace">WEEK 3</text>
+
+          <!-- Week 1 engine callout under the policy -->
+          <rect x="512" y="24" width="222" height="30" rx="8" fill="rgba(224,164,88,0.10)" stroke="var(--orange)" stroke-dasharray="4,3"/>
+          <text x="623" y="43" text-anchor="middle" fill="var(--orange)" font-size="10">WEEK 1 forges this engine: REINFORCE by hand</text>
+          <line x1="623" y1="54" x2="623" y2="104" stroke="var(--orange)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#rla-arrow-o)"/>
+        </svg>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--accent);"></span>the RLHF arc (preferences → RM → policy)</span>
+          <span><span class="swatch" style="background:var(--orange);"></span>the engine &amp; the failure mode you watch for</span>
+        </div>
+      </div>
+      <div class="connects"><b>Why this order</b> Week 1 is standalone practice: the same <span class="m" data-tex="\nabla_\theta \log \pi \times \text{advantage}"></span> update powers Week 3. Weeks 2→3 are the actual pipeline: preferences become a reward model, then a policy chases that reward. The dashed orange loop is where you'll go looking for reward hacking once the loop closes.</div>
+      <div class="files">
+        <div class="files-title">Where this lives</div>
+        <ul>
+          <li>Full plan &amp; pacing: <a href="LEARNING_PLAN.md"><code>LEARNING_PLAN.md</code></a></li>
+          <li>Design constraints: pure numpy, CPU, no external data required (every script has a <code>--synthetic</code> mode), every file &lt; 200 lines.</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 01: WEEK 1 ============ -->
+  <section class="group" id="week1">
+    <div class="group-header"><span class="group-index">01</span><h2>Week 1 — REINFORCE from scratch</h2></div>
+    <p class="group-intro">Close the theory→code gap. No framework, no autograd: for a softmax policy the gradient of <span class="m" data-tex="\log\pi(a)"></span> has a closed form, so you type the policy-gradient estimator literally. When you later read a torch loss like <code>-(logprobs * advantages).mean()</code>, you'll know exactly what it expands to. Two exercises: a bandit, then a gridworld.</p>
+
+    <article class="concept">
+      <h3>A policy is a distribution — and the gradient has a closed form</h3>
+      <p class="concept-desc">Parameters <span class="m" data-tex="\theta"></span> become action probabilities through <b>softmax</b>; you <b>sample</b> an action, see a reward, and push probability toward actions that did better than a <b>baseline</b>. The whole update is one line, and for softmax the gradient term is just <span class="m" data-tex="\text{onehot}(a) - \pi"></span> — no autograd needed.</p>
+      <div class="eq" data-tex="\theta \;\mathrel{+}=\; \eta \,\big(G_t - b\big)\,\nabla_\theta \log \pi_\theta(a\mid s), \qquad \nabla_\theta \log \pi_\theta(a) = \text{onehot}(a) - \pi_\theta"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\theta"></span><span class="def">the policy's parameters — one number per (state, action), turned into probabilities by softmax</span></div>
+        <div class="row"><span class="sym" data-tex="\eta"></span><span class="def">learning rate — how big a step you take</span></div>
+        <div class="row"><span class="sym" data-tex="G_t"></span><span class="def">return: the (discounted) reward earned from time <span class="m" data-tex="t"></span> onward — how good this action turned out</span></div>
+        <div class="row"><span class="sym" data-tex="b"></span><span class="def">baseline: a reference level (running mean, or a learned <span class="m" data-tex="V(s)"></span>) subtracted to cut variance</span></div>
+        <div class="row"><span class="sym" data-tex="\pi_\theta(a\mid s)"></span><span class="def">probability the policy assigns to action <span class="m" data-tex="a"></span> in state <span class="m" data-tex="s"></span></span></div>
+      </div>
+      <div class="viz">
+        <svg viewBox="0 0 720 210" class="diagram" style="max-width:720px;">
+          <text x="120" y="24" text-anchor="middle" fill="var(--text-dim)" font-size="11">Bandit: softmax over 10 arms</text>
+          <!-- 10 arm bars -->
+          <g font-family="monospace" font-size="9">
+            <rect x="34"  y="150" width="14" height="26" fill="var(--accent)" opacity="0.5"/>
+            <rect x="54"  y="140" width="14" height="36" fill="var(--accent)" opacity="0.5"/>
+            <rect x="74"  y="120" width="14" height="56" fill="var(--accent)" opacity="0.6"/>
+            <rect x="94"  y="70"  width="14" height="106" fill="var(--orange)"/>
+            <rect x="114" y="118" width="14" height="58" fill="var(--accent)" opacity="0.6"/>
+            <rect x="134" y="148" width="14" height="28" fill="var(--accent)" opacity="0.5"/>
+            <rect x="154" y="156" width="14" height="20" fill="var(--accent)" opacity="0.4"/>
+            <rect x="174" y="152" width="14" height="24" fill="var(--accent)" opacity="0.4"/>
+            <rect x="194" y="158" width="14" height="18" fill="var(--accent)" opacity="0.4"/>
+            <rect x="214" y="150" width="14" height="26" fill="var(--accent)" opacity="0.5"/>
+          </g>
+          <line x1="30" y1="176" x2="232" y2="176" stroke="var(--border)"/>
+          <text x="101" y="64" text-anchor="middle" fill="var(--orange)" font-size="9">best arm &gt; 85% prob</text>
+
+          <!-- middle: the update in words -->
+          <text x="360" y="24" text-anchor="middle" fill="var(--text-dim)" font-size="11">Each step</text>
+          <g font-size="11" font-family="monospace" text-anchor="middle">
+            <rect x="288" y="44"  width="144" height="26" rx="6" fill="var(--panel)" stroke="var(--border)"/><text x="360" y="61" fill="var(--accent-bright)">sample a ~ π(·)</text>
+            <rect x="288" y="80"  width="144" height="26" rx="6" fill="var(--panel)" stroke="var(--border)"/><text x="360" y="97" fill="var(--accent-bright)">reward r, advantage r−b</text>
+            <rect x="288" y="116" width="144" height="26" rx="6" fill="var(--panel)" stroke="var(--border)"/><text x="360" y="133" fill="var(--accent-bright)">θ += η(r−b)∇logπ</text>
+          </g>
+          <line x1="360" y1="70"  x2="360" y2="78"  stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <line x1="360" y1="106" x2="360" y2="114" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <path d="M288 129 C240 129, 240 57, 286 57" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#rla-arrow)"/>
+          <text x="360" y="164" text-anchor="middle" fill="var(--text-dim)" font-size="9">repeat → probability concentrates on the best arm</text>
+
+          <!-- right: variance with/without baseline -->
+          <text x="600" y="24" text-anchor="middle" fill="var(--text-dim)" font-size="11">Gradient-norm variance</text>
+          <text x="540" y="150" text-anchor="middle" fill="var(--red)" font-size="9">no baseline</text>
+          <text x="660" y="150" text-anchor="middle" fill="var(--accent-bright)" font-size="9">with baseline</text>
+          <g>
+            <circle cx="522" cy="60" r="2.5" fill="var(--red)"/><circle cx="558" cy="120" r="2.5" fill="var(--red)"/>
+            <circle cx="534" cy="95" r="2.5" fill="var(--red)"/><circle cx="548" cy="48" r="2.5" fill="var(--red)"/>
+            <circle cx="512" cy="110" r="2.5" fill="var(--red)"/><circle cx="560" cy="72" r="2.5" fill="var(--red)"/>
+            <circle cx="528" cy="132" r="2.5" fill="var(--red)"/><circle cx="544" cy="82" r="2.5" fill="var(--red)"/>
+            <circle cx="650" cy="88" r="2.5" fill="var(--accent-bright)"/><circle cx="662" cy="96" r="2.5" fill="var(--accent-bright)"/>
+            <circle cx="656" cy="80" r="2.5" fill="var(--accent-bright)"/><circle cx="668" cy="90" r="2.5" fill="var(--accent-bright)"/>
+            <circle cx="646" cy="94" r="2.5" fill="var(--accent-bright)"/><circle cx="660" cy="84" r="2.5" fill="var(--accent-bright)"/>
+          </g>
+          <text x="600" y="180" text-anchor="middle" fill="var(--text-dim)" font-size="9">same estimator, ~5–20× tighter → why RLHF</text>
+          <text x="600" y="193" text-anchor="middle" fill="var(--text-dim)" font-size="9">subtracts a value / group mean</text>
+        </svg>
+      </div>
+      <div class="in-practice"><b>The gridworld twist</b> The second exercise adds state: <span class="m" data-tex="\pi(\cdot\mid s)=\text{softmax}(\theta[s])"></span>, returns-to-go for credit assignment, and a learned <span class="m" data-tex="V(s)"></span> baseline — the tabular ancestor of PPO's value head. Without the baseline the run often <b>collapses</b> (every return is negative, so every action taken gets pushed down): the visceral version of "advantage normalization matters."</div>
+      <div class="connects"><b>Grounds</b> lec3 (policy gradients — the log-derivative trick and baselines) and lec4 (RL implementation — REINFORCE → RLOO → PPO → GRPO). The offset in the bandit's arm means is deliberate: subtracting it is exactly what GRPO's group-mean baseline does.</div>
+      <div class="files">
+        <div class="files-title">Do this — <code>week1_reinforce/</code></div>
+        <ul>
+          <li><a href="week1_reinforce/README.md"><code>README.md</code></a> — the two exercises, in order</li>
+          <li><a href="week1_reinforce/bandit.py"><code>bandit.py</code></a> — 3 TODOs: softmax sampling, log-prob×advantage, running-mean baseline (solution: <code>bandit_solution.py</code>)</li>
+          <li><a href="week1_reinforce/gridworld.py"><code>gridworld.py</code></a> — 4 TODOs: state-conditioned sampling, returns-to-go, tabular PG update, learned <span class="m" data-tex="V(s)"></span> (solution: <code>gridworld_solution.py</code>)</li>
+        </ul>
+      </div>
+      <ul class="checks">
+        <li><b>Bandit</b> concentrates &gt;85% probability on the best arm.</li>
+        <li>You can state from <b>your own logs</b> why no-baseline gradient variance is ~5–20× larger with a big reward offset.</li>
+        <li><b>Gridworld</b> episode length converges to the optimal 8 with the <span class="m" data-tex="V(s)"></span> baseline — and you can explain why the no-baseline run collapses instead.</li>
+      </ul>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 02: WEEK 2 ============ -->
+  <section class="group" id="week2">
+    <div class="group-header"><span class="group-index">02</span><h2>Week 2 — a Bradley–Terry reward model on your data</h2></div>
+    <p class="group-intro">The "RM" stage of RLHF, in miniature: your pairwise judgments become a scalar scorer. The featurizer is a frozen CLIP image embedding; the only trained part is a single linear head <span class="m" data-tex="s = w\cdot e"></span> — exactly analogous to the scalar head on a frozen/finetuned LLM backbone. This turns "I prefer this image" into a number a policy can optimize.</p>
+
+    <article class="concept">
+      <h3>Pairwise preferences → a scalar score (Bradley–Terry)</h3>
+      <p class="concept-desc">You never label an image with an absolute score — you only say "A beats B." Bradley–Terry converts those comparisons into scores by fitting them so that the <b>gap</b> between winner and loser, squashed through a sigmoid, matches how often the winner won. Minimizing <span class="m" data-tex="-\log\sigma(\cdot)"></span> is the same loss you saw in reward modeling and DPO.</p>
+      <div class="eq" data-tex="\mathcal{L} \;=\; -\log \sigma\!\big(s_{\text{win}} - s_{\text{lose}}\big), \qquad s = w\cdot e, \qquad \sigma(x)=\frac{1}{1+e^{-x}}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="e"></span><span class="def">frozen CLIP embedding of an image — the fixed featurizer</span></div>
+        <div class="row"><span class="sym" data-tex="w"></span><span class="def">the linear head you train — the only learned parameters</span></div>
+        <div class="row"><span class="sym" data-tex="s"></span><span class="def">scalar reward score for an image, <span class="m" data-tex="w\cdot e"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">sigmoid: maps the score gap to a win-probability in (0, 1)</span></div>
+      </div>
+      <div class="viz">
+        <svg viewBox="0 0 720 230" class="diagram" style="max-width:720px;">
+          <!-- left: pair -> head -> scores -> sigmoid -->
+          <rect x="24"  y="40" width="86" height="34" rx="7" fill="var(--panel)" stroke="var(--border)"/><text x="67" y="61" text-anchor="middle" fill="var(--text)" font-size="11">image A</text>
+          <rect x="24"  y="120" width="86" height="34" rx="7" fill="var(--panel)" stroke="var(--border)"/><text x="67" y="141" text-anchor="middle" fill="var(--text)" font-size="11">image B</text>
+          <line x1="112" y1="57"  x2="158" y2="80" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <line x1="112" y1="137" x2="158" y2="112" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <rect x="160" y="78" width="96" height="34" rx="7" fill="var(--panel)" stroke="var(--accent)"/><text x="208" y="94" text-anchor="middle" fill="var(--text)" font-size="10">CLIP → w·e</text><text x="208" y="107" text-anchor="middle" fill="var(--text-dim)" font-size="9">linear head</text>
+          <line x1="258" y1="86" x2="300" y2="66" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <line x1="258" y1="104" x2="300" y2="124" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <text x="330" y="70" fill="var(--accent-bright)" font-size="11" font-family="monospace">s_A = 4.2</text>
+          <text x="330" y="128" fill="var(--text-dim)" font-size="11" font-family="monospace">s_B = 1.1</text>
+          <text x="330" y="98" fill="var(--text-dim)" font-size="10">gap = 3.1</text>
+
+          <!-- sigmoid curve -->
+          <text x="560" y="30" text-anchor="middle" fill="var(--text-dim)" font-size="11">P(A beats B) = σ(gap)</text>
+          <line x1="440" y1="180" x2="680" y2="180" stroke="var(--border)"/>
+          <line x1="560" y1="60"  x2="560" y2="188" stroke="var(--border)" stroke-dasharray="3,3"/>
+          <path d="M440 176 C500 174, 528 150, 560 120 C592 90, 620 66, 680 64" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="446" y="196" fill="var(--text-dim)" font-size="9">B better</text>
+          <text x="630" y="196" fill="var(--text-dim)" font-size="9">A better</text>
+          <text x="560" y="200" text-anchor="middle" fill="var(--text-dim)" font-size="9">gap = 0 → 50/50</text>
+          <circle cx="622" cy="86" r="4" fill="var(--orange)"/>
+          <text x="628" y="82" fill="var(--orange)" font-size="9">gap 3.1 → ~0.96</text>
+        </svg>
+      </div>
+      <div class="in-practice"><b>Scores are per-context</b> Same-context pairs identify scores only up to a per-context constant — the RM is meaningful <b>within</b> a prompt, not across prompts (correlation &gt;0.85 with hidden quality within a context). LLM reward models have the identical property; it's <i>why</i> RLHF advantages are computed relative to other samples of the same prompt.</div>
+      <div class="connects"><b>Grounds</b> the reward-modeling lecture and lec2 (IFT/RM/rejection), lec8 (preferences). Same <span class="m" data-tex="-\log\sigma(\Delta)"></span> shape as DPO in lec6 — you'll see that rhyme again in Week 4.</div>
+      <div class="viz">
+        <svg viewBox="0 0 620 120" class="diagram" style="max-width:620px;">
+          <text x="310" y="22" text-anchor="middle" fill="var(--text-dim)" font-size="11">Held-out accuracy: where a good result lands</text>
+          <line x1="40" y1="80" x2="580" y2="80" stroke="var(--border)"/>
+          <!-- chance -->
+          <line x1="40" y1="70" x2="40" y2="90" stroke="var(--text-dim)"/><text x="40" y="106" text-anchor="middle" fill="var(--text-dim)" font-size="9">50% chance</text>
+          <!-- model -->
+          <line x1="450" y1="60" x2="450" y2="90" stroke="var(--accent-bright)" stroke-width="2"/><text x="450" y="52" text-anchor="middle" fill="var(--accent-bright)" font-size="10">~79% model</text>
+          <!-- ceiling -->
+          <line x1="500" y1="66" x2="500" y2="90" stroke="var(--orange)"/><text x="522" y="106" text-anchor="middle" fill="var(--orange)" font-size="9">~84% rater ceiling</text>
+          <rect x="40" y="76" width="410" height="8" rx="4" fill="var(--accent)" opacity="0.35"/>
+          <text x="300" y="118" text-anchor="middle" fill="var(--text-dim)" font-size="9">near-tie pairs are coin flips even for a perfect model → the ceiling is below 100%</text>
+        </svg>
+      </div>
+      <div class="files">
+        <div class="files-title">Do this — <code>week2_reward_model/</code></div>
+        <ul>
+          <li><a href="week2_reward_model/README.md"><code>README.md</code></a> — synthetic first, then your real α-sweep images</li>
+          <li><code>python3 make_pairs.py --synthetic</code> → builds embeddings + pairs (prints the rater-consistency ceiling)</li>
+          <li><a href="week2_reward_model/reward_model.py"><code>reward_model.py</code></a> — 2 TODOs: the BT loss, its gradient, plus the accuracy eval (solution: <code>reward_model_solution.py</code>)</li>
+        </ul>
+      </div>
+      <ul class="checks">
+        <li><b>Synthetic:</b> val accuracy ≈ 79% — above chance (50%), near the printed ~84% ceiling; RM score correlates &gt;0.85 with hidden quality within each context.</li>
+        <li><b>Real:</b> RM trained on ~80% of your judgments, accuracy reported on the held-out 20%.</li>
+        <li><b>Grant milestone:</b> a number — "a CLIP + linear head agrees with my held-out human preference judgments X% of the time."</li>
+      </ul>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 03: WEEK 3 ============ -->
+  <section class="group" id="week3">
+    <div class="group-header"><span class="group-index">03</span><h2>Week 3 — close the loop: a policy that picks α</h2></div>
+    <p class="group-intro">The "PPO stage," stripped to its skeleton. The environment is one step — pick α, get a reward, done — so this is a <b>contextual bandit</b>, which is exactly how RLHF is usually framed (one action = one full response). Your Week-1 bandit code returns almost unchanged, with one twist each TODO: state-conditioned sampling and a <b>per-context</b> baseline (the tabular version of GRPO's group-relative advantage).</p>
+
+    <article class="concept">
+      <h3>Contextual bandit REINFORCE against your reward model</h3>
+      <p class="concept-desc">For each context <span class="m" data-tex="c"></span> (one of your prompts) the policy samples an α from a 9-value grid; the world renders an embedding; your Week-2 head scores it; you update with the same log-prob×advantage rule, subtracting a <b>per-context</b> baseline. If <code>rm_head.npz</code> from Week 2 exists it's loaded automatically — that's the swap-in, no code change.</p>
+      <div class="eq" data-tex="\theta_c \;\mathrel{+}=\; \eta \,\big(r - b_c\big)\,\nabla_\theta \log \pi_\theta(\alpha\mid c), \qquad r = w_{\text{rm}} \cdot e(c, \alpha)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="c"></span><span class="def">context / prompt — one of the 4 synthetic "prompts" (your real pilot prompts later)</span></div>
+        <div class="row"><span class="sym" data-tex="\alpha"></span><span class="def">the steering knob the policy chooses, discretized to 9 grid values</span></div>
+        <div class="row"><span class="sym" data-tex="r = w_{\text{rm}}\cdot e"></span><span class="def">reward from your Week-2 head scoring the rendered embedding</span></div>
+        <div class="row"><span class="sym" data-tex="b_c"></span><span class="def">per-context baseline — the group-relative advantage of GRPO, one group per prompt</span></div>
+      </div>
+      <div class="viz">
+        <svg viewBox="0 0 720 210" class="diagram" style="max-width:720px;">
+          <!-- rollout loop -->
+          <rect x="24"  y="80" width="120" height="44" rx="9" fill="var(--panel)" stroke="var(--border)"/><text x="84" y="100" text-anchor="middle" fill="var(--text)" font-size="11">context c</text><text x="84" y="115" text-anchor="middle" fill="var(--text-dim)" font-size="9">1 of 4 prompts</text>
+          <line x1="146" y1="102" x2="192" y2="102" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <rect x="194" y="80" width="120" height="44" rx="9" fill="var(--panel)" stroke="var(--accent)"/><text x="254" y="100" text-anchor="middle" fill="var(--text)" font-size="11">π(α | c)</text><text x="254" y="115" text-anchor="middle" fill="var(--text-dim)" font-size="9">sample α from 9-grid</text>
+          <line x1="316" y1="102" x2="362" y2="102" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <rect x="364" y="80" width="120" height="44" rx="9" fill="var(--panel)" stroke="var(--border)"/><text x="424" y="100" text-anchor="middle" fill="var(--text)" font-size="11">render e(c, α)</text><text x="424" y="115" text-anchor="middle" fill="var(--text-dim)" font-size="9">world → embedding</text>
+          <line x1="486" y1="102" x2="532" y2="102" stroke="var(--accent)" stroke-width="2" marker-end="url(#rla-arrow)"/>
+          <rect x="534" y="80" width="120" height="44" rx="9" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/><text x="594" y="100" text-anchor="middle" fill="var(--text)" font-size="11">RM: r = w·e</text><text x="594" y="115" text-anchor="middle" fill="var(--text-dim)" font-size="9">Week-2 head</text>
+          <!-- update feedback -->
+          <path d="M594 126 C594 178, 254 178, 254 126" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#rla-arrow)"/>
+          <text x="424" y="196" text-anchor="middle" fill="var(--text-dim)" font-size="9">θ += η(r − b_c) ∇log π — one step, then done (contextual bandit)</text>
+          <text x="424" y="40" text-anchor="middle" fill="var(--text-dim)" font-size="11">one-step rollout, repeated ~8000×</text>
+        </svg>
+      </div>
+      <div class="viz">
+        <svg viewBox="0 0 720 170" class="diagram" style="max-width:720px;">
+          <!-- left: convergence to alpha* -->
+          <text x="180" y="24" text-anchor="middle" fill="var(--text-dim)" font-size="11">Learned π(α | c) concentrates on α*</text>
+          <line x1="40" y1="130" x2="330" y2="130" stroke="var(--border)"/>
+          <g>
+            <rect x="52"  y="120" width="22" height="10" fill="var(--accent)" opacity="0.4"/>
+            <rect x="84"  y="112" width="22" height="18" fill="var(--accent)" opacity="0.5"/>
+            <rect x="116" y="96"  width="22" height="34" fill="var(--accent)" opacity="0.6"/>
+            <rect x="148" y="60"  width="22" height="70" fill="var(--orange)"/>
+            <rect x="180" y="98"  width="22" height="32" fill="var(--accent)" opacity="0.6"/>
+            <rect x="212" y="116" width="22" height="14" fill="var(--accent)" opacity="0.5"/>
+            <rect x="244" y="122" width="22" height="8"  fill="var(--accent)" opacity="0.4"/>
+            <rect x="276" y="124" width="22" height="6"  fill="var(--accent)" opacity="0.3"/>
+            <rect x="300" y="125" width="22" height="5"  fill="var(--accent)" opacity="0.3"/>
+          </g>
+          <line x1="159" y1="52" x2="159" y2="130" stroke="var(--orange)" stroke-dasharray="3,3"/>
+          <text x="159" y="46" text-anchor="middle" fill="var(--orange)" font-size="9">true α*</text>
+          <text x="185" y="150" text-anchor="middle" fill="var(--text-dim)" font-size="9">modal α lands within one grid step of α*</text>
+
+          <!-- right: reward hacking -->
+          <text x="545" y="24" text-anchor="middle" fill="var(--text-dim)" font-size="11">Watch for reward hacking</text>
+          <line x1="420" y1="130" x2="700" y2="130" stroke="var(--border)"/>
+          <path d="M420 120 C480 96, 520 60, 560 56 C600 52, 640 70, 700 96" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <path d="M420 120 C480 92, 540 66, 590 66 C620 66, 615 96, 700 132" fill="none" stroke="var(--orange)" stroke-width="2"/>
+          <circle cx="590" cy="66" r="4" fill="var(--orange)"/>
+          <text x="596" y="60" fill="var(--orange)" font-size="9">true quality peaks, then falls</text>
+          <text x="694" y="92" text-anchor="end" fill="var(--accent)" font-size="9">RM score keeps rising</text>
+          <text x="560" y="152" text-anchor="middle" fill="var(--text-dim)" font-size="9">policy seeks the RM's ~20% error where your data is thin</text>
+        </svg>
+        <div class="legend">
+          <span><span class="swatch" style="background:var(--accent);"></span>proxy: reward-model score</span>
+          <span><span class="swatch" style="background:var(--orange);"></span>true: your actual preference / quality</span>
+        </div>
+      </div>
+      <div class="connects"><b>Grounds</b> lec3–4 (policy gradients, RL implementation) for the loop itself, and the over-optimization / reward-hacking lecture for the right diagram: no KL leash is needed here (9 knob values, nowhere to collapse), but over-optimizing a noisy RM still bites where preference coverage is thin.</div>
+      <div class="files">
+        <div class="files-title">Do this — <code>week3_alpha_policy/</code></div>
+        <ul>
+          <li><a href="week3_alpha_policy/README.md"><code>README.md</code></a> — the RLHF-mapping table and the swap-in</li>
+          <li><a href="week3_alpha_policy/alpha_policy.py"><code>alpha_policy.py</code></a> — 3 TODOs = Week-1 bandit + state-conditioned sampling + per-context baseline (solution: <code>alpha_policy_solution.py</code>)</li>
+          <li>Works out of the box: builds a ground-truth RM if Week 2's <code>rm_head.npz</code> is missing, else loads yours (same <code>make_world(seed=0)</code>).</li>
+        </ul>
+      </div>
+      <ul class="checks">
+        <li><b>Synthetic:</b> each context's modal α lands on the grid point nearest the true α*; policy beats both uniform-random and a fixed hand-tuned α.</li>
+        <li><b>End-to-end:</b> <code>make_pairs.py --synthetic</code> → <code>reward_model_solution.py</code> → <code>alpha_policy.py</code> runs with no external data.</li>
+        <li>You can point to <b>where reward hacking would show up</b> — the policy exploiting RM error at α values with little preference coverage.</li>
+      </ul>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 04: WEEK 4 ============ -->
+  <section class="group" id="week4">
+    <div class="group-header"><span class="group-index">04</span><h2>Week 4 (optional) — one LLM-scale rep</h2></div>
+    <p class="group-intro">One afternoon, then stop. Do a single DPO run on <b>Qwen2.5-0.5B-Instruct</b> with TRL's <code>DPOTrainer</code> on a free Colab T4 — a few thousand preference pairs, LoRA rank 8, ~30 min. The point is not a good model; it's <i>seeing</i> that the DPO loss from lec6 is the same shape as your Week-2 Bradley–Terry loss, at scale.</p>
+
+    <article class="concept">
+      <h3>Same loss shape, one level up: BT ⟶ DPO</h3>
+      <p class="concept-desc">Week 2 fit <span class="m" data-tex="-\log\sigma(s_w - s_l)"></span> where <span class="m" data-tex="s"></span> is a linear head on an embedding. DPO is the <i>identical</i> shape, but the "score" is now the log-ratio of your policy to a frozen reference model, scaled by <span class="m" data-tex="\beta"></span>. Recognizing this rhyme is the whole payoff of the week.</p>
+      <div class="eq" data-tex="\mathcal{L}_{\text{DPO}} = -\log \sigma\!\Big(\beta\big[\log\tfrac{\pi_\theta(y_w)}{\pi_{\text{ref}}(y_w)} - \log\tfrac{\pi_\theta(y_l)}{\pi_{\text{ref}}(y_l)}\big]\Big)"></div>
+      <div class="viz">
+        <svg viewBox="0 0 720 140" class="diagram" style="max-width:720px;">
+          <!-- BT side -->
+          <text x="180" y="26" text-anchor="middle" fill="var(--accent-bright)" font-size="12">Week 2 — Bradley–Terry</text>
+          <rect x="60" y="44" width="240" height="30" rx="7" fill="var(--panel)" stroke="var(--border)"/>
+          <text x="180" y="64" text-anchor="middle" fill="var(--text)" font-size="12" font-family="monospace">−log σ( s_w − s_l )</text>
+          <text x="180" y="92" text-anchor="middle" fill="var(--text-dim)" font-size="9">score = linear head on a CLIP embedding</text>
+          <text x="180" y="106" text-anchor="middle" fill="var(--text-dim)" font-size="9">hundreds of image pairs, numpy, your laptop</text>
+
+          <!-- equals -->
+          <text x="360" y="66" text-anchor="middle" fill="var(--orange)" font-size="22">≈</text>
+          <text x="360" y="88" text-anchor="middle" fill="var(--orange)" font-size="9">same shape</text>
+
+          <!-- DPO side -->
+          <text x="540" y="26" text-anchor="middle" fill="var(--accent-bright)" font-size="12">Week 4 — DPO</text>
+          <rect x="420" y="44" width="240" height="30" rx="7" fill="var(--panel)" stroke="var(--accent)"/>
+          <text x="540" y="64" text-anchor="middle" fill="var(--text)" font-size="12" font-family="monospace">−log σ( β·Δ log-ratio )</text>
+          <text x="540" y="92" text-anchor="middle" fill="var(--text-dim)" font-size="9">score = log π_θ / π_ref, scaled by β</text>
+          <text x="540" y="106" text-anchor="middle" fill="var(--text-dim)" font-size="9">thousands of text pairs, LoRA, one T4</text>
+        </svg>
+      </div>
+      <div class="connects"><b>Grounds</b> lec6 (DPO) and lec7 (synthetic data / modern post-training). Then eyeball chosen-vs-rejected logprob margins and stop — the goal was the recognition, not the checkpoint.</div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 05: PIPELINE MAP ============ -->
+  <section class="group" id="map">
+    <div class="group-header"><span class="group-index">05</span><h2>Pipeline map — your miniature ⟷ the real thing</h2></div>
+    <p class="group-intro">Every box in a production RLHF pipeline has a ~20-line counterpart you wrote yourself. After Week 3, re-read the cookbook recipes with this table in hand: rollout, advantage, RM head, KL-to-reference all map onto code you now understand from the inside.</p>
+
+    <article class="concept">
+      <table class="map">
+        <thead>
+          <tr><th>Standard RLHF pipeline</th><th>Your miniature</th><th>Grounds</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SFT (base competence)</td>
+            <td class="mid">the steering direction already exists; the α grid is your "supervised" start</td>
+            <td class="lec"><a href="../interactive-lec2-ift-rm-rejection.html">lec2 · IFT/RM/rejection</a></td>
+          </tr>
+          <tr>
+            <td>Preference collection</td>
+            <td class="mid">your pairwise judgments on α-sweep images</td>
+            <td class="lec"><a href="../interactive-lec8-preferences.html">lec8 · preferences</a></td>
+          </tr>
+          <tr>
+            <td>Reward model (BT on pairs)</td>
+            <td class="mid">linear head on CLIP embeddings, BT loss <span class="m" data-tex="-\log\sigma(s_w-s_l)"></span></td>
+            <td class="lec"><a href="../interactive-reward-modeling.html">reward modeling</a></td>
+          </tr>
+          <tr>
+            <td>PPO / GRPO against the RM</td>
+            <td class="mid">tabular REINFORCE over α with a per-context baseline</td>
+            <td class="lec"><a href="../interactive-lec3-policy-gradients.html">lec3</a> · <a href="../interactive-lec4-rl-implementation.html">lec4</a></td>
+          </tr>
+          <tr>
+            <td>KL penalty / reward hacking</td>
+            <td class="mid">over-optimizing a noisy RM where preference data is thin</td>
+            <td class="lec"><a href="../interactive-overoptimization-reward-hacking.html">over-optimization</a></td>
+          </tr>
+          <tr>
+            <td>DPO shortcut (skips the RM)</td>
+            <td class="mid">"prefer the winner's α directly"; Week 4 sees the same loss at scale</td>
+            <td class="lec"><a href="../interactive-lec6-dpo.html">lec6 · DPO</a></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="connects"><b>You're done when</b> you can run <b>preferences → reward model → policy</b> end-to-end on your own data, write the bandit update from memory, and say precisely where reward hacking would surface. At that point every component of the cookbook recipes is ~20 lines you've already written.</div>
+      <div class="files">
+        <div class="files-title">Start here</div>
+        <ul>
+          <li><a href="LEARNING_PLAN.md"><code>LEARNING_PLAN.md</code></a> — full 3-week (+ optional Week 4) plan with day-by-day pacing and checkpoints</li>
+          <li>Then work the weeks in order: <a href="#week1">Week 1</a> → <a href="#week2">Week 2</a> → <a href="#week3">Week 3</a>.</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  A visual map for the <code>rl-applied/</code> hands-on lab — companion to the interactive
+  <a href="../index.html">RLHF course</a> and Nathan Lambert's <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a>.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
+  });
+})();
+</script>
+
+</body>
+</html>

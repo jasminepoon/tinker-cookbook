@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reward Modeling — Interactive RLHF Course</title>
+<link rel="stylesheet" href="assets/katex/katex.embedded.min.css">
+<script defer src="assets/katex/katex.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f0e;
+    --panel:#121815;
+    --panel-2:#161d19;
+    --border:#243029;
+    --accent:#84A98C;
+    --accent-bright:#a8d4b4;
+    --orange:#e0a458;
+    --red:#d98c8c;
+    --text:#e8ece9;
+    --text-dim:#9fb0a8;
+    --mono: "SFMono-Regular", "Fira Code", Menlo, Consolas, monospace;
+    --sans: "Rubik", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    line-height:1.55;
+  }
+  a{color:var(--accent-bright);}
+  sub, sup { font-size:0.7em; }
+  code, .mono { font-family:var(--mono); }
+
+  header.hero{
+    padding:64px 24px 40px;
+    text-align:center;
+    background:radial-gradient(circle at 50% -20%, rgba(132,169,140,0.25), transparent 60%);
+    border-bottom:1px solid var(--border);
+  }
+  header.hero .back-link{
+    display:inline-block;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.78em;
+    margin-bottom:14px;
+    transition:color 0.15s;
+  }
+  header.hero .back-link:hover{ color:var(--accent-bright); }
+  header.hero .eyebrow{
+    color:var(--accent-bright);
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    font-size:0.78em;
+    margin-bottom:10px;
+  }
+  header.hero h1{
+    font-size:2.3em;
+    margin:0 0 12px;
+    font-weight:700;
+  }
+  header.hero p.sub{
+    color:var(--text-dim);
+    max-width:720px;
+    margin:0 auto 6px;
+    font-size:1.02em;
+  }
+  header.hero p.credit{
+    color:var(--text-dim);
+    font-size:0.78em;
+    opacity:0.75;
+    margin-top:18px;
+  }
+
+  nav.toc{
+    position:sticky;
+    top:0;
+    z-index:50;
+    display:flex;
+    gap:4px;
+    overflow-x:auto;
+    background:rgba(11,15,14,0.92);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--border);
+    padding:10px 16px;
+  }
+  nav.toc a{
+    white-space:nowrap;
+    color:var(--text-dim);
+    text-decoration:none;
+    font-size:0.82em;
+    padding:7px 12px;
+    border-radius:7px;
+    transition:background 0.15s, color 0.15s;
+  }
+  nav.toc a:hover{ color:var(--text); background:var(--panel-2); }
+
+  main{ max-width:1080px; margin:0 auto; padding:0 20px 80px; }
+
+  section.group{ margin-top:64px; }
+  section.group > .group-header{
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+    margin-bottom:6px;
+  }
+  section.group > .group-header .group-index{
+    color:var(--accent);
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  section.group > .group-header h2{
+    font-size:1.5em;
+    margin:0;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:6px;
+  }
+  section.group > .group-intro{
+    color:var(--text-dim);
+    max-width:760px;
+    margin:10px 0 28px;
+    font-size:0.95em;
+  }
+
+  article.concept{ margin-bottom:46px; }
+  article.concept h3{
+    font-size:1.15em;
+    margin:0 0 6px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  article.concept .concept-desc{
+    color:var(--text-dim);
+    font-size:0.92em;
+    max-width:760px;
+    margin:0 0 14px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 20px;
+    display:grid;
+    grid-template-columns:320px 1fr;
+    gap:22px;
+  }
+  @media (max-width: 760px){
+    .panel{ grid-template-columns:1fr; }
+  }
+  .panel-controls label{
+    display:block;
+    font-size:0.78em;
+    color:var(--text-dim);
+    margin:10px 0 4px;
+  }
+  .panel-controls label:first-child{ margin-top:0; }
+  .panel-controls input[type="range"]{ width:100%; accent-color:var(--accent); }
+  .panel-controls input[type="text"]{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 9px;
+    font-family:var(--mono);
+    font-size:0.85em;
+  }
+  .panel-controls button{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:6px;
+    padding:7px 12px;
+    font-size:0.82em;
+    cursor:pointer;
+    margin:4px 4px 0 0;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .panel-controls button:hover{ border-color:var(--accent); color:var(--accent-bright); }
+  .panel-controls button:disabled{ opacity:0.35; cursor:default; }
+  .panel-controls .hint{
+    font-size:0.76em;
+    color:var(--text-dim);
+    margin-top:12px;
+    line-height:1.5;
+  }
+  .panel-controls .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .panel-controls .tabs button.active{ border-color:var(--accent); color:var(--accent-bright); background:rgba(132,169,140,0.12); }
+
+  .panel-viz{ min-height:120px; display:flex; flex-direction:column; gap:14px; justify-content:center; }
+
+  .formula-display{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:0.92em;
+    color:var(--accent-bright);
+    overflow-x:auto;
+  }
+  .formula-display b{ color:#fff; }
+
+  /* --- KaTeX math rendering (shared across course pages) --- */
+  .katex{ color:var(--text); }
+  .eq{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:14px 16px;
+    overflow-x:auto;
+    overflow-y:hidden;
+  }
+  .eq .katex-display{ margin:0; }
+  .m{ white-space:nowrap; }                 /* inline math in prose */
+  /* live numeric readout shown alongside a rendered equation */
+  .eq-readout{ font-family:var(--mono); font-size:0.88em; color:var(--accent-bright); margin-top:10px; }
+  .eq-readout b{ color:#fff; }
+  /* symbol glossary: spell out what every symbol in an equation means */
+  .symbol-key{ display:grid; gap:7px; margin:10px 0 2px; font-size:0.86em; }
+  .symbol-key .row{ display:grid; grid-template-columns:minmax(34px,auto) 1fr; gap:12px; align-items:baseline; }
+  .symbol-key .sym{
+    background:var(--panel-2); border:1px solid var(--border); border-radius:6px;
+    padding:3px 9px; text-align:center; color:var(--text);
+  }
+  .symbol-key .def{ color:var(--text-dim); }
+
+  /* "in practice" styled callout (shared across course pages) */
+  .in-practice{
+    border-left:3px solid var(--orange);
+    background:rgba(224,164,88,0.08);
+    border-radius:0 8px 8px 0;
+    padding:9px 13px;
+    font-size:0.8em;
+    color:var(--text);
+    margin-top:4px;
+  }
+  .in-practice b{ color:var(--orange); letter-spacing:0.04em; text-transform:uppercase; font-size:0.85em; }
+
+  /* token chips */
+  .token-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .token-chip{
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:0.85em;
+    transition:all 0.15s;
+  }
+
+  /* bar chart */
+  .bar-chart{ display:flex; gap:14px; align-items:flex-end; height:190px; padding-top:10px; }
+  .bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .bar-track{ flex:1; width:100%; display:flex; flex-direction:column-reverse; }
+  .bar-fill{ width:100%; background:linear-gradient(to top, var(--accent), var(--accent-bright)); border-radius:4px 4px 0 0; transition:height 0.12s; min-height:2px; }
+  .bar-label{ font-size:0.72em; color:var(--text-dim); margin-top:6px; text-align:center; font-family:var(--mono); }
+
+  .slider-row{ margin-bottom:2px; }
+
+  .code-block{ font-family:var(--mono); font-size:0.78em; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+
+  /* SVG plots */
+  svg.plot{ width:100%; height:auto; background:var(--panel-2); border:1px solid var(--border); border-radius:8px; }
+  .plot-axis{ stroke:var(--border); stroke-width:1; }
+  .plot-curve{ fill:none; stroke:var(--accent); stroke-width:2; }
+  .plot-marker{ fill:var(--orange); stroke:#0b0f0e; stroke-width:1.5; }
+  .plot-true{ stroke:var(--text-dim); stroke-width:1; stroke-dasharray:4,3; fill:none; }
+
+  .badge{
+    display:inline-block;
+    font-family:var(--mono);
+    background:var(--panel-2);
+    border:1px solid var(--accent);
+    color:var(--accent-bright);
+    border-radius:6px;
+    padding:6px 12px;
+    font-size:0.9em;
+  }
+  .badge.warn{ border-color:var(--orange); color:var(--orange); }
+  .badge.bad{ border-color:var(--red); color:var(--red); }
+
+  /* judge / response cards */
+  .resp-card{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:0.85em;
+  }
+  .resp-card .resp-head{ display:flex; justify-content:space-between; align-items:center; font-family:var(--mono); font-size:0.8em; color:var(--text-dim); margin-bottom:4px; }
+  .resp-card.win{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+  .resp-card .resp-body{ color:var(--text); }
+
+  .rubric-row{ display:flex; align-items:center; gap:8px; margin:3px 0; font-size:0.8em; }
+  .rubric-name{ flex:0 0 120px; color:var(--text-dim); font-family:var(--mono); }
+  .rubric-bar-track{ flex:1; height:14px; background:var(--panel); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .rubric-bar-fill{ height:100%; background:linear-gradient(to right, var(--accent), var(--accent-bright)); }
+  .rubric-score{ flex:0 0 56px; text-align:right; font-family:var(--mono); color:var(--accent-bright); }
+
+  /* step list for ORM/PRM */
+  .step-list{ display:flex; flex-direction:column; gap:6px; }
+  .step-item{
+    display:flex; align-items:center; gap:10px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px 12px;
+    font-size:0.85em;
+    font-family:var(--mono);
+  }
+  .step-item .step-text{ flex:1; }
+  .step-tag{ font-family:var(--mono); font-size:0.72em; padding:3px 8px; border-radius:5px; border:1px solid var(--border); white-space:nowrap; }
+  .step-tag.good{ border-color:var(--accent); color:var(--accent-bright); }
+  .step-tag.bad{ border-color:var(--red); color:var(--red); }
+  .step-tag.neutral{ border-color:var(--text-dim); color:var(--text-dim); }
+  .step-item.flagged{ box-shadow:0 0 0 1px var(--red) inset; }
+
+  /* agreement grid */
+  .agree-grid{ display:grid; grid-template-columns:repeat(10, 1fr); gap:3px; }
+  .agree-cell{ aspect-ratio:1; border-radius:3px; background:var(--panel); border:1px solid var(--border); }
+  .agree-cell.a{ background:var(--accent); }
+  .agree-cell.b{ background:var(--orange); }
+
+  footer{
+    border-top:1px solid var(--border);
+    padding:30px 20px 60px;
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.82em;
+  }
+  footer a{ color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <a class="back-link" href="index.html">&larr; Course index</a>
+  <div class="eyebrow">rlhfbook.com/course · book chapter 5 · reward modeling</div>
+  <h1>Reward Modeling</h1>
+  <p class="sub">Reward models are where the messy, hard-to-specify human preference gets compressed into a single learnable objective. This page lets you build and break that objective — from the Bradley–Terry loss to LLM-as-a-judge, ORMs and PRMs, and the moment a biased grader starts handing out the wrong reward.</p>
+  <p class="credit">Adapted from Chapter 5 of Nathan Lambert's RLHF Book (rlhfbook.com), CC BY-NC-SA 4.0. Interactive build only — original content credit to the source chapter.</p>
+</header>
+
+<nav class="toc">
+  <a href="#foundations">Foundations</a>
+  <a href="#bt">Bradley–Terry</a>
+  <a href="#judge">LLM-as-a-Judge</a>
+  <a href="#orm-prm">ORM vs PRM</a>
+  <a href="#variants">RM Variants</a>
+  <a href="#signal">RM Quality → Signal</a>
+</nav>
+
+<main>
+
+  <!-- ============ SECTION 00: FOUNDATIONS ============ -->
+  <section class="group" id="foundations">
+    <div class="group-header"><span class="group-index">00</span><h2>Foundations — start here</h2></div>
+    <p class="group-intro">A reward model is a machine that reads a prompt-and-answer and returns <b>one number</b> — how good it is. Everything else on this page is built from three plain ideas: a <b>scalar score</b>, the <b>sigmoid</b> that turns a score gap into "probability the better one wins," and a <b>−log loss</b> that trains it. Here they are from the ground up.</p>
+
+    <article class="concept">
+      <h3>A reward is a single score</h3>
+      <p class="concept-desc">The model outputs one real number <span class="m" data-tex="r(x,y)"></span> per prompt <span class="m" data-tex="x"></span> and answer <span class="m" data-tex="y"></span>. Higher means better. The absolute value is meaningless on its own — what matters is that a good answer scores <i>higher than</i> a bad one for the same prompt.</p>
+      <div class="eq" data-tex="r(x,y) \in \mathbb{R}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 120" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <defs><marker id="arr-rm" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--text-dim)"/></marker></defs>
+          <rect x="14" y="42" width="120" height="36" rx="6" fill="var(--panel)" stroke="var(--border)"/>
+          <text x="74" y="58" fill="var(--text-dim)" font-size="9" text-anchor="middle">prompt + answer</text>
+          <text x="74" y="71" fill="var(--text-dim)" font-size="8" text-anchor="middle" font-style="italic">"…the capital is Paris"</text>
+          <line x1="134" y1="60" x2="168" y2="60" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-rm)"/>
+          <rect x="170" y="42" width="70" height="36" rx="6" fill="var(--panel)" stroke="var(--accent)"/>
+          <text x="205" y="64" fill="var(--accent-bright)" font-size="9" text-anchor="middle">reward model</text>
+          <line x1="240" y1="60" x2="274" y2="60" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arr-rm)"/>
+          <text x="300" y="65" fill="var(--accent-bright)" font-size="14" font-family="monospace" text-anchor="middle">r = 4.2</text>
+          <text x="14" y="106" fill="var(--text-dim)" font-size="9">one number in, one number out — that's the entire interface of a reward model</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>Sigmoid: a score gap → probability the winner wins</h3>
+      <p class="concept-desc">To train from human "A is better than B" labels, we turn the score gap into a probability with the <b>sigmoid</b>. Equal scores → 50/50; a big lead for the chosen answer → near-certain. Only the difference <span class="m" data-tex="r_{\text{chosen}} - r_{\text{rejected}}"></span> enters.</p>
+      <div class="eq" data-tex="P(\text{chosen} \succ \text{rejected}) = \sigma(r_c - r_r) = \frac{1}{1+e^{-(r_c-r_r)}}"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="20" x2="40" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="170" x2="312" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="40" y1="95" x2="312" y2="95" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="176" y1="20" x2="176" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <path d="M44,168 L88,165 L132,150 L154,128 L176,95 L198,60 L220,38 L264,23 L300,20" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="182" y="90" fill="var(--orange)" font-size="9">gap 0 → 50/50</text>
+          <text x="46" y="32" fill="var(--text-dim)" font-size="9">P = 1</text>
+          <text x="44" y="188" fill="var(--text-dim)" font-size="9">x-axis: score gap r_chosen − r_rejected</text>
+        </svg>
+      </div>
+    </article>
+
+    <article class="concept">
+      <h3>The −log loss: reward being confidently wrong</h3>
+      <p class="concept-desc">Training maximizes the probability above, which means minimizing its negative log. If the model already ranks the chosen answer far above the rejected one, the loss is near zero; if it gets the pair backwards, <span class="m" data-tex="-\log"></span> blows up — a steep penalty that drags the scores back into the right order.</p>
+      <div class="eq" data-tex="\mathcal{L} = -\log\sigma(r_c - r_r)"></div>
+      <div style="margin:14px 0 4px;text-align:center;">
+        <svg viewBox="0 0 340 200" style="width:100%;max-width:520px;height:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;">
+          <line x1="40" y1="170" x2="312" y2="170" stroke="var(--border)" stroke-width="1"/>
+          <line x1="176" y1="20" x2="176" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>
+          <path d="M48,26 L92,40 L132,60 L154,80 L176,102 L198,122 L232,143 L272,158 L300,164" fill="none" stroke="var(--accent)" stroke-width="2"/>
+          <text x="60" y="52" fill="var(--orange)" font-size="10">wrong order → big loss</text>
+          <text x="200" y="150" fill="var(--accent-bright)" font-size="10">right order → ~0</text>
+          <text x="176" y="188" fill="var(--text-dim)" font-size="9" text-anchor="middle">score gap: negative (wrong) ← 0 → positive (correct)</text>
+        </svg>
+      </div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_c - r_r"></span><span class="def">chosen minus rejected score; positive means the model has the pair in the right order.</span></div>
+        <div class="row"><span class="sym" data-tex="-\log\sigma"></span><span class="def">the training loss — gentle when correct, punishing when the ranking is flipped.</span></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 1: BRADLEY-TERRY ============ -->
+  <section class="group" id="bt">
+    <div class="group-header"><span class="group-index">01</span><h2>The Bradley–Terry Reward Model</h2></div>
+    <p class="group-intro">The canonical RLHF reward model attaches a small linear head to a language model so it outputs one scalar score per prompt–completion pair. It is trained on pairs of <i>chosen</i> and <i>rejected</i> completions, and the loss depends only on the <b>difference</b> of their scores. This is the foundation; a basics page covers it in depth, so we keep it tight here.</p>
+
+    <article class="concept" id="bt-loss">
+      <h3>Pairwise loss: <span class="m" data-tex="-\log\sigma(r_c - r_r)"></span></h3>
+      <p class="concept-desc">Bradley–Terry turns a pair of scalar scores into the probability that the judge prefers the chosen completion. Training <b>minimizes the negative log-likelihood</b> of the preferences you collected — and only the <em>gap</em> between the two scores matters, so adding a constant to both changes nothing. Drag the two reward-head outputs and watch the preference probability and loss respond.</p>
+      <div class="eq" data-tex="P(y_c \succ y_r) = \sigma\!\left(r_c - r_r\right) \qquad\qquad \mathcal{L} = -\log\sigma\!\left(r_c - r_r\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_c,\ r_r"></span><span class="def">the scalar reward the model assigns the <b>c</b>hosen and <b>r</b>ejected answers, i.e. <span class="m" data-tex="r_\theta(y\mid x)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\sigma"></span><span class="def">the logistic sigmoid <span class="m" data-tex="\sigma(z)=\tfrac{1}{1+e^{-z}}"></span>, squashing the score gap into a probability in <span class="m" data-tex="(0,1)"></span></span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the loss being minimized — near 0 when the pair is ordered correctly, large when it is flipped</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Score of chosen, <span class="m" data-tex="r_c = r_\theta(y_c\mid x)"></span> = <span id="bt-rc-val">1.50</span></label>
+          <input type="range" id="bt-rc" min="-4" max="4" step="0.05" value="1.5">
+          <label>Score of rejected, <span class="m" data-tex="r_r = r_\theta(y_r\mid x)"></span> = <span id="bt-rr-val">-0.50</span></label>
+          <input type="range" id="bt-rr" min="-4" max="4" step="0.05" value="-0.5">
+          <p class="hint">When <span class="m" data-tex="r_c > r_r"></span> the model orders the pair correctly and loss is small. Flip them and loss shoots up — the gradient pushes the chosen score up and the rejected score down.</p>
+          <div class="in-practice"><b>In practice</b> · the entire skill of preference data is producing pairs whose ordering you actually trust — when there is no clean label, your <span class="m" data-tex="(y_c, y_r)"></span> choice <i>is</i> the reward spec.</div>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 320 200" id="bt-plot"></svg>
+          <div class="eq" id="bt-formula"></div>
+          <div class="eq-readout" id="bt-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 2: LLM-AS-A-JUDGE (FLAGSHIP) ============ -->
+  <section class="group" id="judge">
+    <div class="group-header"><span class="group-index">02</span><h2>Generative Reward Modeling (LLM-as-a-Judge)</h2></div>
+    <p class="group-intro">Instead of a scalar head, prompt a capable language model with a rubric, a question, and one or two responses, and let it <i>grade</i>. This is the grader work in textbook form — and it is where the reward signal quietly goes wrong. Below: pointwise vs pairwise judging, the two classic judge biases (<b>position/order</b> and <b>self-preference</b>), and how to measure grader consistency.</p>
+
+    <article class="concept" id="judge-rubric">
+      <h3>Pointwise judging against a rubric</h3>
+      <p class="concept-desc">A pointwise judge scores one response on weighted criteria (helpfulness, accuracy, depth, …) and aggregates to a scalar reward. Tune how much the judge <i>cares</i> about each criterion and how each response performs; the weighted score is the reward the policy will chase.</p>
+      <div class="eq" data-tex="R = \frac{\sum_k \hat{w}_k\, s_k - 1}{4}, \qquad \hat{w}_k = \frac{w_k}{\sum_j w_j}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="s_k"></span><span class="def">the judge's raw rating for criterion <span class="m" data-tex="k"></span> (helpfulness, accuracy, depth) on a 1–5 scale</span></div>
+        <div class="row"><span class="sym" data-tex="w_k"></span><span class="def">how much the rubric weights criterion <span class="m" data-tex="k"></span>; <span class="m" data-tex="\hat{w}_k"></span> is that weight renormalized to sum to 1</span></div>
+        <div class="row"><span class="sym" data-tex="R"></span><span class="def">the scalar reward, the weighted 1–5 mean mapped linearly to <span class="m" data-tex="[0,1]"></span></span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Judge weight — helpfulness = <span id="rb-w0-val">0.40</span></label>
+          <input type="range" id="rb-w0" min="0" max="1" step="0.05" value="0.4">
+          <label>Judge weight — accuracy = <span id="rb-w1-val">0.40</span></label>
+          <input type="range" id="rb-w1" min="0" max="1" step="0.05" value="0.4">
+          <label>Judge weight — depth = <span id="rb-w2-val">0.20</span></label>
+          <input type="range" id="rb-w2" min="0" max="1" step="0.05" value="0.2">
+          <hr style="border-color:var(--border);margin:12px 0;">
+          <label>Response: accuracy rating (1–5) = <span id="rb-acc-val">2</span></label>
+          <input type="range" id="rb-acc" min="1" max="5" step="1" value="2">
+          <p class="hint">Weights are renormalized to sum to 1. Notice a response can score high overall while being <i>inaccurate</i> if the judge barely weights accuracy — that is a reward-spec bug, not a model bug.</p>
+        </div>
+        <div class="panel-viz">
+          <div id="rb-rubric"></div>
+          <div class="eq" id="rb-formula"></div>
+          <div class="eq-readout" id="rb-status"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="judge-bias">
+      <h3>Pairwise judging: position &amp; self-preference bias</h3>
+      <p class="concept-desc">The MT-Bench prompt asks the judge to pick "[[A]]", "[[B]]", or "[[C]]" (tie) — and explicitly begs it to "avoid any position biases." It begs because judges have them. A real judge nudges its verdict toward whichever slot is shown <b>first</b>, and toward responses that <i>look like its own</i>. Set the true quality gap, then dial in each bias and see the verdict flip.</p>
+      <div class="eq" data-tex="\ell_B = \Delta - b_{\text{pos}} \pm b_{\text{self}}, \qquad P(\text{judge}=B) = \sigma(\ell_B)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="\Delta"></span><span class="def">true quality gap <span class="m" data-tex="q_B - q_A"></span>; positive means B is genuinely better</span></div>
+        <div class="row"><span class="sym" data-tex="b_{\text{pos}}"></span><span class="def">position bias pulling the verdict toward slot A (the first-shown response)</span></div>
+        <div class="row"><span class="sym" data-tex="b_{\text{self}}"></span><span class="def">self-preference bias pulling toward whichever response is the judge's own family (sign flips with the toggle)</span></div>
+        <div class="row"><span class="sym" data-tex="\ell_B"></span><span class="def">the verdict logit; <span class="m" data-tex="\sigma(\ell_B)>0.5"></span> means the judge picks B</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>True quality gap (B − A), <span class="m" data-tex="\Delta"></span> = <span id="jb-delta-val">0.30</span></label>
+          <input type="range" id="jb-delta" min="-2" max="2" step="0.05" value="0.3">
+          <label>Position bias toward slot A = <span id="jb-pos-val">0.60</span></label>
+          <input type="range" id="jb-pos" min="0" max="1.5" step="0.05" value="0.6">
+          <label>Self-preference bias = <span id="jb-self-val">0.50</span></label>
+          <input type="range" id="jb-self" min="0" max="1.5" step="0.05" value="0.5">
+          <div style="margin-top:8px;">
+            <button id="jb-self-toggle">Toggle: is A the judge's own family?</button>
+          </div>
+          <p class="hint">Verdict logit <span class="m" data-tex="\ell_B = \Delta - b_{\text{pos}} \pm b_{\text{self}}"></span>: the true gap favors B if positive, position bias favors A, and self-preference favors whichever is the judge's family. The judge can prefer A even when B is genuinely better.</p>
+          <div class="in-practice"><b>In practice</b> · the cheapest, highest-leverage grader QA is averaging both A/B orderings — if the verdict isn't order-invariant, the bias is contaminating every reward.</div>
+        </div>
+        <div class="panel-viz">
+          <div id="jb-cards"></div>
+          <div class="eq" id="jb-formula"></div>
+          <div class="eq-readout" id="jb-status"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="judge-agreement">
+      <h3>Grader consistency: flip-rate &amp; inter-rater agreement</h3>
+      <p class="concept-desc">A reward signal is only as good as it is <i>reproducible</i>. Two probes: the <b>order-flip rate</b> (how often swapping A/B flips the verdict — pure position bias) and <b>inter-rater agreement</b> across independent judge runs, summarized by Cohen's <span class="m" data-tex="\kappa"></span> (chance-corrected: <span class="m" data-tex="\kappa=1"></span> perfect, <span class="m" data-tex="\kappa=0"></span> no better than coin-flip). Raise temperature or position bias and watch consistency collapse.</p>
+      <div class="eq" data-tex="\kappa = \frac{p_o - p_e}{1 - p_e}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="p_o"></span><span class="def">observed agreement — the fraction of items where two independent judge passes give the same verdict</span></div>
+        <div class="row"><span class="sym" data-tex="p_e"></span><span class="def">agreement expected by chance alone, computed from each pass's marginal verdict rates</span></div>
+        <div class="row"><span class="sym" data-tex="\kappa"></span><span class="def">Cohen's kappa: agreement after subtracting chance, normalized so 1 is perfect and 0 is chance-level</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>True quality gap |Δ| (how decisive the pair is) = <span id="ag-delta-val">0.40</span></label>
+          <input type="range" id="ag-delta" min="0" max="2" step="0.05" value="0.4">
+          <label>Judge sampling temperature = <span id="ag-temp-val">0.70</span></label>
+          <input type="range" id="ag-temp" min="0" max="1.5" step="0.05" value="0.7">
+          <label>Position bias strength = <span id="ag-pos-val">0.50</span></label>
+          <input type="range" id="ag-pos" min="0" max="1.5" step="0.05" value="0.5">
+          <button id="ag-resample">Re-run judges (100 items)</button>
+          <p class="hint">The chapter notes a common trick: judge at temperature 0 to cut rating variance. Slide temperature down to 0 and watch κ climb. But temperature can't fix a <i>systematic</i> position bias — that drives the flip-rate.</p>
+        </div>
+        <div class="panel-viz">
+          <div class="agree-grid" id="ag-grid"></div>
+          <div class="eq" id="ag-formula"></div>
+          <div class="eq-readout" id="ag-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 3: ORM vs PRM ============ -->
+  <section class="group" id="orm-prm">
+    <div class="group-header"><span class="group-index">03</span><h2>Outcome vs Process Reward Models</h2></div>
+    <p class="group-intro">For reasoning tasks, <i>where</i> you put the supervision matters. An <b>Outcome RM (ORM)</b> judges a solution only by its final answer — correct steps with a wrong landing look bad, and a lucky wrong-step-but-right-answer looks fine. A <b>Process RM (PRM)</b> labels every reasoning step (+1 / 0 / −1), so it catches the broken step that ORM is blind to.</p>
+
+    <article class="concept" id="orm-prm-panel">
+      <h3>Same solution, two reward models</h3>
+      <p class="concept-desc">A 5-step solution to a math problem, with one intentionally wrong intermediate step that still happens to reach the right final answer. Toggle which reward model is scoring. ORM only sees the terminal correctness label, copied across all tokens; PRM scores each step at its boundary and flags the bad one. Edit which step is broken to see credit assignment move.</p>
+      <div class="panel">
+        <div class="panel-controls">
+          <div class="tabs" id="op-tabs">
+            <button data-mode="orm" class="active">Outcome RM</button>
+            <button data-mode="prm">Process RM</button>
+          </div>
+          <label>Final answer is… </label>
+          <div class="tabs" id="op-final">
+            <button data-final="correct" class="active">Correct</button>
+            <button data-final="wrong">Wrong</button>
+          </div>
+          <label>Which step is logically broken? (0 = none)</label>
+          <input type="range" id="op-broken" min="0" max="5" step="1" value="3">
+          <p class="hint" id="op-hint"></p>
+          <div class="in-practice"><b>In practice</b> · when the final label is cheap but step labels are expensive, you choose what to grade — and that choice decides whether the policy can learn to fix its reasoning or just its answer.</div>
+        </div>
+        <div class="panel-viz">
+          <div class="step-list" id="op-steps"></div>
+          <div class="eq" id="op-formula"></div>
+          <div class="eq-readout" id="op-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 4: RM VARIANTS ============ -->
+  <section class="group" id="variants">
+    <div class="group-header"><span class="group-index">04</span><h2>Reward-Model Variants</h2></div>
+    <p class="group-intro">The base loss has been tweaked many ways without a single standard emerging. Two from the chapter: Llama 2's <b>margin loss</b> (use the strength of a preference, not just its direction), and InstructGPT's <b>K-wise / multiple-comparisons-per-prompt</b> reweighting (turn one prompt's ranking into all its pairs, averaged so correlated pairs don't overfit).</p>
+
+    <article class="concept" id="margin">
+      <h3>Preference margin loss</h3>
+      <p class="concept-desc">When annotators give Likert scores, the gap encodes how much better the chosen response is. Llama 2 subtracts a margin <span class="m" data-tex="m"></span>, forcing the model to separate scores by at least <span class="m" data-tex="m"></span> before the loss relaxes. Drag the margin and the score gap; watch the loss curve shift right.</p>
+      <div class="eq" data-tex="\mathcal{L} = -\log\sigma\!\left(r_c - r_r - m\right)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="r_c - r_r"></span><span class="def">the score gap <span class="m" data-tex="\Delta r"></span> between the chosen and rejected responses</span></div>
+        <div class="row"><span class="sym" data-tex="m"></span><span class="def">the margin, derived from the Likert-score gap (e.g. a 5 vs a 2 gives <span class="m" data-tex="m=3"></span>); <span class="m" data-tex="m=0"></span> recovers plain Bradley–Terry</span></div>
+        <div class="row"><span class="sym" data-tex="\mathcal{L}"></span><span class="def">the loss; it only relaxes once <span class="m" data-tex="\Delta r > m"></span></span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Score gap <span class="m" data-tex="\Delta r = r_c - r_r"></span> = <span id="mg-dr-val">1.00</span></label>
+          <input type="range" id="mg-dr" min="-3" max="6" step="0.05" value="1">
+          <label>Margin <span class="m" data-tex="m"></span> (from Likert gap, e.g. 5−2 = 3) = <span id="mg-m-val">1.50</span></label>
+          <input type="range" id="mg-m" min="0" max="4" step="0.05" value="1.5">
+          <p class="hint"><span class="m" data-tex="m=0"></span> recovers the plain BT loss (grey dashed). A larger <span class="m" data-tex="m"></span> shifts the whole loss curve right: the model must build a bigger score gap before it's "satisfied." Llama 3 later dropped the margin as gains flattened with scale.</p>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 340 200" id="mg-plot"></svg>
+          <div class="eq" id="mg-formula"></div>
+          <div class="eq-readout" id="mg-status"></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="concept" id="kwise">
+      <h3>K-wise: comparisons per prompt</h3>
+      <p class="concept-desc">InstructGPT samples <span class="m" data-tex="K"></span> completions per prompt and ranks them, yielding <span class="m" data-tex="\binom{K}{2}"></span> correlated pairs. Naively shuffling them lets prompts with more completions dominate the loss and invites overfitting; the fix is to average all <span class="m" data-tex="\binom{K}{2}"></span> pairs into one grouped update per prompt. Drag <span class="m" data-tex="K"></span> and watch the pair count grow combinatorially while the per-pair weight shrinks to keep each prompt's contribution balanced.</p>
+      <div class="eq" data-tex="\mathcal{L} = -\frac{1}{\binom{K}{2}} \sum_{(c,r)} \log\sigma\!\left(r_c - r_r\right), \qquad \binom{K}{2} = \frac{K(K-1)}{2}"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="K"></span><span class="def">number of completions sampled and ranked for a single prompt</span></div>
+        <div class="row"><span class="sym" data-tex="\binom{K}{2}"></span><span class="def">number of chosen/rejected pairs that one <span class="m" data-tex="K"></span>-way ranking produces</span></div>
+        <div class="row"><span class="sym" data-tex="\tfrac{1}{\binom{K}{2}}"></span><span class="def">per-pair weight that averages a prompt's pairs into one grouped update, so high-<span class="m" data-tex="K"></span> prompts don't dominate</span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>Completions per prompt, <span class="m" data-tex="K"></span> = <span id="kw-k-val">4</span></label>
+          <input type="range" id="kw-k" min="2" max="9" step="1" value="4">
+          <p class="hint">Pairs per prompt <span class="m" data-tex="=\binom{K}{2}=\tfrac{K(K-1)}{2}"></span>. The grouped loss multiplies by <span class="m" data-tex="1/\binom{K}{2}"></span> so a prompt with K=9 (36 pairs) doesn't outvote a prompt with K=2 (1 pair).</p>
+          <div class="in-practice"><b>In practice</b> · more completions per prompt is cheap signal — but only if you weight it so a few verbose prompts don't quietly become your whole reward model.</div>
+        </div>
+        <div class="panel-viz">
+          <div class="bar-chart" id="kw-bars"></div>
+          <div class="eq" id="kw-formula"></div>
+          <div class="eq-readout" id="kw-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============ SECTION 5: RM QUALITY -> SIGNAL ============ -->
+  <section class="group" id="signal">
+    <div class="group-header"><span class="group-index">05</span><h2>RM Quality → Training Signal</h2></div>
+    <p class="group-intro">The reward model is a <i>proxy</i> objective: the policy optimizes whatever the RM rewards, faithfully including its mistakes. A biased or low-agreement RM doesn't just add noise — it adds a <b>systematic</b> error the policy will happily exploit. This is the on-ramp to reward over-optimization (the next page).</p>
+
+    <article class="concept" id="proxy-gap">
+      <h3>True reward vs. a biased proxy</h3>
+      <p class="concept-desc">Suppose true quality rises with answer correctness, but the RM has a length bias — it adds spurious reward for verbosity. The policy maximizes the <i>proxy</i> (orange), so it drifts toward whatever the proxy over-rewards. Add bias and noise and watch where the policy's optimum lands relative to the true optimum.</p>
+      <div class="eq" data-tex="\hat{R}(x) = R^\star(x) + b\cdot x + \varepsilon, \qquad \pi^\star = \arg\max_x \hat{R}(x)"></div>
+      <div class="symbol-key">
+        <div class="row"><span class="sym" data-tex="R^\star(x)"></span><span class="def">the true reward as a function of output length <span class="m" data-tex="x"></span> — what we actually want maximized</span></div>
+        <div class="row"><span class="sym" data-tex="\hat{R}(x)"></span><span class="def">the proxy reward the RM emits: true reward plus a length bias plus noise</span></div>
+        <div class="row"><span class="sym" data-tex="b"></span><span class="def">length-bias strength — spurious reward per unit verbosity</span></div>
+        <div class="row"><span class="sym" data-tex="\varepsilon"></span><span class="def">noise from imperfect inter-rater agreement</span></div>
+        <div class="row"><span class="sym" data-tex="\pi^\star"></span><span class="def">where the policy lands — it maximizes the proxy <span class="m" data-tex="\hat{R}"></span>, not the truth <span class="m" data-tex="R^\star"></span></span></div>
+      </div>
+      <div class="panel">
+        <div class="panel-controls">
+          <label>RM length-bias strength = <span id="pg-bias-val">0.50</span></label>
+          <input type="range" id="pg-bias" min="0" max="1.5" step="0.05" value="0.5">
+          <label>RM noise (1 − inter-rater agreement) = <span id="pg-noise-val">0.30</span></label>
+          <input type="range" id="pg-noise" min="0" max="1" step="0.05" value="0.3">
+          <button id="pg-reseed">New noise draw</button>
+          <p class="hint" id="pg-hint"></p>
+          <div class="in-practice"><b>In practice</b> · a grader that's biased or only weakly self-consistent doesn't fail loudly — it ships a confidently-wrong reward the optimizer will find and hack. Grader QA <i>is</i> the safety work.</div>
+        </div>
+        <div class="panel-viz">
+          <svg class="plot" viewBox="0 0 360 220" id="pg-plot"></svg>
+          <div class="eq" id="pg-formula"></div>
+          <div class="eq-readout" id="pg-status"></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+</main>
+
+<footer>
+  Built as an interactive companion to <a href="https://rlhfbook.com/course" target="_blank" rel="noopener">rlhfbook.com/course</a> (book Chapter 5, Reward Modeling) by Nathan Lambert.
+  No external libraries — open this file directly in any browser.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function fmt(n,d){ d = d===undefined?3:d; return Number(n).toFixed(d); }
+  // --- KaTeX helpers (shared pattern across course pages) ---
+  // tex(el, latex, display): render one element now (used for live equations).
+  function tex(el, latex, display){
+    if (typeof katex === 'undefined' || !el) return;
+    try { katex.render(latex, el, { displayMode: !!display, throwOnError: false }); }
+    catch (e) { el.textContent = latex; }
+  }
+  // renderStaticMath(): render every [data-tex] element once at load.
+  // class "eq" -> display mode; anything else (e.g. .m, .sym) -> inline.
+  function renderStaticMath(){
+    document.querySelectorAll('[data-tex]').forEach(function(el){
+      tex(el, el.getAttribute('data-tex'), el.classList.contains('eq'));
+    });
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c];
+    });
+  }
+  function sum(arr){ return arr.reduce(function(a,b){ return a+b; }, 0); }
+  function normalize(arr){ var s = sum(arr); return s===0 ? arr.map(function(){return 0;}) : arr.map(function(x){ return x/s; }); }
+  function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+  /* ---------------- 1: Bradley-Terry pairwise loss ---------------- */
+  function initBT(){
+    var rcS = document.getElementById('bt-rc');
+    var rrS = document.getElementById('bt-rr');
+    var rcV = document.getElementById('bt-rc-val');
+    var rrV = document.getElementById('bt-rr-val');
+    var svg = document.getElementById('bt-plot');
+    var formulaEl = document.getElementById('bt-formula');
+    var statusEl = document.getElementById('bt-status');
+
+    // plot: loss as a function of delta = rc - rr, with marker
+    var dom = [-6, 6], maxY = 6;
+    var pts = [];
+    for(var d = dom[0]; d <= dom[1] + 1e-9; d += 0.1){
+      var loss = -Math.log(sigmoid(d));
+      loss = clamp(loss, 0, maxY);
+      var px = (d - dom[0])/(dom[1]-dom[0])*300 + 10;
+      var py = 190 - (loss/maxY)*170;
+      pts.push([px, py]);
+    }
+    var pathD = pts.map(function(p,i){ return (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+
+    function render(){
+      var rc = parseFloat(rcS.value), rr = parseFloat(rrS.value);
+      rcV.textContent = rc.toFixed(2); rrV.textContent = rr.toFixed(2);
+      var d = rc - rr;
+      var P = sigmoid(d);
+      var loss = -Math.log(P);
+      var lossC = clamp(loss, 0, maxY);
+      var cx = clamp((d - dom[0])/(dom[1]-dom[0])*300 + 10, 10, 310);
+      var cy = 190 - (lossC/maxY)*170;
+      svg.innerHTML =
+        '<line class="plot-axis" x1="10" y1="190" x2="310" y2="190"></line>' +
+        '<line class="plot-axis" x1="160" y1="20" x2="160" y2="190" stroke-dasharray="2,3"></line>' +
+        '<path class="plot-curve" d="' + pathD + '"></path>' +
+        '<line x1="' + cx.toFixed(1) + '" y1="' + cy.toFixed(1) + '" x2="' + cx.toFixed(1) + '" y2="190" stroke="var(--orange)" stroke-width="1" stroke-dasharray="3,3"></line>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="14" y="32" fill="var(--text-dim)" font-size="10">loss</text>' +
+        '<text x="120" y="186" fill="var(--text-dim)" font-size="10">&Delta;=0</text>' +
+        '<text x="280" y="186" fill="var(--text-dim)" font-size="10">&Delta;&gt;0</text>';
+      var ordered = d > 0;
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\Delta &= r_c - r_r = ' + rc.toFixed(2) + ' - (' + rr.toFixed(2) + ') = ' + d.toFixed(2) + ' \\\\ ' +
+        'P(y_c \\succ y_r) &= \\sigma(\\Delta) = ' + P.toFixed(3) +
+        ' \\qquad \\mathcal{L} = -\\log\\sigma(\\Delta) = ' + loss.toFixed(3) +
+        '\\end{aligned}',
+        true);
+      statusEl.innerHTML =
+        '<span style="color:' + (ordered?'var(--accent-bright)':'var(--red)') + '">' +
+        (ordered ? 'pair ordered correctly — low loss' : 'pair MIS-ordered — high loss, big gradient') + '</span>';
+    }
+    rcS.addEventListener('input', render);
+    rrS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 2a: Pointwise rubric judging ---------------- */
+  function initRubric(){
+    var crit = ['helpfulness','accuracy','depth'];
+    var wIds = ['rb-w0','rb-w1','rb-w2'];
+    var weights = [0.4, 0.4, 0.2];
+    // fixed scores for helpfulness/depth; accuracy is user-controlled
+    var scores = [4, 2, 3]; // 1..5
+    var accS = document.getElementById('rb-acc');
+    var accV = document.getElementById('rb-acc-val');
+    var rubricEl = document.getElementById('rb-rubric');
+    var formulaEl = document.getElementById('rb-formula');
+    var statusEl = document.getElementById('rb-status');
+
+    function render(){
+      wIds.forEach(function(id, i){
+        weights[i] = parseFloat(document.getElementById(id).value);
+        document.getElementById(id + '-val').textContent = weights[i].toFixed(2);
+      });
+      scores[1] = parseInt(accS.value, 10);
+      accV.textContent = scores[1];
+      var nw = normalize(weights);
+      var total = 0;
+      rubricEl.innerHTML = '';
+      crit.forEach(function(name, i){
+        total += nw[i] * scores[i];
+        var pct = (scores[i]/5*100).toFixed(0);
+        var row = document.createElement('div');
+        row.className = 'rubric-row';
+        row.innerHTML =
+          '<div class="rubric-name">' + name + '</div>' +
+          '<div class="rubric-bar-track"><div class="rubric-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '<div class="rubric-score">' + scores[i] + '/5 &times;' + nw[i].toFixed(2) + '</div>';
+        rubricEl.appendChild(row);
+      });
+      // normalized reward in [0,1] from a 1..5 weighted mean
+      var reward = (total - 1) / 4;
+      var accLow = scores[1] <= 2 && nw[1] < 0.3 && reward > 0.55;
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\text{score} &= \\sum_k \\hat{w}_k\\, s_k = ' + total.toFixed(2) + '\\ /\\ 5 \\\\ ' +
+        'R &= \\tfrac{\\text{score}-1}{4} = ' + reward.toFixed(3) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        (accLow
+          ? '<span style="color:var(--red)">High overall reward despite low accuracy — the rubric under-weights correctness.</span>'
+          : '<span style="color:var(--text-dim)">Weights renormalized to sum to 1; reward maps a 1&ndash;5 score to [0,1].</span>');
+    }
+    wIds.forEach(function(id){ document.getElementById(id).addEventListener('input', render); });
+    accS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 2b: Position & self-preference bias ---------------- */
+  function initJudgeBias(){
+    var dS = document.getElementById('jb-delta');
+    var posS = document.getElementById('jb-pos');
+    var selfS = document.getElementById('jb-self');
+    var dV = document.getElementById('jb-delta-val');
+    var posV = document.getElementById('jb-pos-val');
+    var selfV = document.getElementById('jb-self-val');
+    var toggleBtn = document.getElementById('jb-self-toggle');
+    var cardsEl = document.getElementById('jb-cards');
+    var formulaEl = document.getElementById('jb-formula');
+    var statusEl = document.getElementById('jb-status');
+    var aIsOwn = true; // is slot A the judge's own model family?
+
+    function render(){
+      var delta = parseFloat(dS.value);   // true gap B - A (>0 => B better)
+      var pos = parseFloat(posS.value);   // bias favoring A (first slot)
+      var self = parseFloat(selfS.value); // bias favoring own family
+      dV.textContent = delta.toFixed(2);
+      posV.textContent = pos.toFixed(2);
+      selfV.textContent = self.toFixed(2);
+
+      // verdict logit, positive => judge prefers B
+      // true gap favors B by +delta; position bias favors A => -pos;
+      // self-pref favors own family: if A is own, favors A => -self; else favors B => +self
+      var selfTerm = aIsOwn ? -self : +self;
+      var logit = delta - pos + selfTerm;
+      var pB = sigmoid(logit);
+      var verdict = pB > 0.5 ? 'B' : 'A';
+      var trueBetter = delta > 0 ? 'B' : (delta < 0 ? 'A' : 'tie');
+      var wrong = (trueBetter !== 'tie') && (verdict !== trueBetter);
+
+      toggleBtn.textContent = aIsOwn ? "Slot A is the judge's own family (click to swap)" : "Slot B is the judge's own family (click to swap)";
+
+      cardsEl.innerHTML =
+        '<div class="resp-card ' + (verdict==='A'?'win':'') + '">' +
+          '<div class="resp-head"><span>Assistant A ' + (aIsOwn?'· judge’s family':'') + '</span><span>' + (verdict==='A'?'&#9733; chosen':'') + '</span></div>' +
+          '<div class="resp-body">First-shown response.</div></div>' +
+        '<div style="text-align:center;color:var(--text-dim);font-size:0.8em;margin:4px 0;">vs</div>' +
+        '<div class="resp-card ' + (verdict==='B'?'win':'') + '">' +
+          '<div class="resp-head"><span>Assistant B ' + (!aIsOwn?'· judge’s family':'') + '</span><span>' + (verdict==='B'?'&#9733; chosen':'') + '</span></div>' +
+          '<div class="resp-body">Second-shown response.</div></div>';
+
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\ell_B &= \\Delta - b_{\\text{pos}} ' + (aIsOwn?'- b_{\\text{self}}':'+ b_{\\text{self}}') + ' = ' +
+          delta.toFixed(2) + ' - ' + pos.toFixed(2) + ' ' + (aIsOwn?'- ':'+ ') + self.toFixed(2) +
+          ' = ' + logit.toFixed(2) + ' \\\\ ' +
+        'P(\\text{judge}=B) &= \\sigma(\\ell_B) = ' + pB.toFixed(3) +
+          ' \\;\\Rightarrow\\; \\text{verdict}=[[' + verdict + ']]' +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        'truly better: <b>' + trueBetter.toUpperCase() + '</b> &nbsp; ' +
+        (wrong
+          ? '<span style="color:var(--red)">&#9888; bias overturned the true ranking</span>'
+          : '<span style="color:var(--accent-bright)">verdict matches true quality</span>');
+    }
+    toggleBtn.addEventListener('click', function(){ aIsOwn = !aIsOwn; render(); });
+    dS.addEventListener('input', render);
+    posS.addEventListener('input', render);
+    selfS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 2c: Grader consistency / agreement ---------------- */
+  function initAgreement(){
+    var dS = document.getElementById('ag-delta');
+    var tS = document.getElementById('ag-temp');
+    var pS = document.getElementById('ag-pos');
+    var dV = document.getElementById('ag-delta-val');
+    var tV = document.getElementById('ag-temp-val');
+    var pV = document.getElementById('ag-pos-val');
+    var gridEl = document.getElementById('ag-grid');
+    var formulaEl = document.getElementById('ag-formula');
+    var statusEl = document.getElementById('ag-status');
+    var btn = document.getElementById('ag-resample');
+    var N = 100;
+    var seed = 12345;
+    function rng(){ // deterministic LCG so re-runs are reproducible until reseeded
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    }
+
+    // Two judge passes over N items. Each item has a true gap ~ delta (with the
+    // sign fixed to "A better" so we have a ground-truth majority of A).
+    // verdict prob of A = sigmoid((delta + posbias)/temp-ish). Higher temp -> noisier.
+    function run(){
+      var delta = parseFloat(dS.value);
+      var temp = parseFloat(tS.value);
+      var pos = parseFloat(pS.value);
+      dV.textContent = delta.toFixed(2); tV.textContent = temp.toFixed(2); pV.textContent = pos.toFixed(2);
+
+      // logistic noise scale grows with temperature; tau floors at small value so temp=0 -> ~deterministic
+      var tau = 0.15 + temp * 1.2;
+      // systematic position pull toward slot A on BOTH passes (same direction => doesn't average out)
+      var pass1 = [], pass2 = [];
+      var swapFlips = 0;       // verdict changes when A/B order swapped (pure position effect)
+      var agreeCount = 0;      // pass1 == pass2 (two independent same-order runs)
+      var aCountP1 = 0, aCountP2 = 0;
+      for(var i=0;i<N;i++){
+        // true preference favors A by delta for ~all items (decisive pair)
+        // pass 1: A shown first -> position bias adds +pos to A
+        var v1 = sampleVerdict(delta + pos, tau);   // returns 'A' or 'B'
+        // pass 2: independent run, same order
+        var v2 = sampleVerdict(delta + pos, tau);
+        // swapped order: B shown first -> position bias now adds +pos to B (i.e. -pos to A)
+        var vSwap = sampleVerdict(delta - pos, tau);
+        pass1.push(v1); pass2.push(v2);
+        if(v1 === 'A') aCountP1++;
+        if(v2 === 'A') aCountP2++;
+        if(v1 === v2) agreeCount++;
+        if(v1 !== vSwap) swapFlips++;
+      }
+      // observed agreement
+      var po = agreeCount / N;
+      // expected agreement by chance (Cohen's kappa) from marginals
+      var pA1 = aCountP1/N, pA2 = aCountP2/N;
+      var pe = pA1*pA2 + (1-pA1)*(1-pA2);
+      var kappa = (pe >= 1) ? 1 : (po - pe) / (1 - pe);
+      var flipRate = swapFlips / N;
+
+      // render grid: color by pass1 verdict
+      gridEl.innerHTML = '';
+      for(var k=0;k<N;k++){
+        var cell = document.createElement('div');
+        cell.className = 'agree-cell ' + (pass1[k]==='A'?'a':'b');
+        cell.title = 'item ' + (k+1) + ': pass1=' + pass1[k];
+        gridEl.appendChild(cell);
+      }
+
+      var quality = kappa > 0.8 ? 'excellent' : kappa > 0.6 ? 'substantial' : kappa > 0.4 ? 'moderate' : kappa > 0.2 ? 'weak' : 'poor';
+      var qcolor = kappa > 0.6 ? 'var(--accent-bright)' : kappa > 0.4 ? 'var(--orange)' : 'var(--red)';
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'p_o &= ' + po.toFixed(3) + ' \\qquad p_e = ' + pe.toFixed(3) + ' \\\\ ' +
+        '\\kappa &= \\frac{p_o - p_e}{1 - p_e} = ' + kappa.toFixed(3) + ' \\\\ ' +
+        '\\text{flip-rate} &= ' + (flipRate*100).toFixed(0) + '\\%' +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        '&kappa; = <b style="color:' + qcolor + '">' + kappa.toFixed(3) + '</b> (' + quality + ') &nbsp;|&nbsp; ' +
+        'order-flip <b style="color:' + (flipRate>0.2?'var(--red)':'var(--accent-bright)') + '">' + (flipRate*100).toFixed(0) + '%</b>' +
+        '<br><span style="color:var(--text-dim)">' +
+        (flipRate > 0.2 ? 'High flip-rate: position bias is contaminating the reward — average both orderings.' :
+         kappa < 0.4 ? 'Low &kappa;: judge is barely better than chance; drop temperature toward 0.' :
+         'Consistent grader: reward signal is reproducible.') + '</span>';
+    }
+    function sampleVerdict(logitA, tau){
+      // P(A) = sigmoid(logitA / tau); draw with rng
+      var pA = sigmoid(logitA / tau);
+      return rng() < pA ? 'A' : 'B';
+    }
+    btn.addEventListener('click', function(){ seed = (Date.now() & 0x7fffffff) || 1; run(); });
+    dS.addEventListener('input', function(){ seed = 12345; run(); });
+    tS.addEventListener('input', function(){ seed = 12345; run(); });
+    pS.addEventListener('input', function(){ seed = 12345; run(); });
+    run();
+  }
+
+  /* ---------------- 3: ORM vs PRM ---------------- */
+  function initOrmPrm(){
+    var steps = [
+      'Let x be the number of apples.',
+      'Anna has 3x apples, Ben has x apples.',
+      'Together: 3x + x = 4x = 24, so x = 5.',   // broken by default: 24/4 = 6, not 5
+      'Anna has 3x = 15 apples.',
+      'Final answer: Anna has 18 apples.'
+    ];
+    var modeTabs = document.querySelectorAll('#op-tabs button');
+    var finalTabs = document.querySelectorAll('#op-final button');
+    var brokenS = document.getElementById('op-broken');
+    var stepsEl = document.getElementById('op-steps');
+    var formulaEl = document.getElementById('op-formula');
+    var statusEl = document.getElementById('op-status');
+    var hintEl = document.getElementById('op-hint');
+    var mode = 'orm';
+    var finalCorrect = true;
+    var brokenStep = 3; // 1-indexed; 0 = none
+
+    function render(){
+      brokenStep = parseInt(brokenS.value, 10);
+      hintEl.textContent = mode === 'orm'
+        ? 'ORM head outputs a per-token correctness probability, but the label is just the FINAL outcome copied onto every step. A wrong middle step is invisible if the answer lands right.'
+        : 'PRM scores each step at its boundary token with a +1 / 0 / −1 label. It catches the broken step regardless of the final answer.';
+
+      stepsEl.innerHTML = '';
+      steps.forEach(function(txt, i){
+        var idx = i + 1;
+        var isBroken = (idx === brokenStep);
+        var item = document.createElement('div');
+        item.className = 'step-item';
+        var tag, tagcls;
+        if(mode === 'orm'){
+          // ORM: every step gets the SAME terminal label
+          tag = finalCorrect ? 'p≈' + '0.90' : 'p≈0.10';
+          tagcls = finalCorrect ? 'good' : 'bad';
+        } else {
+          // PRM: per-step label
+          if(isBroken){ tag = '−1 incorrect'; tagcls = 'bad'; item.classList.add('flagged'); }
+          else { tag = '+1 correct'; tagcls = 'good'; }
+        }
+        item.innerHTML =
+          '<div class="step-text">step ' + idx + ': ' + escapeHtml(txt) + '</div>' +
+          '<span class="step-tag ' + tagcls + '">' + tag + '</span>';
+        stepsEl.appendChild(item);
+      });
+
+      var missed = (mode === 'orm') && (brokenStep > 0) && finalCorrect;
+      if(mode === 'orm'){
+        var ormScore = finalCorrect ? 0.90 : 0.10;
+        tex(formulaEl,
+          'R_{\\text{ORM}} \\approx \\operatorname*{mean}_t\\, p(\\text{correct}) = ' + ormScore.toFixed(2) +
+          ' \\quad (\\text{label} = \\text{final outcome only})', true);
+        statusEl.innerHTML =
+          (missed
+            ? '<span style="color:var(--red)">&#9888; step ' + brokenStep + ' is broken, but ORM scores the whole solution as correct — credit-assignment blind spot.</span>'
+            : '<span style="color:var(--text-dim)">ORM reflects only whether the final answer is right.</span>');
+      } else {
+        var nSteps = steps.length;
+        var nGood = brokenStep > 0 ? nSteps - 1 : nSteps;
+        var meanStep = (nGood * 1 + (brokenStep>0 ? -1 : 0)) / nSteps;
+        var minStep = brokenStep > 0 ? -1 : 1;
+        tex(formulaEl,
+          '\\operatorname*{mean}_s r_s = ' + meanStep.toFixed(2) +
+          ' \\qquad \\min_s r_s = ' + minStep + '\\ (\\text{fail-fast})', true);
+        statusEl.innerHTML =
+          (brokenStep > 0
+            ? '<span style="color:var(--accent-bright)">PRM flags step ' + brokenStep + ' as incorrect — per-step credit even when the final answer is ' + (finalCorrect?'right':'wrong') + '.</span>'
+            : '<span style="color:var(--text-dim)">All steps valid; every step boundary labeled +1.</span>');
+      }
+    }
+    modeTabs.forEach(function(b){ b.addEventListener('click', function(){
+      modeTabs.forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active'); mode = b.dataset.mode; render();
+    }); });
+    finalTabs.forEach(function(b){ b.addEventListener('click', function(){
+      finalTabs.forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active'); finalCorrect = b.dataset.final === 'correct'; render();
+    }); });
+    brokenS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 4a: Margin loss ---------------- */
+  function initMargin(){
+    var drS = document.getElementById('mg-dr');
+    var mS = document.getElementById('mg-m');
+    var drV = document.getElementById('mg-dr-val');
+    var mV = document.getElementById('mg-m-val');
+    var svg = document.getElementById('mg-plot');
+    var formulaEl = document.getElementById('mg-formula');
+    var statusEl = document.getElementById('mg-status');
+
+    var dom = [-3, 6], maxY = 6, W = 340;
+    function xToPx(d){ return (d - dom[0])/(dom[1]-dom[0])*(W-20) + 10; }
+    function yToPx(v){ return 190 - (clamp(v,0,maxY)/maxY)*170; }
+
+    function curve(m){
+      var s = '';
+      for(var d = dom[0]; d <= dom[1] + 1e-9; d += 0.08){
+        var loss = -Math.log(sigmoid(d - m));
+        s += (d===dom[0]?'M':'L') + xToPx(d).toFixed(1) + ',' + yToPx(loss).toFixed(1) + ' ';
+      }
+      return s.trim();
+    }
+    var basePath = (function(){
+      var s = '';
+      for(var d = dom[0]; d <= dom[1] + 1e-9; d += 0.08){
+        var loss = -Math.log(sigmoid(d));
+        s += (d===dom[0]?'M':'L') + xToPx(d).toFixed(1) + ',' + yToPx(loss).toFixed(1) + ' ';
+      }
+      return s.trim();
+    })();
+
+    function render(){
+      var dr = parseFloat(drS.value), m = parseFloat(mS.value);
+      drV.textContent = dr.toFixed(2); mV.textContent = m.toFixed(2);
+      var loss = -Math.log(sigmoid(dr - m));
+      var baseLoss = -Math.log(sigmoid(dr));
+      var cx = clamp(xToPx(dr), 10, W-10), cy = yToPx(loss);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="10" y1="190" x2="' + (W-10) + '" y2="190"></line>' +
+        '<path class="plot-true" d="' + basePath + '"></path>' +
+        '<path class="plot-curve" d="' + curve(m) + '"></path>' +
+        '<line x1="' + xToPx(m).toFixed(1) + '" y1="20" x2="' + xToPx(m).toFixed(1) + '" y2="190" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2,3"></line>' +
+        '<text x="' + (xToPx(m)+3).toFixed(1) + '" y="32" fill="var(--accent)" font-size="9">&Delta;r=m</text>' +
+        '<circle class="plot-marker" cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5"></circle>' +
+        '<text x="14" y="46" fill="var(--text-dim)" font-size="10">loss</text>' +
+        '<text x="' + (W-70) + '" y="186" fill="var(--text-dim)" font-size="9">grey = m&hairsp;=&hairsp;0</text>';
+      tex(formulaEl,
+        '\\mathcal{L} = -\\log\\sigma(\\Delta r - m) = -\\log\\sigma(' +
+        dr.toFixed(2) + ' - ' + m.toFixed(2) + ') = ' + loss.toFixed(3), true);
+      statusEl.innerHTML =
+        '<span style="color:var(--text-dim)">vs plain BT (m=0): ' + baseLoss.toFixed(3) + '. The margin demands &Delta;r &gt; m before the loss eases &mdash; effective zero-loss point shifts to &Delta;r = m.</span>';
+    }
+    drS.addEventListener('input', render);
+    mS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 4b: K-wise comparisons ---------------- */
+  function initKwise(){
+    var kS = document.getElementById('kw-k');
+    var kV = document.getElementById('kw-k-val');
+    var barsEl = document.getElementById('kw-bars');
+    var formulaEl = document.getElementById('kw-formula');
+    var statusEl = document.getElementById('kw-status');
+
+    function choose2(k){ return k*(k-1)/2; }
+
+    function render(){
+      var k = parseInt(kS.value, 10);
+      kV.textContent = k;
+      var maxPairs = choose2(9); // 36
+      barsEl.innerHTML = '';
+      for(var kk = 2; kk <= 9; kk++){
+        var pairs = choose2(kk);
+        var h = (pairs / maxPairs * 100).toFixed(1);
+        var col = document.createElement('div');
+        col.className = 'bar-col';
+        var active = kk === k;
+        col.innerHTML =
+          '<div class="bar-track"><div class="bar-fill" style="height:' + h + '%;' +
+            (active ? 'background:linear-gradient(to top,var(--orange),#f0c98a);' : '') + '"></div></div>' +
+          '<div class="bar-label">K=' + kk + '<br>' + pairs + '</div>';
+        barsEl.appendChild(col);
+      }
+      var pairs = choose2(k);
+      var w = 1 / pairs;
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        '\\binom{K}{2} &= \\frac{K(K-1)}{2} = ' + pairs + ' \\\\ ' +
+        '\\frac{1}{\\binom{K}{2}} &= ' + w.toFixed(4) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        '<span style="color:var(--text-dim)">Each prompt contributes one balanced grouped update averaged over all ' + pairs + ' pairs.</span>';
+    }
+    kS.addEventListener('input', render);
+    render();
+  }
+
+  /* ---------------- 5: Proxy reward gap ---------------- */
+  function initProxyGap(){
+    var biasS = document.getElementById('pg-bias');
+    var noiseS = document.getElementById('pg-noise');
+    var biasV = document.getElementById('pg-bias-val');
+    var noiseV = document.getElementById('pg-noise-val');
+    var reseed = document.getElementById('pg-reseed');
+    var svg = document.getElementById('pg-plot');
+    var formulaEl = document.getElementById('pg-formula');
+    var statusEl = document.getElementById('pg-status');
+    var hintEl = document.getElementById('pg-hint');
+
+    var W = 360, H = 220, PAD = 34;
+    var seed = 7;
+    function rng(){ seed = (seed*1103515245 + 12345) & 0x7fffffff; return seed/0x7fffffff; }
+    var noiseField = [];
+    function reseedNoise(){ noiseField = []; for(var i=0;i<=40;i++) noiseField.push(rng()*2 - 1); }
+    reseedNoise();
+
+    // domain: "verbosity" axis 0..1 (proxy for response length).
+    // true reward: peaks at moderate length then plateaus/declines (more words != better).
+    function trueR(x){ return 0.85 * Math.exp(-Math.pow((x-0.45)/0.32, 2)); }
+    // proxy reward: true + monotone length bias + noise
+    function biasTerm(x, b){ return b * x; }
+
+    function render(){
+      var b = parseFloat(biasS.value);
+      var noise = parseFloat(noiseS.value);
+      biasV.textContent = b.toFixed(2);
+      noiseV.textContent = noise.toFixed(2);
+
+      function xToPx(x){ return PAD + x*(W-2*PAD); }
+      function yToPx(v){ return PAD + (1.1 - v)/(1.1+0.2)*(H-2*PAD); }
+
+      var truePts = [], proxyPts = [];
+      var bestTrueX = 0, bestTrueV = -1, bestProxyX = 0, bestProxyV = -1;
+      for(var i=0;i<=40;i++){
+        var x = i/40;
+        var tv = trueR(x);
+        var pv = trueR(x) + biasTerm(x, b) + noise * noiseField[i] * 0.18;
+        truePts.push([xToPx(x), yToPx(tv)]);
+        proxyPts.push([xToPx(x), yToPx(pv)]);
+        if(tv > bestTrueV){ bestTrueV = tv; bestTrueX = x; }
+        if(pv > bestProxyV){ bestProxyV = pv; bestProxyX = x; }
+      }
+      function toPath(p){ return p.map(function(pt,i){ return (i===0?'M':'L') + pt[0].toFixed(1) + ',' + pt[1].toFixed(1); }).join(' '); }
+
+      var trueAtProxyOpt = trueR(bestProxyX);
+      svg.innerHTML =
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + yToPx(0).toFixed(1) + '" x2="' + (W-PAD) + '" y2="' + yToPx(0).toFixed(1) + '"></line>' +
+        '<line class="plot-axis" x1="' + PAD + '" y1="' + PAD + '" x2="' + PAD + '" y2="' + (H-PAD) + '"></line>' +
+        '<path class="plot-true" d="' + toPath(truePts) + '" stroke="var(--text-dim)"></path>' +
+        '<path class="plot-curve" d="' + toPath(proxyPts) + '" stroke="var(--orange)"></path>' +
+        '<line x1="' + xToPx(bestTrueX).toFixed(1) + '" y1="' + PAD + '" x2="' + xToPx(bestTrueX).toFixed(1) + '" y2="' + (H-PAD) + '" stroke="var(--text-dim)" stroke-width="1" stroke-dasharray="2,3"></line>' +
+        '<line x1="' + xToPx(bestProxyX).toFixed(1) + '" y1="' + PAD + '" x2="' + xToPx(bestProxyX).toFixed(1) + '" y2="' + (H-PAD) + '" stroke="var(--orange)" stroke-width="1" stroke-dasharray="2,3"></line>' +
+        '<circle cx="' + xToPx(bestTrueX).toFixed(1) + '" cy="' + yToPx(bestTrueV).toFixed(1) + '" r="4" fill="var(--text-dim)"></circle>' +
+        '<circle class="plot-marker" cx="' + xToPx(bestProxyX).toFixed(1) + '" cy="' + yToPx(bestProxyV).toFixed(1) + '" r="5"></circle>' +
+        '<text x="' + (PAD+2) + '" y="' + (PAD-8) + '" fill="var(--text-dim)" font-size="10">reward</text>' +
+        '<text x="' + (W-PAD-72) + '" y="' + (yToPx(0)+16).toFixed(1) + '" fill="var(--text-dim)" font-size="10">verbosity / length</text>' +
+        '<text x="' + (W-PAD-78) + '" y="' + (PAD+2) + '" fill="var(--orange)" font-size="9">proxy (RM)</text>' +
+        '<text x="' + (W-PAD-78) + '" y="' + (PAD+14) + '" fill="var(--text-dim)" font-size="9">true reward</text>';
+
+      var gap = bestProxyX - bestTrueX;
+      hintEl.textContent = b < 0.05
+        ? 'No bias: the policy optimizing the proxy lands on the true optimum. Add length bias to pull it away.'
+        : 'The policy chases the orange proxy optimum, drifting toward longer outputs the true reward does not value — reward hacking in miniature.';
+
+      tex(formulaEl,
+        '\\begin{aligned}' +
+        'x^\\star_{\\text{true}} &= ' + bestTrueX.toFixed(2) + ' \\qquad x^\\star_{\\text{proxy}} = ' + bestProxyX.toFixed(2) + ' \\\\ ' +
+        'R^\\star(x^\\star_{\\text{proxy}}) &= ' + trueAtProxyOpt.toFixed(3) + '\\ (\\text{vs } ' + bestTrueV.toFixed(3) + ') \\\\ ' +
+        '\\text{gap} &= x^\\star_{\\text{proxy}} - x^\\star_{\\text{true}} = ' + gap.toFixed(2) +
+        '\\end{aligned}', true);
+      statusEl.innerHTML =
+        'gap = <b style="color:' + (Math.abs(gap)>0.1?'var(--red)':'var(--accent-bright)') + '">' + gap.toFixed(2) + '</b>' +
+        '<br><span style="color:var(--text-dim)">Proxy = true + bias&middot;length + noise. The optimizer maximizes the proxy, not the truth.</span>';
+    }
+    reseed.addEventListener('click', function(){ reseedNoise(); render(); });
+    biasS.addEventListener('input', render);
+    noiseS.addEventListener('input', render);
+    render();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    renderStaticMath();
+    initBT();
+    initRubric();
+    initJudgeBias();
+    initAgreement();
+    initOrmPrm();
+    initMargin();
+    initKwise();
+    initProxyGap();
+  });
+})();
+</script>
+
+</body>
+</html>
