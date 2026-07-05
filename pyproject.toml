@@ -165,6 +165,10 @@ line-length = 100
 exclude = [
     # Vendored from HuggingFace, kept identical to upstream
     "kimi-k2.5-hf-tokenizer/tool_declaration_ts.py",
+    # Standalone hands-on RL teaching lab: student TODO-stub files
+    # intentionally contain undefined names / unused vars, so they are
+    # not governed by the library lint/format gate.
+    "extras/rl-applied/",
 ]
 
 [tool.ruff.lint]
